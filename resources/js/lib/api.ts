@@ -53,26 +53,49 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   });
 
   const raw = await response.text();
-  const payload = raw ? JSON.parse(raw) : null;
+  let payload: unknown = null;
+
+  if (raw) {
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      payload = null;
+    }
+  }
+
+  const responseObject =
+    payload !== null && typeof payload === 'object'
+      ? (payload as Record<string, unknown>)
+      : null;
 
   if (!response.ok) {
     if (response.status === 401) {
       clearAuthToken();
     }
 
-    const firstValidationMessage = payload?.errors
-      ? Object.values(payload.errors)
+    const validationErrors = responseObject?.errors;
+
+    const firstValidationMessage =
+      validationErrors && typeof validationErrors === 'object'
+        ? Object.values(validationErrors as Record<string, unknown>)
           .flat()
           .find((entry): entry is string => typeof entry === 'string')
-      : null;
+        : null;
+
+    const htmlResponse = raw.trim().startsWith('<');
 
     const message =
-      payload?.message ||
-      payload?.error ||
+      (typeof responseObject?.message === 'string' ? responseObject.message : null) ||
+      (typeof responseObject?.error === 'string' ? responseObject.error : null) ||
       firstValidationMessage ||
+      (htmlResponse ? 'Servidor retornou HTML em vez de JSON. Verifique logs e configuração do deploy.' : null) ||
       'Request failed.';
 
     throw new ApiError(message, response.status);
+  }
+
+  if (raw && payload === null) {
+    throw new ApiError('Resposta inválida do servidor (JSON esperado).', response.status);
   }
 
   return payload as T;

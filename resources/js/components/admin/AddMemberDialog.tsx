@@ -117,6 +117,16 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
     const normalizedEmail = email.trim().toLowerCase();
 
     try {
+      if (!homeGroup) {
+        toast({
+          title: 'Grupo Homegénio obrigatório',
+          description: 'Selecione o Grupo Homegénio do membro antes de continuar.',
+          variant: 'destructive',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       const registerResponse = await apiRequest<RegisterResponse>('/api/auth/register', {
         method: 'POST',
         auth: false,
@@ -124,6 +134,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
           name: name.trim(),
           email: normalizedEmail,
           password,
+          home_group: homeGroup,
         },
       });
 
@@ -148,10 +159,11 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
       toast({ title: 'Membro adicionado com sucesso!' });
       onOpenChange(false);
       resetForm();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Não foi possível adicionar o membro.';
       toast({
         title: 'Erro ao adicionar membro',
-        description: error.message,
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -203,14 +215,13 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
           <div className="space-y-2">
             <Label htmlFor="add-member-home-group">Grupo Homegénio</Label>
             <Select
-              value={homeGroup ?? 'none'}
-              onValueChange={(value) => setHomeGroup(value === 'none' ? null : value as Profile['home_group'])}
+              value={homeGroup ?? undefined}
+              onValueChange={(value) => setHomeGroup(value as Profile['home_group'])}
             >
               <SelectTrigger id="add-member-home-group">
                 <SelectValue placeholder="Selecione um grupo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Não atribuído</SelectItem>
                 {homeGroups.map((group) => (
                   <SelectItem key={group.value} value={group.value}>
                     {group.label}

@@ -43,7 +43,7 @@ export function ScheduleDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-lg overflow-y-auto p-4 sm:w-full sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
@@ -77,9 +77,9 @@ export function ScheduleDetailDialog({
               {schedule.members?.map(member => (
                 <div 
                   key={member.id}
-                  className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl"
+                  className="flex flex-col gap-3 rounded-xl bg-secondary/50 p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       {member.profile?.avatar_url ? (
                         <img 
@@ -91,15 +91,15 @@ export function ScheduleDetailDialog({
                         <User className="h-5 w-5 text-primary" />
                       )}
                     </div>
-                    <div>
-                      <p className="font-medium text-foreground">{member.profile?.name}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground truncate">{member.profile?.name}</p>
                       <p className="text-sm text-muted-foreground">
                         {functionTypeLabels[member.function_type] || member.function_type}
                         {member.function_detail && ` - ${member.function_detail}`}
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex flex-wrap gap-1 sm:justify-end">
                     {member.confirmed && (
                       <Badge className="bg-success/10 text-success border-0">
                         <Check className="h-3 w-3 mr-1" />
@@ -137,20 +137,20 @@ export function ScheduleDetailDialog({
               {schedule.songs?.map((scheduleSong, index) => (
                 <div 
                   key={scheduleSong.id}
-                  className="flex items-center justify-between p-3 bg-card rounded-xl border border-border"
+                  className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     <span className="w-7 h-7 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium text-primary">
                       {index + 1}
                     </span>
-                    <div>
-                      <p className="font-medium text-foreground">{scheduleSong.song?.title}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground truncate">{scheduleSong.song?.title}</p>
                       {scheduleSong.song?.artist && (
-                        <p className="text-sm text-muted-foreground">{scheduleSong.song.artist}</p>
+                        <p className="text-sm text-muted-foreground truncate">{scheduleSong.song.artist}</p>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
                     <Button
                       type="button"
                       variant="ghost"

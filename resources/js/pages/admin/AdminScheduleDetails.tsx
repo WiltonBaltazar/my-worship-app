@@ -96,17 +96,17 @@ export default function AdminScheduleDetails() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Button variant="ghost" onClick={() => navigate('/admin-app/schedules')} className="-ml-2">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
 
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsEditDialogOpen(true)}>
+        <div className="flex w-full gap-2 sm:w-auto">
+          <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setIsEditDialogOpen(true)}>
             Editar
           </Button>
-          <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
+          <Button variant="destructive" className="flex-1 sm:flex-none" onClick={() => setIsDeleteDialogOpen(true)}>
             <Trash2 className="mr-2 h-4 w-4" />
             Excluir
           </Button>
@@ -114,7 +114,7 @@ export default function AdminScheduleDetails() {
       </div>
 
       <header className="space-y-1">
-        <h1 className="text-3xl font-bold text-foreground lg:text-4xl">Detalhes da Escala</h1>
+        <h1 className="text-2xl font-bold text-foreground sm:text-3xl lg:text-4xl">Detalhes da Escala</h1>
         <p className="text-muted-foreground">Visualize membros, confirmações e repertório.</p>
       </header>
 
@@ -144,7 +144,7 @@ export default function AdminScheduleDetails() {
           </div>
           <div className="space-y-2">
             {(schedule.members ?? []).map((member) => (
-              <div key={member.id} className="flex items-center justify-between rounded-2xl border border-border bg-card p-3">
+              <div key={member.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                     {member.profile?.avatar_url ? (
@@ -161,7 +161,7 @@ export default function AdminScheduleDetails() {
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                   {member.confirmed && (
                     <Badge className="bg-success/10 text-success">
                       <Check className="mr-1 h-3 w-3" />

@@ -109,11 +109,11 @@ export default function AdminSchedules() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground lg:text-5xl">Escalas</h1>
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl lg:text-5xl">Escalas</h1>
           <p className="text-base text-muted-foreground lg:text-2xl">Crie e gerencie escalas de culto</p>
         </div>
 
-        <Button className="h-12 rounded-2xl px-6 text-lg" onClick={() => setIsCreateDialogOpen(true)}>
+        <Button className="h-12 w-full rounded-2xl px-6 text-lg sm:w-auto" onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="mr-2 h-5 w-5" />
           Nova Escala
         </Button>
@@ -130,11 +130,11 @@ export default function AdminSchedules() {
             <Card key={schedule.id} className="border border-border shadow-soft">
               <CardHeader className="pb-2">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="flex items-start gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                       <Calendar className="h-6 w-6" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <CardTitle className="text-xl lg:text-3xl">{formatScheduleDate(schedule.schedule_date)}</CardTitle>
                       {schedule.title && <p className="mt-1 text-sm text-muted-foreground lg:text-base">{schedule.title}</p>}
                       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -200,7 +200,7 @@ export default function AdminSchedules() {
                         <Badge
                           key={member.id}
                           variant={member.confirmed ? 'default' : 'secondary'}
-                          className={member.confirmed ? 'bg-primary/10 text-primary' : ''}
+                          className={member.confirmed ? 'bg-primary/10 text-primary whitespace-normal break-words' : 'whitespace-normal break-words'}
                         >
                           {member.profile?.name} - {functionLabelMap[member.function_type] || member.function_type}
                           {member.function_detail ? ` - ${member.function_detail}` : ''}

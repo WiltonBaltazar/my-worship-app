@@ -38,7 +38,7 @@ export default function AdminRepertoire() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Repertório</h1>
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Repertório</h1>
           <p className="text-muted-foreground">Gerencie as músicas do ministério</p>
         </div>
         <Button className="w-full sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
@@ -61,66 +61,68 @@ export default function AdminRepertoire() {
         {filteredSongs.map((song) => (
           <Card key={song.id} className="border-none shadow-soft">
             <CardContent className="p-4">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                  <Music2 className="h-6 w-6 text-primary" />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-semibold text-foreground">{song.title}</h3>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                <div className="flex min-w-0 flex-1 items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <Music2 className="h-6 w-6 text-primary" />
                   </div>
 
-                  {song.artist && <p className="text-sm text-muted-foreground">{song.artist}</p>}
-
-                  {(song.tags ?? []).length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {(song.tags ?? []).map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-semibold text-foreground">{song.title}</h3>
                     </div>
-                  )}
 
-                  <div className="mt-3 flex flex-wrap gap-4 text-sm">
-                    {song.chords_url && (
-                      <a
-                        href={song.chords_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-primary hover:underline"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        Cifra
-                      </a>
+                    {song.artist && <p className="text-sm text-muted-foreground">{song.artist}</p>}
+
+                    {(song.tags ?? []).length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {(song.tags ?? []).map((tag) => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
                     )}
-                    {song.lyrics_url && (
-                      <a
-                        href={song.lyrics_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-primary hover:underline"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        Letra
-                      </a>
-                    )}
-                    {song.video_url && (
-                      <a
-                        href={song.video_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-primary hover:underline"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        Vídeo
-                      </a>
-                    )}
+
+                    <div className="mt-3 flex flex-wrap gap-4 text-sm">
+                      {song.chords_url && (
+                        <a
+                          href={song.chords_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-primary hover:underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Cifra
+                        </a>
+                      )}
+                      {song.lyrics_url && (
+                        <a
+                          href={song.lyrics_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-primary hover:underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Letra
+                        </a>
+                      )}
+                      {song.video_url && (
+                        <a
+                          href={song.video_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-primary hover:underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Vídeo
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex shrink-0 gap-2 self-end sm:self-start">
                   <Button variant="ghost" size="icon" onClick={() => setEditingSong(song)}>
                     <Edit2 className="h-4 w-4" />
                   </Button>

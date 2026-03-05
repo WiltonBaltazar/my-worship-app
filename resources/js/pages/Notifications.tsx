@@ -95,7 +95,7 @@ export default function Notifications() {
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h1 className="text-xl font-bold text-foreground">Notificações</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <PushNotificationToggle />
             {unreadCount > 0 && (
               <Button 
@@ -132,9 +132,10 @@ export default function Notifications() {
                         Escala de {scheduleDate ? format(new Date(scheduleDate), "dd/MM/yyyy", { locale: ptBR }) : 'data desconhecida'}
                         {functionType && ` - ${functionType}`}
                       </p>
-                      <div className="flex gap-2 mt-3">
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                         <Button
                           size="sm"
+                          className="w-full sm:w-auto"
                           onClick={async () => {
                             await acceptRequestMutation.mutateAsync({
                               requestId: request.id,
@@ -153,6 +154,7 @@ export default function Notifications() {
                         <Button
                           size="sm"
                           variant="outline"
+                          className="w-full sm:w-auto"
                           onClick={() => rejectRequestMutation.mutate({
                             requestId: request.id,
                             candidateName: profile?.name || 'Alguém'
@@ -221,7 +223,7 @@ export default function Notifications() {
                       <p className="text-sm text-muted-foreground mt-1">
                         {notif.message}
                       </p>
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(notif.created_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
                         </p>

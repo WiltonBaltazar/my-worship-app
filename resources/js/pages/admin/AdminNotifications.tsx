@@ -114,10 +114,11 @@ export default function AdminNotifications() {
       }
 
       resetForm();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Falha ao enviar notificação.';
       toast({
         title: 'Erro ao enviar',
-        description: error.message,
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -146,21 +147,21 @@ export default function AdminNotifications() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold text-foreground">Notificações</h1>
+        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Notificações</h1>
         <p className="text-muted-foreground">Envie mensagens e visualize solicitações</p>
       </header>
 
-      <Tabs defaultValue="send" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="send" className="flex items-center gap-2">
+      <Tabs defaultValue="send" className="min-w-0 space-y-4">
+        <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto">
+          <TabsTrigger value="send" className="shrink-0 gap-2">
             <Send className="h-4 w-4" />
             Enviar
           </TabsTrigger>
-          <TabsTrigger value="requests" className="flex items-center gap-2">
+          <TabsTrigger value="requests" className="shrink-0 gap-2">
             <AlertTriangle className="h-4 w-4" />
             Solicitações
           </TabsTrigger>
-          <TabsTrigger value="received" className="flex items-center gap-2">
+          <TabsTrigger value="received" className="shrink-0 gap-2">
             <Bell className="h-4 w-4" />
             Recebidas
           </TabsTrigger>

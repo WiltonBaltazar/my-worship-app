@@ -26,7 +26,7 @@ export function RequestSubstituteDialog({
   open,
   onOpenChange,
   schedule,
-  myMembership,
+  myMembership: _myMembership,
   onSubmit,
   isLoading
 }: RequestSubstituteDialogProps) {
@@ -75,13 +75,23 @@ export function RequestSubstituteDialog({
   const getProfileById = (id: string) => profiles?.find(p => p.id === id);
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          handleClose();
+          return;
+        }
+
+        onOpenChange(true);
+      }}
+    >
+      <DialogContent className="flex max-h-[calc(100vh-1rem)] w-[calc(100vw-1rem)] max-w-md flex-col overflow-hidden p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Solicitar troca</DialogTitle>
         </DialogHeader>
-        
-        <div className="space-y-4">
+
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
           <div className="space-y-2">
             <Label>Selecione quem pode te substituir (opcional)</Label>
             <p className="text-sm text-muted-foreground">
@@ -121,7 +131,7 @@ export function RequestSubstituteDialog({
             
             {/* Profile list */}
             {filteredProfiles && filteredProfiles.length > 0 && (
-              <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-xl p-2">
+              <div className="max-h-[min(42vh,16rem)] space-y-1 overflow-y-auto rounded-xl border border-border p-2">
                 {filteredProfiles.slice(0, 10).map(profile => (
                   <button
                     key={profile.id}
@@ -159,11 +169,12 @@ export function RequestSubstituteDialog({
           </div>
         </div>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-2">
-          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
+        <DialogFooter className="gap-2 border-t border-border pt-3 sm:flex-row sm:flex-wrap sm:justify-end sm:pt-4">
+          <Button className="w-full sm:min-w-[140px] sm:flex-1" variant="outline" onClick={handleClose} disabled={isLoading}>
             Cancelar
           </Button>
           <Button 
+            className="w-full sm:min-w-[140px] sm:flex-1"
             variant="secondary"
             onClick={() => handleSubmit(true)} 
             disabled={isLoading}
@@ -171,6 +182,7 @@ export function RequestSubstituteDialog({
             {isLoading ? 'Enviando...' : 'Liderança escolhe'}
           </Button>
           <Button 
+            className="w-full sm:min-w-[140px] sm:flex-1"
             onClick={() => handleSubmit(false)} 
             disabled={isLoading || selectedSubstitutes.length === 0}
           >

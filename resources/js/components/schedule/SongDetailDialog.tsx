@@ -24,9 +24,9 @@ export function SongDetailDialog({ song, open, onOpenChange }: SongDetailDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
+      <DialogContent className="flex max-h-[90vh] w-[calc(100vw-1rem)] max-w-lg flex-col p-4 sm:w-full sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 break-words pr-8">
             <Music2 className="h-5 w-5 text-primary" />
             {song.title}
           </DialogTitle>
@@ -51,7 +51,7 @@ export function SongDetailDialog({ song, open, onOpenChange }: SongDetailDialogP
               <Separator />
               <div className="space-y-2">
                 <h4 className="text-sm font-medium text-muted-foreground">Links externos</h4>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {song.spotify_url && (
                     <Button
                       variant="outline"

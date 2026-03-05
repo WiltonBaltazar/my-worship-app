@@ -68,7 +68,7 @@ export function NextScheduleCard({ schedule, myMembership }: NextScheduleCardPro
           {/* Header */}
           <div className="flex items-center gap-2 mb-3">
             <Badge variant="default">Culto</Badge>
-            {schedule.title && <span className="font-medium  text-white text-foreground">{schedule.title}</span>}
+            {schedule.title && <span className="font-medium text-primary-foreground">{schedule.title}</span>}
           </div>
           
           {/* Date and time */}
@@ -106,8 +106,8 @@ export function NextScheduleCard({ schedule, myMembership }: NextScheduleCardPro
                         <User className="h-3 w-3 text-primary" />
                       )}
                     </div>
-                    <span className="text-foreground font-bold truncate">{member.profile?.name}</span>
-                    <span className="text-black text-xs">
+                    <span className="text-primary-foreground font-semibold truncate">{member.profile?.name}</span>
+                    <span className="text-primary-foreground/90 text-xs">
                       ({functionTypeLabels[member.function_type] || member.function_detail || 'Instrumentista'})
                     </span>
                     {member.confirmed && <Check className="h-3 w-3 text-success ml-auto shrink-0" />}

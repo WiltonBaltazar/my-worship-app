@@ -21,7 +21,10 @@ class AuthRegistrationTest extends TestCase
             'name' => 'New Member',
             'email' => 'member@example.com',
             'password' => 'password',
+            'home_group' => 'GHJ',
             'can_lead' => true,
+            'can_be_tech_sound' => true,
+            'can_be_tech_streaming' => true,
             'instruments' => ['guitar', 'drums'],
             'voices' => ['tenor', 'lead'],
         ]);
@@ -38,9 +41,25 @@ class AuthRegistrationTest extends TestCase
             ->firstOrFail();
 
         $this->assertFalse((bool) $profile->is_approved);
+        $this->assertSame('GHJ', $profile->home_group);
         $this->assertTrue((bool) $profile->can_lead);
+        $this->assertTrue((bool) $profile->can_be_tech_sound);
+        $this->assertTrue((bool) $profile->can_be_tech_streaming);
         $this->assertSame(['drums', 'guitar'], $profile->instruments->pluck('instrument')->sort()->values()->all());
         $this->assertSame(['lead', 'tenor'], $profile->voices->pluck('voice_type')->sort()->values()->all());
+    }
+
+    public function test_join_request_requires_home_group_when_approval_is_required(): void
+    {
+        User::factory()->create(); // First account becomes approved admin.
+
+        $this->postJson('/api/auth/register', [
+            'name' => 'No Group Member',
+            'email' => 'nogroup@example.com',
+            'password' => 'password',
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['home_group']);
     }
 
     public function test_join_request_notifies_admin_and_leader(): void
@@ -62,6 +81,7 @@ class AuthRegistrationTest extends TestCase
             'name' => 'Pending Member',
             'email' => 'pending.member@example.com',
             'password' => 'password',
+            'home_group' => 'GHH',
         ])->assertCreated()
             ->assertJsonPath('requires_approval', true);
 

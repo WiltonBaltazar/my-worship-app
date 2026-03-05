@@ -15,8 +15,8 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
-      <div className="max-w-lg mx-auto flex items-center justify-around py-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card">
+      <div className="mx-auto flex max-w-lg items-center justify-around pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path || 
             (item.label === 'Início' && location.pathname === '/' && !user) ||

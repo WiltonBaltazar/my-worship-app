@@ -263,7 +263,7 @@ export default function ScheduleDetails() {
           <div className="space-y-2">
             {schedule.members?.map(member => (
               <Card key={member.id} className="p-3">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                       {member.profile?.avatar_url ? (
@@ -299,7 +299,7 @@ export default function ScheduleDetails() {
                   </div>
 
                   {canManageEditors && member.profile_id !== profile?.id && (
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 self-end shrink-0 sm:self-auto">
                       <span className="text-xs text-muted-foreground">Pode editar</span>
                       <Switch
                         checked={member.can_edit}
