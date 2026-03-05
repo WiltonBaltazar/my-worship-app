@@ -11,11 +11,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMySchedules } from '@/hooks/useSchedules';
 import { useSongs } from '@/hooks/useSongs';
 import { useUnreadNotificationCount } from '@/hooks/useNotifications';
-import { Loader2, Shield } from 'lucide-react';
+import { Loader2, Shield, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function MemberDashboard() {
-  const { profile, isAdmin, isLeader, user } = useAuth();
+  const { profile, isAdmin, isLeader, isSoundTechManager, user } = useAuth();
   const { data: schedules, isLoading } = useMySchedules(profile?.id);
   const { data: songs } = useSongs();
   const { data: unreadCount } = useUnreadNotificationCount(user?.id);
@@ -65,6 +65,7 @@ export default function MemberDashboard() {
   };
 
   const selectedSong = selectedSongId ? songs?.find(s => s.id === selectedSongId) || null : null;
+  const technicalSchedulePath = isAdmin || isLeader ? '/admin-app/tech-schedules' : '/tech-schedules';
 
   return (
     <div className="page-container">
@@ -81,6 +82,15 @@ export default function MemberDashboard() {
             <Button variant="outline" className="w-full justify-start gap-2">
               <Shield className="h-4 w-4 text-primary" />
               Acessar área administrativa
+            </Button>
+          </a>
+        )}
+
+        {isSoundTechManager && (
+          <a href={technicalSchedulePath} className="block animate-fade-in">
+            <Button variant="outline" className="w-full justify-start gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-primary" />
+              Gerenciar escala técnica
             </Button>
           </a>
         )}

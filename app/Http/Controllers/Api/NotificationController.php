@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -11,8 +12,7 @@ class NotificationController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $notifications = AppNotification::query()
-            ->where('user_id', $request->user()->id)
+        $notifications = $this->visibleNotificationsQuery($request)
             ->orderByDesc('created_at')
             ->get();
 
@@ -21,8 +21,7 @@ class NotificationController extends Controller
 
     public function unreadCount(Request $request): JsonResponse
     {
-        $count = AppNotification::query()
-            ->where('user_id', $request->user()->id)
+        $count = $this->visibleNotificationsQuery($request)
             ->where('read', false)
             ->count();
 
@@ -86,5 +85,17 @@ class NotificationController extends Controller
         if ($notification->user_id !== $request->user()->id && ! $request->user()->isAdmin()) {
             abort(403, 'Forbidden.');
         }
+    }
+
+    private function visibleNotificationsQuery(Request $request): Builder
+    {
+        $user = $request->user();
+        $query = AppNotification::query()->where('user_id', $user->id);
+
+        if ($user->created_at !== null) {
+            $query->where('created_at', '>=', $user->created_at->copy()->startOfDay());
+        }
+
+        return $query;
     }
 }

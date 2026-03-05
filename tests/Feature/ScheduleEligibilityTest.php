@@ -118,6 +118,81 @@ class ScheduleEligibilityTest extends TestCase
         ]);
     }
 
+    public function test_sound_tech_only_member_cannot_be_added_to_normal_schedule(): void
+    {
+        $admin = User::factory()->create();
+        $member = User::factory()->create();
+        $memberProfile = $member->profile()->firstOrFail();
+
+        $memberProfile->update([
+            'is_approved' => true,
+            'is_active' => true,
+            'can_be_tech_sound' => true,
+            'can_be_tech_lead' => false,
+            'can_be_tech_streaming' => false,
+            'can_lead' => false,
+        ]);
+
+        $scheduleId = $this->createSchedule($admin);
+
+        $this->postJson(
+            "/api/schedules/{$scheduleId}/members",
+            [
+                'profile_id' => $memberProfile->id,
+                'function_type' => 'instrumentalist',
+                'function_detail' => 'Guitarra',
+            ],
+            $this->authHeadersFor($admin),
+        )
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['profile_id']);
+
+        $this->assertDatabaseMissing('schedule_members', [
+            'schedule_id' => $scheduleId,
+            'profile_id' => $memberProfile->id,
+        ]);
+    }
+
+    public function test_sound_tech_member_with_voice_can_be_added_to_normal_schedule(): void
+    {
+        $admin = User::factory()->create();
+        $member = User::factory()->create();
+        $memberProfile = $member->profile()->firstOrFail();
+
+        $memberProfile->update([
+            'is_approved' => true,
+            'is_active' => true,
+            'can_be_tech_sound' => true,
+            'can_be_tech_lead' => false,
+            'can_be_tech_streaming' => false,
+            'can_lead' => false,
+        ]);
+
+        $memberProfile->voices()->create([
+            'voice_type' => 'alto',
+        ]);
+
+        $scheduleId = $this->createSchedule($admin);
+
+        $this->postJson(
+            "/api/schedules/{$scheduleId}/members",
+            [
+                'profile_id' => $memberProfile->id,
+                'function_type' => 'backing_vocal',
+                'function_detail' => 'Segunda Voz (Alto/Contralto)',
+            ],
+            $this->authHeadersFor($admin),
+        )
+            ->assertCreated()
+            ->assertJsonPath('profile_id', $memberProfile->id);
+
+        $this->assertDatabaseHas('schedule_members', [
+            'schedule_id' => $scheduleId,
+            'profile_id' => $memberProfile->id,
+            'function_type' => 'backing_vocal',
+        ]);
+    }
+
     public function test_unavailable_candidate_cannot_accept_substitute_request_for_same_date(): void
     {
         $admin = User::factory()->create();
@@ -183,6 +258,76 @@ class ScheduleEligibilityTest extends TestCase
         $this->assertDatabaseMissing('schedule_members', [
             'schedule_id' => $scheduleId,
             'profile_id' => $candidateProfile->id,
+        ]);
+
+        $this->assertDatabaseHas('substitute_requests', [
+            'id' => $requestId,
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_sound_tech_only_candidate_cannot_accept_substitute_for_normal_schedule(): void
+    {
+        $admin = User::factory()->create();
+        $member = User::factory()->create();
+        $candidate = User::factory()->create();
+        $memberProfile = $member->profile()->firstOrFail();
+        $candidateProfile = $candidate->profile()->firstOrFail();
+
+        $memberProfile->update([
+            'is_approved' => true,
+            'is_active' => true,
+        ]);
+
+        $memberProfile->instruments()->create([
+            'instrument' => 'guitar',
+        ]);
+
+        $candidateProfile->update([
+            'is_approved' => true,
+            'is_active' => true,
+            'can_be_tech_sound' => true,
+            'can_be_tech_lead' => false,
+            'can_be_tech_streaming' => false,
+            'can_lead' => false,
+        ]);
+
+        $scheduleId = $this->createSchedule($admin);
+
+        $scheduleMemberId = (string) $this->postJson(
+            "/api/schedules/{$scheduleId}/members",
+            [
+                'profile_id' => $memberProfile->id,
+                'function_type' => 'instrumentalist',
+                'function_detail' => 'Guitarra',
+            ],
+            $this->authHeadersFor($admin),
+        )
+            ->assertCreated()
+            ->json('id');
+
+        $this->postJson(
+            '/api/substitute-requests',
+            [
+                'schedule_member_id' => $scheduleMemberId,
+                'candidate_profile_ids' => [$candidateProfile->id],
+            ],
+            $this->authHeadersFor($member),
+        )->assertCreated();
+
+        $requestId = (string) SubstituteRequest::query()->firstOrFail()->id;
+
+        $this->postJson(
+            "/api/substitute-requests/{$requestId}/accept",
+            [],
+            $this->authHeadersFor($candidate),
+        )
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['candidate_profile_id']);
+
+        $this->assertDatabaseHas('schedule_members', [
+            'id' => $scheduleMemberId,
+            'profile_id' => $memberProfile->id,
         ]);
 
         $this->assertDatabaseHas('substitute_requests', [

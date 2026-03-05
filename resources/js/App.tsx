@@ -23,6 +23,7 @@ import AdminMembers from "./pages/admin/AdminMembers";
 import AdminRepertoire from "./pages/admin/AdminRepertoire";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import AdminUsers from "./pages/admin/AdminUsers";
+import SoundTechSchedules from "./pages/SoundTechSchedules";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +80,11 @@ const App = () => (
                 <Notifications />
               </ProtectedRoute>
             } />
+            <Route path="/tech-schedules" element={
+              <ProtectedRoute requireSoundTechManager>
+                <SoundTechSchedules />
+              </ProtectedRoute>
+            } />
 
             {/* Protected admin routes */}
             <Route path="/admin-app" element={
@@ -89,6 +95,7 @@ const App = () => (
               <Route index element={<AdminHome />} />
               <Route path="schedules" element={<AdminSchedules />} />
               <Route path="schedules/:id" element={<AdminScheduleDetails />} />
+              <Route path="tech-schedules" element={<SoundTechSchedules />} />
               <Route path="members" element={<AdminMembers />} />
               <Route path="repertoire" element={<AdminRepertoire />} />
               <Route path="notifications" element={<AdminNotifications />} />

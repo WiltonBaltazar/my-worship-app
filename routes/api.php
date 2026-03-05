@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\ScheduleController;
 use App\Http\Controllers\Api\SongController;
 use App\Http\Controllers\Api\SubstituteRequestController;
+use App\Http\Controllers\Api\TechnicalScheduleController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', function () {
@@ -49,6 +50,11 @@ Route::middleware('auth.token')->group(function (): void {
     Route::patch('/schedule-members/{member}', [ScheduleController::class, 'updateMember']);
     Route::delete('/schedule-members/{member}', [ScheduleController::class, 'removeMember']);
     Route::post('/schedules/{schedule}/songs', [ScheduleController::class, 'syncSongs']);
+
+    Route::get('/technical-schedules', [TechnicalScheduleController::class, 'index']);
+    Route::post('/technical-schedules/generate', [TechnicalScheduleController::class, 'generate']);
+    Route::patch('/technical-schedules/{technicalSchedule}', [TechnicalScheduleController::class, 'update']);
+    Route::delete('/technical-schedules/{technicalSchedule}', [TechnicalScheduleController::class, 'destroy']);
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);

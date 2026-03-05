@@ -13,6 +13,7 @@ import {
   CalendarDays,
   Plus,
   Save,
+  Wrench,
   Trash2,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -34,7 +35,6 @@ const instrumentLabels: Record<string, string> = {
   acoustic_guitar: 'Violão',
   violin: 'Violino',
   percussion: 'Percussão',
-  sound_tech: 'Técnico de Som',
   other: 'Outro'
 };
 
@@ -47,7 +47,7 @@ const voiceLabels: Record<string, string> = {
 };
 
 export default function Profile() {
-  const { profile, signOut, isAdmin, isLeader } = useAuth();
+  const { profile, signOut, isAdmin, isLeader, roles } = useAuth();
   const { data: profiles } = useProfiles();
   const { data: pendingProfiles, isLoading: isLoadingPendingProfiles } = usePendingProfiles(isAdmin);
   const approveProfileMutation = useApproveProfile();
@@ -158,6 +158,12 @@ export default function Profile() {
               {isLeader && !isAdmin && (
                 <Badge className="bg-accent/10 text-accent hover:bg-accent/20">
                   Líder
+                </Badge>
+              )}
+              {roles.includes('sound_tech') && !isLeader && !isAdmin && (
+                <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
+                  <Wrench className="mr-1 h-3 w-3" />
+                  Técnico de Som
                 </Badge>
               )}
             </div>

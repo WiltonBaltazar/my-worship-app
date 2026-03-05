@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'leader' | 'member';
+export type UserRole = 'admin' | 'leader' | 'member' | 'sound_tech';
 
 export type InstrumentType = 
   | 'guitar'

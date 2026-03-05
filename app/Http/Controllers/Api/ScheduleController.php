@@ -9,6 +9,7 @@ use App\Models\Schedule;
 use App\Models\ScheduleMember;
 use App\Models\ScheduleSong;
 use App\Models\SubstituteRequest;
+use App\Support\NormalScheduleEligibility;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -142,14 +143,14 @@ class ScheduleController extends Controller
 
         $validated = $request->validate([
             'profile_id' => ['required', 'exists:profiles,id'],
-            'function_type' => ['required', 'in:lead_vocal,backing_vocal,instrumentalist,sound_tech'],
+            'function_type' => ['required', 'in:lead_vocal,backing_vocal,instrumentalist'],
             'function_detail' => ['nullable', 'string', 'max:255'],
             'confirmed' => ['nullable', 'boolean'],
             'can_edit' => ['nullable', 'boolean'],
         ]);
 
         $profile = Profile::query()
-            ->with(['user.roles:user_id,role', 'unavailableDates'])
+            ->with(['user.roles:user_id,role', 'unavailableDates', 'instruments', 'voices'])
             ->findOrFail($validated['profile_id']);
 
         if ($this->profileIsAdmin($profile)) {
@@ -158,6 +159,7 @@ class ScheduleController extends Controller
             ]);
         }
 
+        $this->ensureProfileEligibleForNormalSchedule($profile, $validated['function_type'], 'profile_id');
         $this->ensureProfileAvailableForSchedule($profile, $schedule, 'profile_id');
 
         $member = ScheduleMember::query()->create([
@@ -190,7 +192,7 @@ class ScheduleController extends Controller
         }
 
         $validated = $request->validate([
-            'function_type' => ['sometimes', 'in:lead_vocal,backing_vocal,instrumentalist,sound_tech'],
+            'function_type' => ['sometimes', 'in:lead_vocal,backing_vocal,instrumentalist'],
             'function_detail' => ['nullable', 'string', 'max:255'],
             'confirmed' => ['sometimes', 'boolean'],
             'can_edit' => ['sometimes', 'boolean'],
@@ -229,6 +231,16 @@ class ScheduleController extends Controller
                 throw ValidationException::withMessages([
                     'suggested_substitute_id' => ['Administradores não podem ser selecionados como substitutos.'],
                 ]);
+            }
+        }
+
+        if (array_key_exists('function_type', $validated)) {
+            $member->loadMissing('profile');
+            $profile = $member->profile;
+
+            if ($profile) {
+                $profile->loadMissing(['instruments', 'voices']);
+                $this->ensureProfileEligibleForNormalSchedule($profile, $validated['function_type'], 'function_type');
             }
         }
 
@@ -487,6 +499,17 @@ class ScheduleController extends Controller
 
         throw ValidationException::withMessages([
             $field => ["{$profile->name} está indisponível em {$formattedDate}."],
+        ]);
+    }
+
+    private function ensureProfileEligibleForNormalSchedule(Profile $profile, string $functionType, string $field): void
+    {
+        if (NormalScheduleEligibility::canServeFunction($profile, $functionType)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            $field => ['Este membro tem apenas habilidades técnicas de som. Adicione voz, instrumento ou capacidade de liderar para escalá-lo na escala normal.'],
         ]);
     }
 }

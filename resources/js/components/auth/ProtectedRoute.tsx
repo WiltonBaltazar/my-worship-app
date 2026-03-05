@@ -6,10 +6,11 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
   requireLeader?: boolean;
+  requireSoundTechManager?: boolean;
 }
 
-export function ProtectedRoute({ children, requireAdmin, requireLeader }: ProtectedRouteProps) {
-  const { user, isLoading, isAdmin, isLeader } = useAuth();
+export function ProtectedRoute({ children, requireAdmin, requireLeader, requireSoundTechManager }: ProtectedRouteProps) {
+  const { user, isLoading, isAdmin, isLeader, isSoundTechManager } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -29,6 +30,10 @@ export function ProtectedRoute({ children, requireAdmin, requireLeader }: Protec
   }
 
   if (requireLeader && !isLeader) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (requireSoundTechManager && !isSoundTechManager) {
     return <Navigate to="/dashboard" replace />;
   }
 

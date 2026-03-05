@@ -157,6 +157,41 @@ class ProfileApprovalTest extends TestCase
         $this->assertTrue((bool) Profile::query()->findOrFail($pendingProfile->id)->is_approved);
     }
 
+    public function test_admin_can_assign_member_to_home_group(): void
+    {
+        $admin = User::factory()->create();
+        $member = User::factory()->create();
+        $memberProfile = $member->profile()->firstOrFail();
+
+        $response = $this->patchJson(
+            "/api/profiles/{$memberProfile->id}",
+            ['home_group' => 'GHJ'],
+            $this->authHeadersFor($admin),
+        );
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('id', $memberProfile->id)
+            ->assertJsonPath('home_group', 'GHJ');
+
+        $this->assertSame('GHJ', Profile::query()->findOrFail($memberProfile->id)->home_group);
+    }
+
+    public function test_profile_home_group_must_be_valid_value(): void
+    {
+        $admin = User::factory()->create();
+        $member = User::factory()->create();
+        $memberProfile = $member->profile()->firstOrFail();
+
+        $this->patchJson(
+            "/api/profiles/{$memberProfile->id}",
+            ['home_group' => 'INVALID'],
+            $this->authHeadersFor($admin),
+        )
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['home_group']);
+    }
+
     private function authHeadersFor(User $user): array
     {
         return [
