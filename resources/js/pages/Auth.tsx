@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/api';
@@ -28,12 +29,22 @@ const voiceOptions = [
   { value: 'bass_voice', label: 'Voz Grave (Baixo)' },
 ];
 
+const homeGroupOptions = [
+  { value: 'GHH', label: 'Grupo Homegénio de Homens (GHH)' },
+  { value: 'GHS', label: 'Grupo Homegénio de Senhoras (GHS)' },
+  { value: 'GHJ', label: 'Grupo Homegénio de Jovens (GHJ)' },
+  { value: 'GHC', label: 'Grupo Homegénio de Crianças (GHC)' },
+] as const;
+
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
+  const [homeGroup, setHomeGroup] = useState<(typeof homeGroupOptions)[number]['value'] | null>(null);
   const [canLead, setCanLead] = useState(false);
+  const [canBeTechSound, setCanBeTechSound] = useState(false);
+  const [canBeTechProjection, setCanBeTechProjection] = useState(false);
   const [selectedInstruments, setSelectedInstruments] = useState<string[]>([]);
   const [selectedVoices, setSelectedVoices] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,7 +70,10 @@ export default function Auth() {
   };
 
   const resetSkills = () => {
+    setHomeGroup(null);
     setCanLead(false);
+    setCanBeTechSound(false);
+    setCanBeTechProjection(false);
     setSelectedInstruments([]);
     setSelectedVoices([]);
   };
@@ -196,8 +210,16 @@ export default function Auth() {
           setIsSubmitting(false);
           return;
         }
+        if (!homeGroup) {
+          toast({ title: 'Erro', description: 'Selecione o seu Grupo Homegénio.', variant: 'destructive' });
+          setIsSubmitting(false);
+          return;
+        }
         const { error, requiresApproval } = await signUp(email, password, name, {
+          homeGroup,
           canLead,
+          canBeTechSound,
+          canBeTechProjection,
           instruments: selectedInstruments,
           voices: selectedVoices,
         });
@@ -221,10 +243,11 @@ export default function Auth() {
         toast({ title: 'Bem-vindo de volta!' });
         navigate('/dashboard');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Credenciais inválidas. Tente novamente.';
       toast({
         title: 'Erro',
-        description: error.message || 'Credenciais inválidas. Tente novamente.',
+        description: message,
         variant: 'destructive'
       });
     } finally {
@@ -349,6 +372,22 @@ export default function Auth() {
                   </p>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="signup-home-group" className="text-sm">Grupo Homegénio</Label>
+                  <Select value={homeGroup ?? undefined} onValueChange={(value) => setHomeGroup(value as typeof homeGroupOptions[number]['value'])}>
+                    <SelectTrigger id="signup-home-group">
+                      <SelectValue placeholder="Selecione o seu grupo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {homeGroupOptions.map((group) => (
+                        <SelectItem key={group.value} value={group.value}>
+                          {group.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="signup-can-lead"
@@ -358,6 +397,32 @@ export default function Auth() {
                   <Label htmlFor="signup-can-lead" className="cursor-pointer">
                     Posso liderar o louvor
                   </Label>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">Técnico</Label>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="signup-tech-sound"
+                        checked={canBeTechSound}
+                        onCheckedChange={(checked) => setCanBeTechSound(checked === true)}
+                      />
+                      <Label htmlFor="signup-tech-sound" className="cursor-pointer text-sm">
+                        Técnico de som
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="signup-tech-projection"
+                        checked={canBeTechProjection}
+                        onCheckedChange={(checked) => setCanBeTechProjection(checked === true)}
+                      />
+                      <Label htmlFor="signup-tech-projection" className="cursor-pointer text-sm">
+                        Técnico de projeção
+                      </Label>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">

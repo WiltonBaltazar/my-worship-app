@@ -50,6 +50,9 @@ interface SignUpAbilities {
   canLead?: boolean;
   instruments?: string[];
   voices?: string[];
+  homeGroup?: 'GHH' | 'GHS' | 'GHJ' | 'GHC' | null;
+  canBeTechSound?: boolean;
+  canBeTechProjection?: boolean;
 }
 
 interface AuthContextType {
@@ -142,8 +145,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: email.trim().toLowerCase(),
           password,
           can_lead: abilities?.canLead ?? false,
+          can_be_tech_sound: abilities?.canBeTechSound ?? false,
+          can_be_tech_streaming: abilities?.canBeTechProjection ?? false,
           instruments: abilities?.instruments ?? [],
           voices: abilities?.voices ?? [],
+          home_group: abilities?.homeGroup ?? null,
         },
       });
 

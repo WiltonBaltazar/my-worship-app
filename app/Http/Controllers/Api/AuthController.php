@@ -36,6 +36,13 @@ class AuthController extends Controller
         'lead',
     ];
 
+    private const HOME_GROUPS = [
+        'GHH',
+        'GHS',
+        'GHJ',
+        'GHC',
+    ];
+
     public function needsInitialSetup(): JsonResponse
     {
         return response()->json([
@@ -45,15 +52,26 @@ class AuthController extends Controller
 
     public function register(Request $request): JsonResponse
     {
+        $requiresApproval = User::query()->exists();
+
         $request->merge([
             'email' => Str::lower(trim((string) $request->input('email'))),
         ]);
+
+        $homeGroupRules = ['nullable', 'string', Rule::in(self::HOME_GROUPS)];
+
+        if ($requiresApproval) {
+            $homeGroupRules = ['required', 'string', Rule::in(self::HOME_GROUPS)];
+        }
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6'],
+            'home_group' => $homeGroupRules,
             'can_lead' => ['sometimes', 'boolean'],
+            'can_be_tech_sound' => ['sometimes', 'boolean'],
+            'can_be_tech_streaming' => ['sometimes', 'boolean'],
             'instruments' => ['sometimes', 'array'],
             'instruments.*' => ['string', Rule::in(self::INSTRUMENTS)],
             'voices' => ['sometimes', 'array'],
@@ -273,6 +291,24 @@ class AuthController extends Controller
             if (array_key_exists('can_lead', $validated)) {
                 $profile->update([
                     'can_lead' => (bool) $validated['can_lead'],
+                ]);
+            }
+
+            if (array_key_exists('home_group', $validated)) {
+                $profile->update([
+                    'home_group' => $validated['home_group'],
+                ]);
+            }
+
+            if (array_key_exists('can_be_tech_sound', $validated)) {
+                $profile->update([
+                    'can_be_tech_sound' => (bool) $validated['can_be_tech_sound'],
+                ]);
+            }
+
+            if (array_key_exists('can_be_tech_streaming', $validated)) {
+                $profile->update([
+                    'can_be_tech_streaming' => (bool) $validated['can_be_tech_streaming'],
                 ]);
             }
 
