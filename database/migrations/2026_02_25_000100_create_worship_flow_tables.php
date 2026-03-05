@@ -134,10 +134,11 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
             $table->text('endpoint');
+            $table->char('endpoint_hash', 64);
             $table->text('p256dh');
             $table->text('auth');
             $table->timestampTz('created_at')->useCurrent();
-            $table->unique(['user_id', 'endpoint']);
+            $table->unique(['user_id', 'endpoint_hash'], 'push_sub_user_endpointhash_uq');
         });
     }
 

@@ -20,6 +20,7 @@ class PushSubscription extends Model
     protected $fillable = [
         'user_id',
         'endpoint',
+        'endpoint_hash',
         'p256dh',
         'auth',
         'created_at',
@@ -30,6 +31,15 @@ class PushSubscription extends Model
         return [
             'created_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $subscription): void {
+            if ($subscription->endpoint !== null && $subscription->endpoint !== '') {
+                $subscription->endpoint_hash = hash('sha256', $subscription->endpoint);
+            }
+        });
     }
 
     public function user(): BelongsTo
