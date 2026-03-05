@@ -138,10 +138,12 @@ export function UpcomingSchedules({ schedules }: UpcomingSchedulesProps) {
                                         <User className="h-2.5 w-2.5 text-primary" />
                                       )}
                                     </div>
-                                    <span className="text-foreground truncate">{member.profile?.name}</span>
-                                    <span className="text-muted-foreground text-xs">
-                                      ({functionTypeLabels[member.function_type] || member.function_detail || 'Instrumentista'})
-                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-foreground">{member.profile?.name}</p>
+                                      <p className="truncate text-xs text-muted-foreground">
+                                        {functionTypeLabels[member.function_type] || member.function_detail || 'Instrumentista'}
+                                      </p>
+                                    </div>
                                     {member.confirmed && <Check className="h-3 w-3 text-success ml-auto shrink-0" />}
                                   </div>
                                 ))}

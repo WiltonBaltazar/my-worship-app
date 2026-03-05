@@ -109,7 +109,7 @@ export default function AdminMembers() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Membros</h1>
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Membros</h1>
           <p className="text-muted-foreground">Gerencie os membros do ministério</p>
         </div>
         <Button className="w-full sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
@@ -118,7 +118,7 @@ export default function AdminMembers() {
         </Button>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -131,7 +131,7 @@ export default function AdminMembers() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="relative">
+            <Button variant="outline" className="relative w-full sm:w-auto">
               <Filter className="mr-2 h-4 w-4" />
               Filtrar
               {hasActiveFilters && (

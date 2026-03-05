@@ -115,8 +115,9 @@ export default function AdminUsers() {
             </div>
 
             {showApprovalActions ? (
-              <div className="flex gap-2">
+              <div className="flex w-full flex-wrap gap-2 md:w-auto">
                 <Button
+                  className="flex-1 md:flex-none"
                   size="sm"
                   onClick={() => updateUser(user.id, { is_approved: true, is_active: true })}
                   disabled={updateProfileMutation.isPending}
@@ -125,6 +126,7 @@ export default function AdminUsers() {
                   Aprovar
                 </Button>
                 <Button
+                  className="flex-1 md:flex-none"
                   size="sm"
                   variant="destructive"
                   onClick={() => updateUser(user.id, { is_active: false })}
@@ -135,12 +137,12 @@ export default function AdminUsers() {
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:flex-nowrap">
                 <Select
                   value={role}
                   onValueChange={(value) => updateUser(user.id, { role: value as 'admin' | 'leader' | 'member' | 'sound_tech' })}
                 >
-                  <SelectTrigger className="w-36">
+                  <SelectTrigger className="w-full md:w-36">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -170,14 +172,14 @@ export default function AdminUsers() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold text-foreground">Gerenciar Usuários</h1>
+        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Gerenciar Usuários</h1>
         <p className="text-muted-foreground">Aprove solicitações e gerencie funções dos usuários</p>
       </header>
 
       {isAdmin ? (
-        <Tabs defaultValue={pendingUsers.length > 0 ? 'pending' : 'approved'}>
-          <TabsList>
-            <TabsTrigger value="pending" className="gap-2">
+        <Tabs defaultValue={pendingUsers.length > 0 ? 'pending' : 'approved'} className="min-w-0">
+          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto">
+            <TabsTrigger value="pending" className="shrink-0 gap-2">
               Pendentes
               {pendingUsers.length > 0 && (
                 <Badge variant="destructive" className="flex h-5 w-5 items-center justify-center p-0">
@@ -185,8 +187,8 @@ export default function AdminUsers() {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="approved">Aprovados</TabsTrigger>
-            <TabsTrigger value="deactivated" className="gap-2">
+            <TabsTrigger value="approved" className="shrink-0">Aprovados</TabsTrigger>
+            <TabsTrigger value="deactivated" className="shrink-0 gap-2">
               Desativados
               {deactivatedUsers.length > 0 && (
                 <Badge variant="secondary" className="flex h-5 w-5 items-center justify-center p-0">

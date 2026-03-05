@@ -270,7 +270,7 @@ export default function SoundTechSchedules() {
         }}
         disabled={disabled}
       >
-        <SelectTrigger className="min-w-[190px]">
+        <SelectTrigger className="min-w-[150px] sm:min-w-[190px]">
           <SelectValue placeholder="Selecione um técnico" />
         </SelectTrigger>
         <SelectContent>
@@ -298,7 +298,7 @@ export default function SoundTechSchedules() {
       <header className="space-y-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
-            <h1 className="flex items-center gap-2 text-3xl font-bold text-foreground">
+            <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground sm:text-3xl">
               <Wrench className="h-7 w-7 text-primary" />
               Escala Técnica de Som
             </h1>
@@ -387,8 +387,8 @@ export default function SoundTechSchedules() {
               Índice de justiça da simulação: <strong>{previewFairness ?? 0}</strong>
             </p>
           </CardHeader>
-          <CardContent>
-            <Table className="overflow-hidden rounded-lg border border-accent/30">
+          <CardContent className="overflow-x-auto">
+            <Table className="min-w-[680px] overflow-hidden rounded-lg border border-accent/30">
               <TableHeader>
                 <TableRow className="bg-accent/20 hover:bg-accent/20 [&>th]:text-accent-foreground">
                   <TableHead>Semana</TableHead>
@@ -421,13 +421,13 @@ export default function SoundTechSchedules() {
             Índice de justiça atual: <strong>{data?.fairness_score ?? 0}</strong>
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           {persistedWeeks.length === 0 && (
             <p className="text-sm text-muted-foreground">Nenhuma semana técnica cadastrada neste período.</p>
           )}
 
           {persistedWeeks.length > 0 && (
-            <Table className="overflow-hidden rounded-lg border border-accent/30">
+            <Table className="min-w-[880px] overflow-hidden rounded-lg border border-accent/30">
               <TableHeader>
                 <TableRow className="bg-accent/20 hover:bg-accent/20 [&>th]:text-accent-foreground">
                   <TableHead>Semana</TableHead>

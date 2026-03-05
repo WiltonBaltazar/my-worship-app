@@ -519,7 +519,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-4xl overflow-x-hidden overflow-y-auto p-4 sm:w-full sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-2xl lg:text-4xl">Editar Escala</DialogTitle>
         </DialogHeader>
@@ -529,19 +529,22 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <Tabs defaultValue="settings" className="space-y-4">
-            <TabsList className="grid h-auto w-full grid-cols-3 rounded-2xl p-1">
-              <TabsTrigger value="settings" className="gap-2 rounded-xl py-2 text-sm md:text-base">
+          <Tabs defaultValue="settings" className="min-w-0 space-y-4">
+            <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-2xl p-1 sm:grid sm:grid-cols-3 sm:justify-center sm:gap-0 sm:overflow-visible">
+              <TabsTrigger value="settings" className="shrink-0 gap-2 rounded-xl py-2 text-sm sm:w-full sm:justify-center md:text-base">
                 <Settings className="h-4 w-4" />
-                Configurações
+                <span className="sm:hidden">Config.</span>
+                <span className="hidden sm:inline">Configurações</span>
               </TabsTrigger>
-              <TabsTrigger value="members" className="gap-2 rounded-xl py-2 text-sm md:text-base">
+              <TabsTrigger value="members" className="shrink-0 gap-2 rounded-xl py-2 text-sm sm:w-full sm:justify-center md:text-base">
                 <Users className="h-4 w-4" />
-                Membros ({schedule.members?.length ?? 0})
+                <span className="sm:hidden">Membros</span>
+                <span className="hidden sm:inline">Membros ({schedule.members?.length ?? 0})</span>
               </TabsTrigger>
-              <TabsTrigger value="songs" className="gap-2 rounded-xl py-2 text-sm md:text-base">
+              <TabsTrigger value="songs" className="shrink-0 gap-2 rounded-xl py-2 text-sm sm:w-full sm:justify-center md:text-base">
                 <Music2 className="h-4 w-4" />
-                Músicas ({schedule.songs?.length ?? 0})
+                <span className="sm:hidden">Músicas</span>
+                <span className="hidden sm:inline">Músicas ({schedule.songs?.length ?? 0})</span>
               </TabsTrigger>
             </TabsList>
 
@@ -789,56 +792,60 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
 
               <div className="space-y-2">
                 {(schedule.members ?? []).map((member) => (
-                  <div key={member.id} className="flex items-center justify-between rounded-2xl border border-border bg-card p-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        {member.profile?.avatar_url ? (
-                          <img src={member.profile.avatar_url} alt={member.profile.name} className="h-10 w-10 rounded-full object-cover" />
-                        ) : (
-                          <User className="h-5 w-5 text-primary" />
-                        )}
+                  <div key={member.id} className="space-y-3 rounded-2xl border border-border bg-card p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                          {member.profile?.avatar_url ? (
+                            <img src={member.profile.avatar_url} alt={member.profile.name} className="h-10 w-10 rounded-full object-cover" />
+                          ) : (
+                            <User className="h-5 w-5 text-primary" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-foreground">{member.profile?.name}</p>
+                          <p className="truncate text-sm text-muted-foreground">
+                            {functionTypeLabel[member.function_type] || member.function_type}
+                            {member.function_detail ? ` - ${member.function_detail}` : ''}
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {member.confirmed && (
+                              <Badge className="bg-success/10 text-success">
+                                <Check className="mr-1 h-3 w-3" />
+                                Confirmado
+                              </Badge>
+                            )}
+                            {member.requested_change && (
+                              <Badge variant="outline" className="border-orange-400 text-orange-700">
+                                <AlertTriangle className="mr-1 h-3 w-3" />
+                                Solicitou troca
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-foreground">{member.profile?.name}</p>
-                        <p className="truncate text-sm text-muted-foreground">
-                          {functionTypeLabel[member.function_type] || member.function_type}
-                          {member.function_detail ? ` - ${member.function_detail}` : ''}
-                        </p>
-                      </div>
-                      {member.confirmed && (
-                        <Badge className="bg-success/10 text-success">
-                          <Check className="mr-1 h-3 w-3" />
-                          Confirmado
-                        </Badge>
-                      )}
-                      {member.requested_change && (
-                        <Badge variant="outline" className="border-orange-400 text-orange-700">
-                          <AlertTriangle className="mr-1 h-3 w-3" />
-                          Solicitou troca
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor={`member-can-edit-${member.id}`} className="text-xs text-muted-foreground">
-                          Pode editar
-                        </Label>
-                        <Switch
-                          id={`member-can-edit-${member.id}`}
-                          checked={member.can_edit}
-                          onCheckedChange={(checked) => void handleToggleMemberEditPermission(member.id, checked)}
-                          disabled={setMemberEditPermissionMutation.isPending}
-                        />
-                      </div>
+
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="text-destructive hover:text-destructive"
+                        className="shrink-0 text-destructive hover:text-destructive"
                         disabled={removeMemberMutation.isPending}
                         onClick={() => handleRemoveMember(member.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2">
+                      <Label htmlFor={`member-can-edit-${member.id}`} className="text-sm text-muted-foreground">
+                        Pode editar
+                      </Label>
+                      <Switch
+                        id={`member-can-edit-${member.id}`}
+                        checked={member.can_edit}
+                        onCheckedChange={(checked) => void handleToggleMemberEditPermission(member.id, checked)}
+                        disabled={setMemberEditPermissionMutation.isPending}
+                      />
                     </div>
                   </div>
                 ))}

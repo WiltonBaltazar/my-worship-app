@@ -130,7 +130,7 @@ export default function Profile() {
 
       {/* Profile card */}
       <div className="repertoire-card mb-6 animate-slide-up">
-        <div className="flex items-center gap-4 mb-6">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
           <Avatar className="h-20 w-20 border-4 border-primary/20">
             <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.name} />
             <AvatarFallback className="bg-primary/10 text-primary text-2xl font-semibold">
@@ -140,11 +140,11 @@ export default function Profile() {
           
           <div className="flex-1">
             <h2 className="text-xl font-bold text-foreground">{profile?.name}</h2>
-            <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
               <Mail className="h-4 w-4" />
-              <span className="text-sm">{profile?.email}</span>
+              <span className="text-sm break-all">{profile?.email}</span>
             </div>
-            <div className="flex gap-2 mt-2">
+            <div className="mt-2 flex flex-wrap gap-2">
               {profile?.can_lead && (
                 <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
                   Pode liderar
@@ -189,7 +189,7 @@ export default function Profile() {
         <form onSubmit={handleSaveUnavailableDates} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="profile-unavailable-date">Adicionar data indisponível</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Input
                 id="profile-unavailable-date"
                 type="date"
@@ -200,6 +200,7 @@ export default function Profile() {
               <Button
                 type="button"
                 variant="outline"
+                className="w-full sm:w-auto"
                 onClick={handleAddUnavailableDate}
                 disabled={!newUnavailableDate || updateProfileMutation.isPending}
               >
@@ -257,7 +258,7 @@ export default function Profile() {
       </div>
 
       <div className="repertoire-card mb-6 animate-slide-up" style={{ animationDelay: '0.05s' }}>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2">
               <Bell className="h-5 w-5 text-primary" />
@@ -294,13 +295,17 @@ export default function Profile() {
           ) : pendingProfiles && pendingProfiles.length > 0 ? (
             <div className="space-y-3">
               {pendingProfiles.map((pendingProfile) => (
-                <div key={pendingProfile.id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+                <div
+                  key={pendingProfile.id}
+                  className="flex flex-col gap-3 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+                >
                   <div className="min-w-0">
                     <p className="font-medium text-foreground truncate">{pendingProfile.name}</p>
                     <p className="text-sm text-muted-foreground truncate">{pendingProfile.email}</p>
                   </div>
                   <Button
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={() => handleApproveRequest(pendingProfile.id)}
                     disabled={approveProfileMutation.isPending}
                   >

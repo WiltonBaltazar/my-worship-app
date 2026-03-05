@@ -152,7 +152,7 @@ export default function AdminHome() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Dashboard</h1>
         <p className="text-muted-foreground">Visão geral do ministério de louvor</p>
       </header>
 
@@ -233,7 +233,10 @@ export default function AdminHome() {
             {changeRequests.length > 0 ? (
               <ul className="space-y-4">
                 {changeRequests.slice(0, 5).map((request, index) => (
-                  <li key={`${request.memberName}-${index}`} className="flex items-start justify-between border-b border-border pb-3 last:border-0">
+                  <li
+                    key={`${request.memberName}-${index}`}
+                    className="flex flex-col gap-3 border-b border-border pb-3 last:border-0 sm:flex-row sm:items-start sm:justify-between"
+                  >
                     <div>
                       <span className="font-medium text-foreground">{request.memberName}</span>
                       <p className="text-sm text-muted-foreground">
@@ -244,6 +247,7 @@ export default function AdminHome() {
                     <Button
                       variant="outline"
                       size="sm"
+                      className="self-end sm:self-auto"
                       onClick={() => handleOpenChangeRequest(request.scheduleId)}
                     >
                       <Eye className="mr-1 h-4 w-4" />
@@ -270,19 +274,19 @@ export default function AdminHome() {
                   const total = schedule.members?.length || 0;
 
                   return (
-                    <div key={schedule.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                    <div key={schedule.id} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 items-center gap-4">
                         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
                           <Calendar className="h-5 w-5 text-primary" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="font-medium text-foreground">
                             {format(new Date(schedule.schedule_date), "dd 'de' MMM", { locale: ptBR })}
                           </p>
                           <p className="text-sm text-muted-foreground">{total} membros escalados</p>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="self-end text-right sm:self-auto">
                         <p className="font-medium text-foreground">
                           {confirmed}/{total}
                         </p>
