@@ -9,7 +9,7 @@ interface PushNotificationToggleProps {
 }
 
 export function PushNotificationToggle({ className, hideIfUnsupported = true }: PushNotificationToggleProps) {
-  const { isSupported, isSubscribed, permission, requestPermission } = usePushNotifications();
+  const { isSupported, isSubscribed, permission, requestPermission, unsupportedReason } = usePushNotifications();
 
   if (!isSupported) {
     if (hideIfUnsupported) {
@@ -19,7 +19,7 @@ export function PushNotificationToggle({ className, hideIfUnsupported = true }: 
     return (
       <Button variant="outline" size="sm" className={cn('gap-2', className)} disabled>
         <BellOff className="h-4 w-4" />
-        Não suportado
+        {unsupportedReason === 'ios_home_screen_required' ? 'Use pela Tela de Início' : 'Não suportado'}
       </Button>
     );
   }
