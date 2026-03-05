@@ -178,7 +178,7 @@ export function useAddScheduleMember() {
     mutationFn: async (member: {
       schedule_id: string;
       profile_id: string;
-      function_type: 'lead_vocal' | 'backing_vocal' | 'instrumentalist' | 'sound_tech';
+      function_type: 'lead_vocal' | 'backing_vocal' | 'instrumentalist';
       function_detail?: string;
       confirmed?: boolean;
       can_edit?: boolean;
@@ -316,7 +316,7 @@ export function useApproveSubstitute() {
       scheduleId: string;
       originalMemberId: string;
       substituteId: string;
-      functionType: 'lead_vocal' | 'backing_vocal' | 'instrumentalist' | 'sound_tech';
+      functionType: 'lead_vocal' | 'backing_vocal' | 'instrumentalist';
       functionDetail?: string | null;
     }) => {
       const memberId = resolveScheduleMemberId(queryClient, scheduleId, originalMemberId);

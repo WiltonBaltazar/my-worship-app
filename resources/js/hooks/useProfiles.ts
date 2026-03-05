@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
+export type HomeGroup = 'GHH' | 'GHS' | 'GHJ' | 'GHC';
+
 export interface Profile {
   id: string;
   user_id: string;
@@ -9,10 +11,14 @@ export interface Profile {
   email: string;
   avatar_url: string | null;
   phone: string | null;
+  home_group: HomeGroup | null;
   can_lead: boolean;
+  can_be_tech_lead: boolean;
+  can_be_tech_sound: boolean;
+  can_be_tech_streaming: boolean;
   is_active: boolean;
   is_approved: boolean;
-  role?: 'admin' | 'leader' | 'member' | null;
+  role?: 'admin' | 'leader' | 'member' | 'sound_tech' | null;
   created_at: string;
   updated_at: string;
   instruments?: string[];

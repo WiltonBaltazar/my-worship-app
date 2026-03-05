@@ -26,7 +26,6 @@ class AuthController extends Controller
         'violin',
         'percussion',
         'other',
-        'sound_tech',
     ];
 
     private const VOICES = [

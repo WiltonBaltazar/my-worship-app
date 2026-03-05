@@ -20,7 +20,6 @@ const instruments = [
   { value: 'acoustic_guitar', label: 'Violão' },
   { value: 'violin', label: 'Violino' },
   { value: 'percussion', label: 'Percussão' },
-  { value: 'sound_tech', label: 'Técnico de Som' },
   { value: 'other', label: 'Outro' },
 ];
 

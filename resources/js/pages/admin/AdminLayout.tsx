@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Calendar, Eye, LayoutDashboard, Loader2, LogOut, Menu, Music, UserCog, Users, X } from 'lucide-react';
+import { Bell, Calendar, Eye, LayoutDashboard, Loader2, LogOut, Menu, Music, SlidersHorizontal, UserCog, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnreadNotificationCount } from '@/hooks/useNotifications';
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 const sidebarItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin-app' },
   { icon: Calendar, label: 'Escalas', path: '/admin-app/schedules' },
+  { icon: SlidersHorizontal, label: 'Escala Técnica', path: '/admin-app/tech-schedules' },
   { icon: Users, label: 'Membros', path: '/admin-app/members' },
   { icon: Music, label: 'Repertório', path: '/admin-app/repertoire' },
   { icon: UserCog, label: 'Usuários', path: '/admin-app/users' },

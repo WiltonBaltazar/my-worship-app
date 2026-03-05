@@ -48,7 +48,6 @@ const functionTypes = [
   { value: 'lead_vocal', label: 'Vocal Principal' },
   { value: 'backing_vocal', label: 'Backing Vocal' },
   { value: 'instrumentalist', label: 'Instrumentista' },
-  { value: 'sound_tech', label: 'Técnico de Som' },
 ] as const;
 
 const instrumentLabels: Record<string, string> = {
@@ -95,6 +94,27 @@ function isProfileUnavailableOnDate(
   }
 
   return (profile.unavailable_dates ?? []).includes(scheduleDate);
+}
+
+function isTechOnlyProfile(profile: {
+  can_lead: boolean;
+  can_be_tech_lead: boolean;
+  can_be_tech_sound: boolean;
+  can_be_tech_streaming: boolean;
+  instruments?: string[] | null;
+  voices?: string[] | null;
+}): boolean {
+  const hasTechnicalCapability = profile.can_be_tech_lead || profile.can_be_tech_sound || profile.can_be_tech_streaming;
+
+  if (!hasTechnicalCapability) {
+    return false;
+  }
+
+  const hasNormalCapability = profile.can_lead
+    || (profile.voices ?? []).length > 0
+    || (profile.instruments ?? []).some((instrument) => instrument !== 'sound_tech');
+
+  return !hasNormalCapability;
 }
 
 export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditScheduleDialogProps) {
@@ -158,6 +178,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
       (profile) =>
         profile.role !== 'admin' &&
         !existingProfileIds.has(profile.id) &&
+        !isTechOnlyProfile(profile) &&
         !isProfileUnavailableOnDate(profile, schedule.schedule_date),
     );
   }, [profiles, schedule]);
@@ -173,6 +194,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
       (profile) =>
         profile.role !== 'admin' &&
         !existingProfileIds.has(profile.id) &&
+        !isTechOnlyProfile(profile) &&
         isProfileUnavailableOnDate(profile, schedule.schedule_date),
     ).length;
   }, [profiles, schedule]);
@@ -236,10 +258,6 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
     return functionTypes.filter((item) => {
       if (item.value === 'instrumentalist') {
         return instrumentFunctionOptions.length > 0;
-      }
-
-      if (item.value === 'sound_tech') {
-        return (selectedProfile.instruments ?? []).includes('sound_tech');
       }
 
       if (item.value === 'backing_vocal') {
@@ -393,7 +411,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
       await addMemberMutation.mutateAsync({
         schedule_id: schedule.id,
         profile_id: selectedProfileId,
-        function_type: selectedFunctionType as 'lead_vocal' | 'backing_vocal' | 'instrumentalist' | 'sound_tech',
+        function_type: selectedFunctionType as 'lead_vocal' | 'backing_vocal' | 'instrumentalist',
         function_detail: functionDetail || undefined,
       });
 

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/api';
 import type { Profile } from '@/hooks/useProfiles';
@@ -23,7 +24,6 @@ const instruments = [
   { value: 'acoustic_guitar', label: 'Violão' },
   { value: 'violin', label: 'Violino' },
   { value: 'percussion', label: 'Percussão' },
-  { value: 'sound_tech', label: 'Técnico de Som' },
   { value: 'other', label: 'Outro' },
 ];
 
@@ -34,6 +34,13 @@ const voiceTypes = [
   { value: 'tenor', label: 'Terceira Voz (Tenor)' },
   { value: 'bass_voice', label: 'Voz Grave (Baixo)' },
 ];
+
+const homeGroups = [
+  { value: 'GHH', label: 'Grupo Homegénio de Homens (GHH)' },
+  { value: 'GHS', label: 'Grupo Homegénio de Senhoras (GHS)' },
+  { value: 'GHJ', label: 'Grupo Homegénio de Jovens (GHJ)' },
+  { value: 'GHC', label: 'Grupo Homegénio de Crianças (GHC)' },
+] as const;
 
 interface AddMemberDialogProps {
   open: boolean;
@@ -52,7 +59,11 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [homeGroup, setHomeGroup] = useState<Profile['home_group']>(null);
   const [canLead, setCanLead] = useState(false);
+  const [canBeTechLead, setCanBeTechLead] = useState(false);
+  const [canBeTechSound, setCanBeTechSound] = useState(false);
+  const [canBeTechStreaming, setCanBeTechStreaming] = useState(false);
   const [selectedInstruments, setSelectedInstruments] = useState<string[]>([]);
   const [selectedVoices, setSelectedVoices] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,7 +84,11 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
     setName('');
     setEmail('');
     setPassword('');
+    setHomeGroup(null);
     setCanLead(false);
+    setCanBeTechLead(false);
+    setCanBeTechSound(false);
+    setCanBeTechStreaming(false);
     setSelectedInstruments([]);
     setSelectedVoices([]);
   };
@@ -118,6 +133,10 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
         method: 'PATCH',
         body: {
           can_lead: canLead,
+          home_group: homeGroup,
+          can_be_tech_lead: canBeTechLead,
+          can_be_tech_sound: canBeTechSound,
+          can_be_tech_streaming: canBeTechStreaming,
           is_approved: true,
           is_active: true,
           instruments: selectedInstruments,
@@ -181,6 +200,26 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="add-member-home-group">Grupo Homegénio</Label>
+            <Select
+              value={homeGroup ?? 'none'}
+              onValueChange={(value) => setHomeGroup(value === 'none' ? null : value as Profile['home_group'])}
+            >
+              <SelectTrigger id="add-member-home-group">
+                <SelectValue placeholder="Selecione um grupo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Não atribuído</SelectItem>
+                {homeGroups.map((group) => (
+                  <SelectItem key={group.value} value={group.value}>
+                    {group.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex items-center gap-2">
             <Checkbox
               id="add-member-can-lead"
@@ -190,6 +229,44 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             <Label htmlFor="add-member-can-lead" className="cursor-pointer">
               Pode liderar o louvor
             </Label>
+          </div>
+
+          <div className="space-y-2 rounded-xl border border-border p-3">
+            <Label className="text-sm font-medium">Escala técnica de som</Label>
+            <div className="grid gap-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="add-member-tech-lead"
+                  checked={canBeTechLead}
+                  onCheckedChange={(checked) => setCanBeTechLead(checked === true)}
+                />
+                <Label htmlFor="add-member-tech-lead" className="cursor-pointer text-sm">
+                  Pode atuar como Lead técnico
+                </Label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="add-member-tech-sound"
+                  checked={canBeTechSound}
+                  onCheckedChange={(checked) => setCanBeTechSound(checked === true)}
+                />
+                <Label htmlFor="add-member-tech-sound" className="cursor-pointer text-sm">
+                  Pode atuar no Som
+                </Label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="add-member-tech-streaming"
+                  checked={canBeTechStreaming}
+                  onCheckedChange={(checked) => setCanBeTechStreaming(checked === true)}
+                />
+                <Label htmlFor="add-member-tech-streaming" className="cursor-pointer text-sm">
+                  Pode atuar no Streaming
+                </Label>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">

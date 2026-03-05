@@ -88,6 +88,11 @@ class User extends Authenticatable
         return $this->hasRole('leader');
     }
 
+    public function isSoundTech(): bool
+    {
+        return $this->hasRole('sound_tech');
+    }
+
     public function issueApiToken(): string
     {
         $plainToken = Str::random(80);

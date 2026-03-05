@@ -23,7 +23,11 @@ class Profile extends Model
         'email',
         'avatar_url',
         'phone',
+        'home_group',
         'can_lead',
+        'can_be_tech_lead',
+        'can_be_tech_sound',
+        'can_be_tech_streaming',
         'is_active',
         'is_approved',
     ];
@@ -32,6 +36,9 @@ class Profile extends Model
     {
         return [
             'can_lead' => 'boolean',
+            'can_be_tech_lead' => 'boolean',
+            'can_be_tech_sound' => 'boolean',
+            'can_be_tech_streaming' => 'boolean',
             'is_active' => 'boolean',
             'is_approved' => 'boolean',
         ];

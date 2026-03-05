@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { apiRequest, clearAuthToken, getAuthToken, setAuthToken } from '@/lib/api';
 
-type AppRole = 'admin' | 'leader' | 'member';
+type AppRole = 'admin' | 'leader' | 'member' | 'sound_tech';
 
 interface AuthUser {
   id: string;
@@ -20,7 +20,11 @@ interface Profile {
   email: string;
   avatar_url: string | null;
   phone: string | null;
+  home_group: 'GHH' | 'GHS' | 'GHJ' | 'GHC' | null;
   can_lead: boolean;
+  can_be_tech_lead: boolean;
+  can_be_tech_sound: boolean;
+  can_be_tech_streaming: boolean;
   is_active: boolean;
   is_approved: boolean;
   created_at?: string;
@@ -56,6 +60,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   isLeader: boolean;
+  isSoundTechManager: boolean;
   signUp: (
     email: string,
     password: string,
@@ -197,6 +202,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = roles.includes('admin');
   const isLeader = roles.includes('leader') || isAdmin;
+  const isSoundTechManager = roles.includes('sound_tech') || isLeader;
 
   return (
     <AuthContext.Provider
@@ -208,6 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAdmin,
         isLeader,
+        isSoundTechManager,
         signUp,
         signIn,
         signOut,

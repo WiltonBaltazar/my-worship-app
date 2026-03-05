@@ -8,6 +8,7 @@ use App\Models\Profile;
 use App\Models\ScheduleMember;
 use App\Models\SubstituteRequest;
 use App\Models\UserRole;
+use App\Support\NormalScheduleEligibility;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -194,7 +195,7 @@ class SubstituteRequestController extends Controller
             return response()->json(['message' => 'Schedule member not found.'], 404);
         }
 
-        $profile->loadMissing('unavailableDates');
+        $profile->loadMissing(['unavailableDates', 'instruments', 'voices']);
         $schedule = $scheduleMember->schedule;
 
         if ($schedule && $profile->isUnavailableOnDate($schedule->schedule_date)) {
@@ -203,6 +204,14 @@ class SubstituteRequestController extends Controller
             throw ValidationException::withMessages([
                 'candidate_profile_id' => [
                     "{$profile->name} está indisponível em {$formattedDate}.",
+                ],
+            ]);
+        }
+
+        if (! NormalScheduleEligibility::canServeFunction($profile, $scheduleMember->function_type)) {
+            throw ValidationException::withMessages([
+                'candidate_profile_id' => [
+                    "{$profile->name} tem apenas habilidades técnicas de som e não pode assumir funções da escala normal.",
                 ],
             ]);
         }

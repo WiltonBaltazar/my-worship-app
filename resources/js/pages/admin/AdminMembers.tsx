@@ -35,7 +35,6 @@ const instrumentLabels: Record<string, string> = {
   acoustic_guitar: 'Violão',
   violin: 'Violino',
   percussion: 'Percussão',
-  sound_tech: 'Técnico de Som',
   other: 'Outro',
 };
 
@@ -45,6 +44,13 @@ const voiceLabels: Record<string, string> = {
   alto: 'Segunda Voz (Alto/Contralto)',
   tenor: 'Terceira Voz (Tenor)',
   bass_voice: 'Voz Grave (Baixo)',
+};
+
+const homeGroupLabels: Record<string, string> = {
+  GHH: 'Grupo Homegénio de Homens',
+  GHS: 'Grupo Homegénio de Senhoras',
+  GHJ: 'Grupo Homegénio de Jovens',
+  GHC: 'Grupo Homegénio de Crianças',
 };
 
 export default function AdminMembers() {
@@ -215,7 +221,15 @@ export default function AdminMembers() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold text-foreground">{member.name}</h3>
+                      {member.home_group && (
+                        <Badge className="bg-accent text-accent-foreground text-xs">
+                          {homeGroupLabels[member.home_group] ?? member.home_group}
+                        </Badge>
+                      )}
                       {member.can_lead && <Badge className="bg-primary/10 text-primary text-xs">Pode liderar</Badge>}
+                      {member.can_be_tech_lead && <Badge className="bg-secondary text-secondary-foreground text-xs">Tech Lead</Badge>}
+                      {member.can_be_tech_sound && <Badge className="bg-secondary text-secondary-foreground text-xs">Tech Som</Badge>}
+                      {member.can_be_tech_streaming && <Badge className="bg-secondary text-secondary-foreground text-xs">Tech Streaming</Badge>}
                     </div>
                     <p className="text-sm text-muted-foreground">{member.email}</p>
 

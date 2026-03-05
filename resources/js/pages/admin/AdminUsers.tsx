@@ -24,12 +24,14 @@ const roleLabels: Record<string, string> = {
   admin: 'Administrador',
   leader: 'Líder',
   member: 'Membro',
+  sound_tech: 'Técnico de Som',
 };
 
 const roleIcons: Record<string, React.ReactNode> = {
   admin: <ShieldCheck className="h-4 w-4" />,
   leader: <Shield className="h-4 w-4" />,
   member: <User className="h-4 w-4" />,
+  sound_tech: <Shield className="h-4 w-4" />,
 };
 
 export default function AdminUsers() {
@@ -136,13 +138,14 @@ export default function AdminUsers() {
               <div className="flex items-center gap-2">
                 <Select
                   value={role}
-                  onValueChange={(value) => updateUser(user.id, { role: value as 'admin' | 'leader' | 'member' })}
+                  onValueChange={(value) => updateUser(user.id, { role: value as 'admin' | 'leader' | 'member' | 'sound_tech' })}
                 >
                   <SelectTrigger className="w-36">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="member">Membro</SelectItem>
+                    <SelectItem value="sound_tech">Técnico de Som</SelectItem>
                     <SelectItem value="leader">Líder</SelectItem>
                     <SelectItem value="admin">Administrador</SelectItem>
                   </SelectContent>

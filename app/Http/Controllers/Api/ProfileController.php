@@ -21,7 +21,6 @@ class ProfileController extends Controller
         'violin',
         'percussion',
         'other',
-        'sound_tech',
     ];
 
     private const VOICES = [
@@ -30,6 +29,13 @@ class ProfileController extends Controller
         'tenor',
         'bass_voice',
         'lead',
+    ];
+
+    private const HOME_GROUPS = [
+        'GHH',
+        'GHS',
+        'GHJ',
+        'GHC',
     ];
 
     public function index(Request $request): JsonResponse
@@ -114,11 +120,15 @@ class ProfileController extends Controller
                 Rule::unique('users', 'email')->ignore($profile->user_id),
             ],
             'phone' => ['nullable', 'string', 'max:50'],
+            'home_group' => ['nullable', 'string', Rule::in(self::HOME_GROUPS)],
             'avatar_url' => ['nullable', 'string', 'max:2048'],
             'can_lead' => ['sometimes', 'boolean'],
+            'can_be_tech_lead' => ['sometimes', 'boolean'],
+            'can_be_tech_sound' => ['sometimes', 'boolean'],
+            'can_be_tech_streaming' => ['sometimes', 'boolean'],
             'is_active' => ['sometimes', 'boolean'],
             'is_approved' => ['sometimes', 'boolean'],
-            'role' => ['sometimes', 'in:admin,leader,member'],
+            'role' => ['sometimes', 'in:admin,leader,member,sound_tech'],
             'instruments' => ['sometimes', 'array'],
             'instruments.*' => ['string', Rule::in(self::INSTRUMENTS)],
             'voices' => ['sometimes', 'array'],
@@ -135,7 +145,8 @@ class ProfileController extends Controller
             unset($validated['role']);
 
             if ($isOwnProfile) {
-                unset($validated['can_lead'], $validated['is_active'], $validated['is_approved']);
+                unset($validated['home_group'], $validated['can_lead'], $validated['is_active'], $validated['is_approved']);
+                unset($validated['can_be_tech_lead'], $validated['can_be_tech_sound'], $validated['can_be_tech_streaming']);
             } else {
                 $validated = collect($validated)
                     ->only(['is_active', 'is_approved'])
@@ -160,7 +171,19 @@ class ProfileController extends Controller
 
         DB::transaction(function () use ($profile, $validated): void {
             $profileUpdates = collect($validated)
-                ->only(['name', 'email', 'phone', 'avatar_url', 'can_lead', 'is_active', 'is_approved'])
+                ->only([
+                    'name',
+                    'email',
+                    'phone',
+                    'home_group',
+                    'avatar_url',
+                    'can_lead',
+                    'can_be_tech_lead',
+                    'can_be_tech_sound',
+                    'can_be_tech_streaming',
+                    'is_active',
+                    'is_approved',
+                ])
                 ->all();
 
             if ($profileUpdates !== []) {
@@ -268,13 +291,21 @@ class ProfileController extends Controller
             'email' => $profile->email,
             'avatar_url' => $profile->avatar_url,
             'phone' => $profile->phone,
+            'home_group' => $profile->home_group,
             'can_lead' => $profile->can_lead,
+            'can_be_tech_lead' => (bool) $profile->can_be_tech_lead,
+            'can_be_tech_sound' => (bool) $profile->can_be_tech_sound,
+            'can_be_tech_streaming' => (bool) $profile->can_be_tech_streaming,
             'is_active' => $profile->is_active,
             'is_approved' => $profile->is_approved,
             'created_at' => $profile->created_at,
             'updated_at' => $profile->updated_at,
             'role' => $profile->user?->roles?->first()?->role,
-            'instruments' => $profile->instruments->pluck('instrument')->values()->all(),
+            'instruments' => $profile->instruments
+                ->pluck('instrument')
+                ->reject(fn (string $instrument): bool => $instrument === 'sound_tech')
+                ->values()
+                ->all(),
             'voices' => $profile->voices->pluck('voice_type')->values()->all(),
             'unavailable_dates' => $profile->unavailableDates
                 ->map(fn ($dateRecord) => $dateRecord->unavailable_date?->format('Y-m-d'))
