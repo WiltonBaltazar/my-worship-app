@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PushNotificationToggle } from '@/components/notifications/PushNotificationToggle';
+import { InstallAppButton } from '@/components/pwa/InstallAppButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApproveProfile, usePendingProfiles, useProfiles, useUpdateProfile } from '@/hooks/useProfiles';
 import { toLocalDateInputValue } from '@/lib/date-time';
@@ -266,7 +267,10 @@ export default function Profile() {
               Ative para receber alertas de escala e solicitações de troca em tempo real.
             </p>
           </div>
-          <PushNotificationToggle hideIfUnsupported={false} />
+          <div className="flex flex-col items-stretch gap-2 sm:items-end">
+            <PushNotificationToggle hideIfUnsupported={false} />
+            <InstallAppButton />
+          </div>
         </div>
       </div>
 

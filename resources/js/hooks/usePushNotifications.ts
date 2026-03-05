@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/api';
 
+type UnsupportedReason = 'unsupported_browser' | 'ios_home_screen_required' | null;
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -19,6 +21,7 @@ export function usePushNotifications() {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
+  const [unsupportedReason, setUnsupportedReason] = useState<UnsupportedReason>(null);
   const { toast } = useToast();
 
   const registerSubscription = useCallback(async (subscription: PushSubscription) => {
@@ -54,35 +57,56 @@ export function usePushNotifications() {
   }, [isSupported, permission, registerSubscription]);
 
   useEffect(() => {
-    // Check if push notifications are supported
-    if ('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window) {
-      setIsSupported(true);
-      setPermission(Notification.permission);
-      
-      // Register service worker
-      navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
-          registration.pushManager.getSubscription().then((subscription) => {
-            setIsSubscribed(!!subscription);
-          });
+    const hasBrowserSupport = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
-          if (Notification.permission === 'granted') {
-            ensureSubscription().catch((error) => {
-              console.error('Failed to ensure push subscription:', error);
-            });
-          }
-        })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error);
-        });
+    if (!hasBrowserSupport) {
+      setIsSupported(false);
+      setUnsupportedReason('unsupported_browser');
+      return;
     }
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const nav = window.navigator as Navigator & { standalone?: boolean };
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || nav.standalone === true;
+
+    if (isIOS && !isStandalone) {
+      setIsSupported(false);
+      setUnsupportedReason('ios_home_screen_required');
+      setPermission(Notification.permission);
+      return;
+    }
+
+    setIsSupported(true);
+    setUnsupportedReason(null);
+    setPermission(Notification.permission);
+
+    navigator.serviceWorker.register('/sw.js')
+      .then((registration) => {
+        registration.pushManager.getSubscription().then((subscription) => {
+          setIsSubscribed(!!subscription);
+        });
+
+        if (Notification.permission === 'granted') {
+          ensureSubscription().catch((error) => {
+            console.error('Failed to ensure push subscription:', error);
+          });
+        }
+      })
+      .catch((error) => {
+        console.error('Service Worker registration failed:', error);
+      });
   }, [ensureSubscription]);
 
   const requestPermission = useCallback(async () => {
     if (!isSupported) {
+      const unsupportedDescription = unsupportedReason === 'ios_home_screen_required'
+        ? 'No iPhone, instale o app na Tela de Início e abra por lá para ativar notificações.'
+        : 'Seu navegador não suporta notificações push.';
+
       toast({
         title: 'Não suportado',
-        description: 'Seu navegador não suporta notificações push.',
+        description: unsupportedDescription,
         variant: 'destructive'
       });
       return false;
@@ -127,7 +151,7 @@ export function usePushNotifications() {
 
       return false;
     }
-  }, [ensureSubscription, isSupported, permission, toast]);
+  }, [ensureSubscription, isSupported, permission, toast, unsupportedReason]);
 
   const showLocalNotification = useCallback((title: string, body: string, url?: string) => {
     if (!isSupported || permission !== 'granted') return;
@@ -146,6 +170,7 @@ export function usePushNotifications() {
     isSupported,
     isSubscribed,
     permission,
+    unsupportedReason,
     requestPermission,
     showLocalNotification
   };
