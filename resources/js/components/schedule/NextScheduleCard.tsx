@@ -68,7 +68,7 @@ export function NextScheduleCard({ schedule, myMembership }: NextScheduleCardPro
           {/* Header */}
           <div className="flex items-center gap-2 mb-3">
             <Badge variant="default">Culto</Badge>
-            {schedule.title && <span className="font-medium text-foreground">{schedule.title}</span>}
+            {schedule.title && <span className="font-medium  text-white text-foreground">{schedule.title}</span>}
           </div>
           
           {/* Date and time */}
@@ -88,7 +88,7 @@ export function NextScheduleCard({ schedule, myMembership }: NextScheduleCardPro
           {/* Team preview */}
           {schedule.members && schedule.members.length > 0 && (
             <div className="mb-4 p-3 bg-background/50 rounded-xl">
-              <div className="flex items-center gap-2 mb-2 text-sm text-black font-medium">
+              <div className="flex items-center gap-2 mb-2 text-sm text-white font-medium">
                 <Users className="h-4 w-4" />
                 Equipe ({schedule.members.length})
               </div>
@@ -106,8 +106,8 @@ export function NextScheduleCard({ schedule, myMembership }: NextScheduleCardPro
                         <User className="h-3 w-3 text-primary" />
                       )}
                     </div>
-                    <span className="text-foreground truncate">{member.profile?.name}</span>
-                    <span className="text-muted-foreground text-xs">
+                    <span className="text-foreground font-bold truncate">{member.profile?.name}</span>
+                    <span className="text-black text-xs">
                       ({functionTypeLabels[member.function_type] || member.function_detail || 'Instrumentista'})
                     </span>
                     {member.confirmed && <Check className="h-3 w-3 text-success ml-auto shrink-0" />}
