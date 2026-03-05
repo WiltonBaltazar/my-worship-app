@@ -1,0 +1,37 @@
+{
+  "node_modules/canvg/lib/index.es.js": {
+    "file": "assets/index.es-HV76zdmt.js",
+    "name": "index.es",
+    "src": "node_modules/canvg/lib/index.es.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/main.tsx"
+    ]
+  },
+  "node_modules/dompurify/dist/purify.es.mjs": {
+    "file": "assets/purify.es-B9ZVCkUG.js",
+    "name": "purify.es",
+    "src": "node_modules/dompurify/dist/purify.es.mjs",
+    "isDynamicEntry": true
+  },
+  "node_modules/html2canvas/dist/html2canvas.esm.js": {
+    "file": "assets/html2canvas.esm-QH1iLAAe.js",
+    "name": "html2canvas.esm",
+    "src": "node_modules/html2canvas/dist/html2canvas.esm.js",
+    "isDynamicEntry": true
+  },
+  "resources/js/main.tsx": {
+    "file": "assets/main-ifAkivWx.js",
+    "name": "main",
+    "src": "resources/js/main.tsx",
+    "isEntry": true,
+    "dynamicImports": [
+      "node_modules/html2canvas/dist/html2canvas.esm.js",
+      "node_modules/dompurify/dist/purify.es.mjs",
+      "node_modules/canvg/lib/index.es.js"
+    ],
+    "css": [
+      "assets/main-Yh-hEUBI.css"
+    ]
+  }
+}
