@@ -127,7 +127,7 @@ return new class extends Migration
             $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
             $table->timestampTz('created_at')->useCurrent();
             $table->timestampTz('responded_at')->nullable();
-            $table->unique(['schedule_member_id', 'candidate_profile_id']);
+            $table->unique(['schedule_member_id', 'candidate_profile_id'], 'sub_req_member_candidate_uq');
         });
 
         Schema::create('push_subscriptions', function (Blueprint $table): void {
