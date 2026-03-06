@@ -79,6 +79,96 @@ class ScheduleEligibilityTest extends TestCase
         ]);
     }
 
+    public function test_ghj_leader_cannot_add_member_from_other_home_group(): void
+    {
+        $admin = User::factory()->create();
+        $leader = $this->createLeaderWithHomeGroup('GHJ');
+
+        $member = User::factory()->create();
+        $memberProfile = $member->profile()->firstOrFail();
+        $memberProfile->update([
+            'is_approved' => true,
+            'is_active' => true,
+            'home_group' => 'GHH',
+        ]);
+        $memberProfile->instruments()->create(['instrument' => 'guitar']);
+
+        $scheduleId = $this->createSchedule($admin);
+
+        $this->postJson(
+            "/api/schedules/{$scheduleId}/members",
+            [
+                'profile_id' => $memberProfile->id,
+                'function_type' => 'instrumentalist',
+                'function_detail' => 'Guitarra',
+            ],
+            $this->authHeadersFor($leader),
+        )->assertForbidden();
+
+        $this->assertDatabaseMissing('schedule_members', [
+            'schedule_id' => $scheduleId,
+            'profile_id' => $memberProfile->id,
+        ]);
+    }
+
+    public function test_ghj_leader_can_add_member_from_ghj(): void
+    {
+        $admin = User::factory()->create();
+        $leader = $this->createLeaderWithHomeGroup('GHJ');
+
+        $member = User::factory()->create();
+        $memberProfile = $member->profile()->firstOrFail();
+        $memberProfile->update([
+            'is_approved' => true,
+            'is_active' => true,
+            'home_group' => 'GHJ',
+        ]);
+        $memberProfile->instruments()->create(['instrument' => 'guitar']);
+
+        $scheduleId = $this->createSchedule($admin);
+
+        $this->postJson(
+            "/api/schedules/{$scheduleId}/members",
+            [
+                'profile_id' => $memberProfile->id,
+                'function_type' => 'instrumentalist',
+                'function_detail' => 'Guitarra',
+            ],
+            $this->authHeadersFor($leader),
+        )
+            ->assertCreated()
+            ->assertJsonPath('profile_id', $memberProfile->id);
+    }
+
+    public function test_ghs_leader_can_add_member_from_any_home_group(): void
+    {
+        $admin = User::factory()->create();
+        $leader = $this->createLeaderWithHomeGroup('GHS');
+
+        $member = User::factory()->create();
+        $memberProfile = $member->profile()->firstOrFail();
+        $memberProfile->update([
+            'is_approved' => true,
+            'is_active' => true,
+            'home_group' => 'GHH',
+        ]);
+        $memberProfile->instruments()->create(['instrument' => 'guitar']);
+
+        $scheduleId = $this->createSchedule($admin);
+
+        $this->postJson(
+            "/api/schedules/{$scheduleId}/members",
+            [
+                'profile_id' => $memberProfile->id,
+                'function_type' => 'instrumentalist',
+                'function_detail' => 'Guitarra',
+            ],
+            $this->authHeadersFor($leader),
+        )
+            ->assertCreated()
+            ->assertJsonPath('profile_id', $memberProfile->id);
+    }
+
     public function test_member_marked_unavailable_cannot_be_added_to_schedule_on_same_date(): void
     {
         $admin = User::factory()->create();
@@ -879,5 +969,22 @@ class ScheduleEligibilityTest extends TestCase
             'Authorization' => 'Bearer ' . $user->issueApiToken(),
             'Accept' => 'application/json',
         ];
+    }
+
+    private function createLeaderWithHomeGroup(string $homeGroup): User
+    {
+        $leader = User::factory()->create();
+        $leader->profile()->update([
+            'is_approved' => true,
+            'is_active' => true,
+            'home_group' => $homeGroup,
+        ]);
+
+        UserRole::query()->create([
+            'user_id' => $leader->id,
+            'role' => 'leader',
+        ]);
+
+        return $leader;
     }
 }

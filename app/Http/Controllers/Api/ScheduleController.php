@@ -9,6 +9,7 @@ use App\Models\Schedule;
 use App\Models\ScheduleMember;
 use App\Models\ScheduleSong;
 use App\Models\SubstituteRequest;
+use App\Models\User;
 use App\Support\NormalScheduleEligibility;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,8 @@ class ScheduleController extends Controller
         'instrumentalist' => 2,
         'sound_tech' => 3,
     ];
+
+    private const RESTRICTED_LEADER_HOME_GROUP = 'GHJ';
 
     public function index(Request $request): JsonResponse
     {
@@ -153,6 +156,8 @@ class ScheduleController extends Controller
             ->with(['user.roles:user_id,role', 'unavailableDates', 'instruments', 'voices'])
             ->findOrFail($validated['profile_id']);
 
+        $this->ensureLeaderCanManageProfile($request, $profile);
+
         if ($this->profileIsAdmin($profile)) {
             throw ValidationException::withMessages([
                 'profile_id' => ['Administradores não podem ser escalados como membros.'],
@@ -178,6 +183,8 @@ class ScheduleController extends Controller
 
     public function updateMember(Request $request, ScheduleMember $member): JsonResponse
     {
+        $member->loadMissing('profile');
+
         $user = $request->user();
 
         $isAdminOrLeader = $user->isAdmin() || $user->isLeader();
@@ -189,6 +196,10 @@ class ScheduleController extends Controller
 
         if (! $isOwner && ! $isAdminOrLeader && ! $isScheduleLead) {
             abort(403, 'Forbidden.');
+        }
+
+        if ($isAdminOrLeader) {
+            $this->ensureLeaderCanManageProfile($request, $member->profile);
         }
 
         $validated = $request->validate([
@@ -262,6 +273,8 @@ class ScheduleController extends Controller
             'profile:id,name,user_id',
             'schedule:id,schedule_date,status',
         ]);
+
+        $this->ensureLeaderCanManageProfile($request, $member->profile);
 
         $removedProfile = $member->profile;
         $schedule = $member->schedule;
@@ -511,5 +524,29 @@ class ScheduleController extends Controller
         throw ValidationException::withMessages([
             $field => ['Este membro tem apenas habilidades técnicas de som. Adicione voz, instrumento ou capacidade de liderar para escalá-lo na escala normal.'],
         ]);
+    }
+
+    private function ensureLeaderCanManageProfile(Request $request, ?Profile $profile): void
+    {
+        $user = $request->user()->loadMissing('profile');
+
+        if (! $this->isRestrictedHomeGroupLeader($user)) {
+            return;
+        }
+
+        if (($profile?->home_group) !== self::RESTRICTED_LEADER_HOME_GROUP) {
+            abort(403, 'Forbidden.');
+        }
+    }
+
+    private function isRestrictedHomeGroupLeader(User $user): bool
+    {
+        if ($user->isAdmin() || ! $user->isLeader()) {
+            return false;
+        }
+
+        $user->loadMissing('profile');
+
+        return $user->profile?->home_group === self::RESTRICTED_LEADER_HOME_GROUP;
     }
 }

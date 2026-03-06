@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/api';
 import type { Profile } from '@/hooks/useProfiles';
+import { useAuth } from '@/contexts/AuthContext';
 
 const instruments = [
   { value: 'guitar', label: 'Guitarra' },
@@ -55,6 +56,7 @@ interface RegisterResponse {
 export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { profile, isAdmin, isLeader } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -67,6 +69,18 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
   const [selectedInstruments, setSelectedInstruments] = useState<string[]>([]);
   const [selectedVoices, setSelectedVoices] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isRestrictedGhjLeader = isLeader && !isAdmin && profile?.home_group === 'GHJ';
+
+  const availableHomeGroups = useMemo(
+    () => (isRestrictedGhjLeader ? homeGroups.filter((group) => group.value === 'GHJ') : homeGroups),
+    [isRestrictedGhjLeader],
+  );
+
+  useEffect(() => {
+    if (isRestrictedGhjLeader && homeGroup !== 'GHJ') {
+      setHomeGroup('GHJ');
+    }
+  }, [homeGroup, isRestrictedGhjLeader]);
 
   const toggleInstrument = (value: string) => {
     setSelectedInstruments((previous) =>
@@ -217,12 +231,13 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             <Select
               value={homeGroup ?? undefined}
               onValueChange={(value) => setHomeGroup(value as Profile['home_group'])}
+              disabled={isRestrictedGhjLeader}
             >
               <SelectTrigger id="add-member-home-group">
                 <SelectValue placeholder="Selecione um grupo" />
               </SelectTrigger>
               <SelectContent>
-                {homeGroups.map((group) => (
+                {availableHomeGroups.map((group) => (
                   <SelectItem key={group.value} value={group.value}>
                     {group.label}
                   </SelectItem>
