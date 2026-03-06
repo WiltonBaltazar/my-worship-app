@@ -157,6 +157,111 @@ class ProfileApprovalTest extends TestCase
         $this->assertTrue((bool) Profile::query()->findOrFail($pendingProfile->id)->is_approved);
     }
 
+    public function test_ghj_leader_lists_only_pending_profiles_from_ghj(): void
+    {
+        User::factory()->create(); // First user becomes admin.
+        $leader = $this->createLeaderWithHomeGroup('GHJ');
+
+        $ghjPending = User::factory()->create();
+        $ghjPendingProfile = $ghjPending->profile()->firstOrFail();
+        $ghjPendingProfile->update([
+            'is_approved' => false,
+            'is_active' => true,
+            'home_group' => 'GHJ',
+        ]);
+
+        $ghhPending = User::factory()->create();
+        $ghhPendingProfile = $ghhPending->profile()->firstOrFail();
+        $ghhPendingProfile->update([
+            'is_approved' => false,
+            'is_active' => true,
+            'home_group' => 'GHH',
+        ]);
+
+        $response = $this->getJson(
+            '/api/profiles?status=pending',
+            $this->authHeadersFor($leader),
+        );
+
+        $response->assertOk();
+
+        $profileIds = collect($response->json())->pluck('id')->all();
+
+        $this->assertContains($ghjPendingProfile->id, $profileIds);
+        $this->assertNotContains($ghhPendingProfile->id, $profileIds);
+    }
+
+    public function test_ghj_leader_pending_count_is_scoped_to_ghj_profiles(): void
+    {
+        User::factory()->create(); // First user becomes admin.
+        $leader = $this->createLeaderWithHomeGroup('GHJ');
+
+        $ghjPending = User::factory()->create();
+        $ghjPending->profile()->update([
+            'is_approved' => false,
+            'is_active' => true,
+            'home_group' => 'GHJ',
+        ]);
+
+        $ghsPending = User::factory()->create();
+        $ghsPending->profile()->update([
+            'is_approved' => false,
+            'is_active' => true,
+            'home_group' => 'GHS',
+        ]);
+
+        $this->getJson(
+            '/api/profiles/pending-count',
+            $this->authHeadersFor($leader),
+        )
+            ->assertOk()
+            ->assertJsonPath('count', 1);
+    }
+
+    public function test_ghj_leader_cannot_approve_pending_profile_from_other_home_group(): void
+    {
+        User::factory()->create(); // First user becomes admin.
+        $leader = $this->createLeaderWithHomeGroup('GHJ');
+
+        $pendingUser = User::factory()->create();
+        $pendingProfile = $pendingUser->profile()->firstOrFail();
+        $pendingProfile->update([
+            'is_approved' => false,
+            'is_active' => true,
+            'home_group' => 'GHS',
+        ]);
+
+        $this->patchJson(
+            "/api/profiles/{$pendingProfile->id}",
+            ['is_approved' => true],
+            $this->authHeadersFor($leader),
+        )->assertForbidden();
+
+        $this->assertFalse((bool) Profile::query()->findOrFail($pendingProfile->id)->is_approved);
+    }
+
+    public function test_ghh_leader_can_approve_pending_profile_from_other_home_group(): void
+    {
+        User::factory()->create(); // First user becomes admin.
+        $leader = $this->createLeaderWithHomeGroup('GHH');
+
+        $pendingUser = User::factory()->create();
+        $pendingProfile = $pendingUser->profile()->firstOrFail();
+        $pendingProfile->update([
+            'is_approved' => false,
+            'is_active' => true,
+            'home_group' => 'GHJ',
+        ]);
+
+        $this->patchJson(
+            "/api/profiles/{$pendingProfile->id}",
+            ['is_approved' => true],
+            $this->authHeadersFor($leader),
+        )
+            ->assertOk()
+            ->assertJsonPath('is_approved', true);
+    }
+
     public function test_admin_can_assign_member_to_home_group(): void
     {
         $admin = User::factory()->create();
@@ -198,5 +303,22 @@ class ProfileApprovalTest extends TestCase
             'Authorization' => 'Bearer ' . $user->issueApiToken(),
             'Accept' => 'application/json',
         ];
+    }
+
+    private function createLeaderWithHomeGroup(string $homeGroup): User
+    {
+        $leader = User::factory()->create();
+        $leader->profile()->update([
+            'is_approved' => true,
+            'is_active' => true,
+            'home_group' => $homeGroup,
+        ]);
+
+        UserRole::query()->create([
+            'user_id' => $leader->id,
+            'role' => 'leader',
+        ]);
+
+        return $leader;
     }
 }

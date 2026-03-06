@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Profile;
+use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,8 +39,12 @@ class ProfileController extends Controller
         'GHC',
     ];
 
+    private const RESTRICTED_LEADER_HOME_GROUP = 'GHJ';
+
     public function index(Request $request): JsonResponse
     {
+        $user = $request->user()->loadMissing('profile');
+
         $status = (string) $request->query('status', 'approved');
         $status = in_array($status, ['approved', 'pending', 'all'], true) ? $status : 'approved';
 
@@ -50,6 +55,10 @@ class ProfileController extends Controller
             ->with(['instruments', 'voices', 'unavailableDates', 'user.roles'])
             ->orderBy('name');
 
+        if ($this->isRestrictedHomeGroupLeader($user)) {
+            $profilesQuery->where('home_group', self::RESTRICTED_LEADER_HOME_GROUP);
+        }
+
         if ($status === 'approved') {
             $profilesQuery->where('is_approved', true);
         } elseif ($status === 'pending') {
@@ -58,19 +67,19 @@ class ProfileController extends Controller
             }
 
             $profilesQuery->where('is_approved', false);
-        } elseif (! $request->user()->isAdmin()) {
+        } elseif (! $user->isAdmin()) {
             abort(403, 'Forbidden.');
         }
 
         if ($activity === 'active') {
             $profilesQuery->where('is_active', true);
         } elseif ($activity === 'inactive') {
-            if (! $request->user()->isAdmin()) {
+            if (! $user->isAdmin()) {
                 abort(403, 'Forbidden.');
             }
 
             $profilesQuery->where('is_active', false);
-        } elseif (! $request->user()->isAdmin()) {
+        } elseif (! $user->isAdmin()) {
             abort(403, 'Forbidden.');
         }
 
@@ -88,10 +97,17 @@ class ProfileController extends Controller
             abort(403, 'Forbidden.');
         }
 
-        $count = Profile::query()
+        $user = $request->user()->loadMissing('profile');
+
+        $countQuery = Profile::query()
             ->where('is_approved', false)
-            ->where('is_active', true)
-            ->count();
+            ->where('is_active', true);
+
+        if ($this->isRestrictedHomeGroupLeader($user)) {
+            $countQuery->where('home_group', self::RESTRICTED_LEADER_HOME_GROUP);
+        }
+
+        $count = $countQuery->count();
 
         return response()->json([
             'count' => $count,
@@ -106,6 +122,15 @@ class ProfileController extends Controller
         $isOwnProfile = $profile->user_id === $user->id;
 
         if (! $isOwnProfile && ! $isAdmin && ! $isLeader) {
+            abort(403, 'Forbidden.');
+        }
+
+        if (
+            ! $isAdmin
+            && ! $isOwnProfile
+            && $this->isRestrictedHomeGroupLeader($user)
+            && $profile->home_group !== self::RESTRICTED_LEADER_HOME_GROUP
+        ) {
             abort(403, 'Forbidden.');
         }
 
@@ -318,5 +343,16 @@ class ProfileController extends Controller
     private function canManagePendingApprovals(Request $request): bool
     {
         return $request->user()->isAdmin() || $request->user()->isLeader();
+    }
+
+    private function isRestrictedHomeGroupLeader(User $user): bool
+    {
+        if ($user->isAdmin() || ! $user->isLeader()) {
+            return false;
+        }
+
+        $user->loadMissing('profile');
+
+        return $user->profile?->home_group === self::RESTRICTED_LEADER_HOME_GROUP;
     }
 }
