@@ -4,7 +4,12 @@ set -eu
 cd /var/www/html
 
 if [ ! -f .env ]; then
-  cp .env.example .env
+  if [ -f .env.example ]; then
+    cp .env.example .env
+  else
+    echo "No .env or .env.example found; relying on container environment variables."
+    touch .env
+  fi
 fi
 
 # Ensure runtime directories are writable.
