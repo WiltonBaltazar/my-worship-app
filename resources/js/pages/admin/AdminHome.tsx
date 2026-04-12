@@ -45,7 +45,7 @@ export default function AdminHome() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="flex items-center justify-center py-16">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -111,7 +111,7 @@ export default function AdminHome() {
       value: songs?.length || 0,
       icon: Music,
       change: 'Total cadastradas',
-      color: 'text-orange-700',
+      color: 'text-accent',
     },
     {
       title: 'Confirmações',
@@ -136,10 +136,7 @@ export default function AdminHome() {
 
   const handleOpenChangeRequest = (scheduleId: string) => {
     const relatedUnreadNotifications = (notifications ?? []).filter(
-      (notification) =>
-        notification.type === 'change_request'
-        && notification.schedule_id === scheduleId
-        && !notification.read,
+      (notification) => notification.type === 'change_request' && notification.schedule_id === scheduleId && !notification.read,
     );
 
     relatedUnreadNotifications.forEach((notification) => {
@@ -150,32 +147,35 @@ export default function AdminHome() {
   };
 
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Dashboard</h1>
-        <p className="text-muted-foreground">Visão geral do ministério de louvor</p>
+    <div className="space-y-7">
+      <header className="admin-surface border-l-4 border-l-orange-500 p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-orange-600">Painel administrativo</p>
+        <h1 className="mt-2 admin-page-title">Dashboard</h1>
+        <p className="mt-1 admin-page-description">Visão geral do ministério de louvor</p>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title} className="border-none shadow-soft">
+            <Card key={stat.title} className="admin-surface">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-                <Icon className={cn('h-5 w-5', stat.color)} />
+                <CardTitle className="text-sm font-medium text-slate-500">{stat.title}</CardTitle>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50">
+                  <Icon className={cn('h-5 w-5', stat.color)} />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-foreground">{stat.value}</div>
-                <p className="mt-1 text-sm text-muted-foreground">{stat.change}</p>
+                <div className="text-3xl font-semibold text-slate-900">{stat.value}</div>
+                <p className="mt-1 text-sm text-slate-500">{stat.change}</p>
               </CardContent>
             </Card>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="border-none shadow-soft">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <Card className="admin-surface">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Guitar className="h-5 w-5 text-primary" />
@@ -199,7 +199,7 @@ export default function AdminHome() {
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-soft">
+        <Card className="admin-surface">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Mic2 className="h-5 w-5 text-primary" />
@@ -224,8 +224,8 @@ export default function AdminHome() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card className="border-none shadow-soft">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <Card className="admin-surface">
           <CardHeader>
             <CardTitle className="text-lg">Solicitações de Troca</CardTitle>
           </CardHeader>
@@ -235,14 +235,14 @@ export default function AdminHome() {
                 {changeRequests.slice(0, 5).map((request, index) => (
                   <li
                     key={`${request.memberName}-${index}`}
-                    className="flex flex-col gap-3 border-b border-border pb-3 last:border-0 sm:flex-row sm:items-start sm:justify-between"
+                    className="admin-surface-muted flex flex-col gap-3 p-3 sm:flex-row sm:items-start sm:justify-between"
                   >
                     <div>
-                      <span className="font-medium text-foreground">{request.memberName}</span>
-                      <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-slate-900">{request.memberName}</span>
+                      <p className="text-sm text-slate-500">
                         Escala: {format(new Date(request.scheduleDate), 'dd/MM/yyyy', { locale: ptBR })}
                       </p>
-                      {request.reason && <p className="mt-1 text-sm text-orange-700">"{request.reason}"</p>}
+                      {request.reason && <p className="mt-1 text-sm text-accent">"{request.reason}"</p>}
                     </div>
                     <Button
                       variant="outline"
@@ -262,35 +262,39 @@ export default function AdminHome() {
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-soft">
+        <Card className="admin-surface">
           <CardHeader>
             <CardTitle className="text-lg">Próximas Escalas</CardTitle>
           </CardHeader>
           <CardContent>
             {upcomingSchedules.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {upcomingSchedules.slice(0, 4).map((schedule) => {
                   const confirmed = schedule.members?.filter((member) => member.confirmed).length || 0;
                   const total = schedule.members?.length || 0;
 
                   return (
-                    <div key={schedule.id} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div
+                      key={schedule.id}
+                      className="admin-surface-muted flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
                       <div className="flex min-w-0 items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50">
                           <Calendar className="h-5 w-5 text-primary" />
                         </div>
                         <div className="min-w-0">
-                          <p className="font-medium text-foreground">
+                          <p className="font-medium text-slate-900">
                             {format(new Date(schedule.schedule_date), "dd 'de' MMM", { locale: ptBR })}
                           </p>
-                          <p className="text-sm text-muted-foreground">{total} membros escalados</p>
+                          <p className="text-sm text-slate-500">{total} membros escalados</p>
                         </div>
                       </div>
+
                       <div className="self-end text-right sm:self-auto">
-                        <p className="font-medium text-foreground">
+                        <p className="font-medium text-slate-900">
                           {confirmed}/{total}
                         </p>
-                        <p className="text-sm text-muted-foreground">confirmados</p>
+                        <p className="text-sm text-slate-500">confirmados</p>
                       </div>
                     </div>
                   );

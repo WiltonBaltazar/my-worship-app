@@ -220,9 +220,9 @@ export default function Repertoire() {
         ) : (
           <div className="space-y-3">
             {displayedSongs.map((song) => (
-              <Card 
+            <Card
                 key={song.id} 
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                className="cursor-pointer transition-all hover:-translate-y-0.5 hover:bg-secondary/40"
                 onClick={() => navigate(`/songs/${song.id}`)}
               >
                 <CardContent className="p-4">

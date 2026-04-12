@@ -114,18 +114,18 @@ export default function AdminScheduleDetails() {
       </div>
 
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold text-foreground sm:text-3xl lg:text-4xl">Detalhes da Escala</h1>
-        <p className="text-muted-foreground">Visualize membros, confirmações e repertório.</p>
+        <h1 className="admin-page-title">Detalhes da Escala</h1>
+        <p className="admin-page-description">Visualize membros, confirmações e repertório.</p>
       </header>
 
       <div className="space-y-6">
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+        <div className="admin-surface p-5">
           <div className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
-            <p className="text-xl font-semibold text-foreground">{readableDate}</p>
+            <p className="text-xl font-semibold text-slate-900">{readableDate}</p>
           </div>
-          {schedule.title && <p className="mt-1 font-medium text-foreground">{schedule.title}</p>}
-          <div className="mt-2 flex items-center gap-2 text-muted-foreground">
+          {schedule.title && <p className="mt-1 font-medium text-slate-900">{schedule.title}</p>}
+          <div className="mt-2 flex items-center gap-2 text-slate-500">
             <Clock className="h-4 w-4" />
             <span>{schedule.start_time?.slice(0, 5) ?? '11:00'}</span>
           </div>
@@ -144,9 +144,9 @@ export default function AdminScheduleDetails() {
           </div>
           <div className="space-y-2">
             {(schedule.members ?? []).map((member) => (
-              <div key={member.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div key={member.id} className="admin-surface-muted flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-50">
                     {member.profile?.avatar_url ? (
                       <img src={member.profile.avatar_url} alt={member.profile.name} className="h-10 w-10 rounded-full object-cover" />
                     ) : (
@@ -154,8 +154,8 @@ export default function AdminScheduleDetails() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate font-medium">{member.profile?.name}</p>
-                    <p className="truncate text-sm text-muted-foreground">
+                    <p className="truncate font-medium text-slate-900">{member.profile?.name}</p>
+                    <p className="truncate text-sm text-slate-500">
                       {functionLabelMap[member.function_type] || member.function_type}
                       {member.function_detail ? ` - ${member.function_detail}` : ''}
                     </p>
@@ -179,7 +179,7 @@ export default function AdminScheduleDetails() {
             ))}
 
             {(schedule.members ?? []).length === 0 && (
-              <p className="rounded-2xl border border-dashed border-border p-4 text-center text-muted-foreground">
+              <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-center text-slate-500">
                 Nenhum membro escalado ainda.
               </p>
             )}
@@ -195,18 +195,18 @@ export default function AdminScheduleDetails() {
           </div>
           <div className="space-y-2">
             {(schedule.songs ?? []).map((scheduleSong, index) => (
-              <div key={scheduleSong.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+              <div key={scheduleSong.id} className="admin-surface-muted flex items-center gap-3 p-3">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-orange-50 text-xs font-semibold text-primary">
                   {index + 1}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-foreground">{scheduleSong.song?.title ?? 'Música sem título'}</p>
-                  {scheduleSong.song?.artist && <p className="truncate text-sm text-muted-foreground">{scheduleSong.song.artist}</p>}
+                  <p className="truncate font-medium text-slate-900">{scheduleSong.song?.title ?? 'Música sem título'}</p>
+                  {scheduleSong.song?.artist && <p className="truncate text-sm text-slate-500">{scheduleSong.song.artist}</p>}
                 </div>
               </div>
             ))}
             {(schedule.songs ?? []).length === 0 && (
-              <p className="rounded-2xl border border-dashed border-border p-4 text-center text-muted-foreground">
+              <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-center text-slate-500">
                 Nenhuma música adicionada ainda.
               </p>
             )}

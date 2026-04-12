@@ -94,8 +94,14 @@ export default function Notifications() {
       
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h1 className="text-xl font-bold text-foreground">Notificações</h1>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Notificações</h1>
+            <p className="text-sm text-muted-foreground">Solicitações e alertas recentes</p>
+          </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate('/notifications/received')}>
+              Ver todas recebidas
+            </Button>
             <PushNotificationToggle />
             {unreadCount > 0 && (
               <Button 
@@ -191,7 +197,7 @@ export default function Notifications() {
                 <Card 
                   key={notif.id}
                   className={cn(
-                    "p-4 transition-all cursor-pointer hover:shadow-md",
+                    "cursor-pointer p-4 transition-all hover:-translate-y-0.5",
                     !notif.read && "border-l-4 border-l-primary bg-primary/5"
                   )}
                   onClick={() => handleNotificationClick(notif)}

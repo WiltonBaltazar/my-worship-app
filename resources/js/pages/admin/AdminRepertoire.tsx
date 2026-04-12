@@ -38,10 +38,10 @@ export default function AdminRepertoire() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Repertório</h1>
-          <p className="text-muted-foreground">Gerencie as músicas do ministério</p>
+          <h1 className="admin-page-title">Repertório</h1>
+          <p className="admin-page-description">Gerencie as músicas do ministério</p>
         </div>
-        <Button className="w-full sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
+        <Button className="w-full rounded-xl sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Adicionar Música
         </Button>
@@ -53,26 +53,26 @@ export default function AdminRepertoire() {
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Buscar músicas por título, artista ou tag..."
-          className="pl-10"
+          className="rounded-xl border-slate-200 bg-white pl-10"
         />
       </div>
 
       <div className="grid gap-4">
         {filteredSongs.map((song) => (
-          <Card key={song.id} className="border-none shadow-soft">
+          <Card key={song.id} className="admin-surface">
             <CardContent className="p-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                 <div className="flex min-w-0 flex-1 items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50">
                     <Music2 className="h-6 w-6 text-primary" />
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold text-foreground">{song.title}</h3>
+                      <h3 className="font-semibold text-slate-900">{song.title}</h3>
                     </div>
 
-                    {song.artist && <p className="text-sm text-muted-foreground">{song.artist}</p>}
+                    {song.artist && <p className="text-sm text-slate-500">{song.artist}</p>}
 
                     {(song.tags ?? []).length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">

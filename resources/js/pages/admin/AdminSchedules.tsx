@@ -109,11 +109,11 @@ export default function AdminSchedules() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl lg:text-5xl">Escalas</h1>
-          <p className="text-base text-muted-foreground lg:text-2xl">Crie e gerencie escalas de culto</p>
+          <h1 className="admin-page-title">Escalas</h1>
+          <p className="admin-page-description">Crie e gerencie escalas de culto</p>
         </div>
 
-        <Button className="h-12 w-full rounded-2xl px-6 text-lg sm:w-auto" onClick={() => setIsCreateDialogOpen(true)}>
+        <Button className="h-11 w-full rounded-xl px-5 sm:w-auto" onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="mr-2 h-5 w-5" />
           Nova Escala
         </Button>
@@ -127,16 +127,16 @@ export default function AdminSchedules() {
           const requestCount = members.filter((member) => member.requested_change).length;
 
           return (
-            <Card key={schedule.id} className="border border-border shadow-soft">
+            <Card key={schedule.id} className="admin-surface">
               <CardHeader className="pb-2">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-primary">
                       <Calendar className="h-6 w-6" />
                     </div>
                     <div className="min-w-0">
-                      <CardTitle className="text-xl lg:text-3xl">{formatScheduleDate(schedule.schedule_date)}</CardTitle>
-                      {schedule.title && <p className="mt-1 text-sm text-muted-foreground lg:text-base">{schedule.title}</p>}
+                      <CardTitle className="text-xl text-slate-900 lg:text-2xl">{formatScheduleDate(schedule.schedule_date)}</CardTitle>
+                      {schedule.title && <p className="mt-1 text-sm text-slate-500 lg:text-base">{schedule.title}</p>}
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <Badge className={statusBadgeClass(schedule.status)}>
                           {statusLabelMap[schedule.status]}
@@ -177,7 +177,7 @@ export default function AdminSchedules() {
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-6 text-muted-foreground">
+                <div className="flex flex-wrap gap-6 text-slate-500">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
                     <span>{members.length} membros escalados</span>
@@ -192,15 +192,15 @@ export default function AdminSchedules() {
                   </div>
                 </div>
 
-                <div className="border-t border-border pt-4">
-                  <p className="mb-2 font-medium text-foreground">Equipe:</p>
+                <div className="border-t border-slate-200 pt-4">
+                  <p className="mb-2 font-medium text-slate-900">Equipe:</p>
                   {members.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {members.map((member) => (
                         <Badge
                           key={member.id}
                           variant={member.confirmed ? 'default' : 'secondary'}
-                          className={member.confirmed ? 'bg-primary/10 text-primary whitespace-normal break-words' : 'whitespace-normal break-words'}
+                          className={member.confirmed ? 'whitespace-normal break-words bg-orange-50 text-orange-700' : 'whitespace-normal break-words'}
                         >
                           {member.profile?.name} - {functionLabelMap[member.function_type] || member.function_type}
                           {member.function_detail ? ` - ${member.function_detail}` : ''}
@@ -221,7 +221,7 @@ export default function AdminSchedules() {
         })}
 
         {worshipSchedules.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">
+          <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
             Nenhuma escala criada ainda.
           </div>
         )}

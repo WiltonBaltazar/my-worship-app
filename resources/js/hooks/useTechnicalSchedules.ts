@@ -27,18 +27,11 @@ export interface TechnicalScheduleWeek {
 interface TechnicalSchedulesResponse {
   weeks: TechnicalScheduleWeek[];
   technicians: TechnicalTechnician[];
-  fairness_score: number;
 }
 
 interface GenerateTechnicalSchedulesResponse {
-  simulated: boolean;
   schedule_type?: 'public_worship' | 'ghj';
   weeks: TechnicalScheduleWeek[];
-  fairness_score: number;
-  lead_coverage_deficit_score?: number;
-  lead_sequence_deviation_score?: number;
-  role_repetition_score: number;
-  load_by_technician: Record<string, number>;
 }
 
 export function useTechnicalSchedules(startDate: string, weeks: number) {
@@ -63,7 +56,6 @@ export function useGenerateTechnicalSchedules() {
     mutationFn: async (payload: {
       start_date: string;
       weeks: number;
-      simulate: boolean;
       schedule_type?: 'public_worship' | 'ghj';
     }) => {
       return apiRequest<GenerateTechnicalSchedulesResponse>('/api/technical-schedules/generate', {
@@ -71,12 +63,9 @@ export function useGenerateTechnicalSchedules() {
         body: payload,
       });
     },
-    onSuccess: (response) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['technical-schedules'] });
-      toast({
-        title: response.simulated ? 'Simulação concluída' : 'Escala técnica gerada',
-        description: `Índice de justiça: ${response.fairness_score}`,
-      });
+      toast({ title: 'Escala técnica gerada e salva' });
     },
     onError: (error: any) => {
       toast({

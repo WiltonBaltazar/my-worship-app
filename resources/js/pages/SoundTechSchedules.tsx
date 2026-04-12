@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, Loader2, Sparkles, Trash2, Wrench } from 'lucide-react';
+import { Download, Loader2, Trash2, Wrench } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,8 +53,6 @@ export default function SoundTechSchedules() {
   const [startDate, setStartDate] = useState(toLocalDateInputValue());
   const [weeks, setWeeks] = useState(8);
   const [scheduleType, setScheduleType] = useState<TechnicalScheduleType>('public_worship');
-  const [previewWeeks, setPreviewWeeks] = useState<TechnicalScheduleWeek[] | null>(null);
-  const [previewFairness, setPreviewFairness] = useState<number | null>(null);
   const [draftByWeekKey, setDraftByWeekKey] = useState<Record<string, WeekDraft>>({});
   const [weekToDelete, setWeekToDelete] = useState<TechnicalScheduleWeek | null>(null);
 
@@ -128,23 +126,13 @@ export default function SoundTechSchedules() {
     return roleTechnicians.filter((technician) => technician.home_group === 'GHJ');
   };
 
-  const handleGenerate = async (simulate: boolean) => {
+  const handleGenerate = async () => {
     try {
-      const response = await generateMutation.mutateAsync({
+      await generateMutation.mutateAsync({
         start_date: startDate,
         weeks,
-        simulate,
         schedule_type: scheduleType,
       });
-
-      if (simulate) {
-        setPreviewWeeks(response.weeks);
-        setPreviewFairness(response.fairness_score);
-        return;
-      }
-
-      setPreviewWeeks(null);
-      setPreviewFairness(null);
     } catch {
       // Toast is handled in hook.
     }
@@ -218,9 +206,7 @@ export default function SoundTechSchedules() {
   };
 
   const handleExportPdf = () => {
-    const technicalWeeksToExport = (previewWeeks && previewWeeks.length > 0) ? previewWeeks : persistedWeeks;
-
-    if (technicalWeeksToExport.length === 0) {
+    if (persistedWeeks.length === 0) {
       toast({
         title: 'Nada para exportar',
         description: 'Gere ou salve a escala tecnica antes de exportar.',
@@ -231,7 +217,7 @@ export default function SoundTechSchedules() {
 
     try {
       exportTechnicalAndGeneralSchedulesPdf({
-        technicalWeeks: technicalWeeksToExport,
+        technicalWeeks: persistedWeeks,
         generalSchedules: generalSchedulesForExport,
         startDate,
         generalWeeks: generalWeeksForExport,
@@ -270,7 +256,7 @@ export default function SoundTechSchedules() {
         }}
         disabled={disabled}
       >
-        <SelectTrigger className="min-w-[150px] sm:min-w-[190px]">
+        <SelectTrigger className="min-w-[150px] rounded-xl border-slate-200 bg-white sm:min-w-[190px]">
           <SelectValue placeholder="Selecione um técnico" />
         </SelectTrigger>
         <SelectContent>
@@ -297,26 +283,23 @@ export default function SoundTechSchedules() {
     <div className="space-y-6">
       <header className="space-y-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-2">
-            <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground sm:text-3xl">
-              <Wrench className="h-7 w-7 text-primary" />
-              Escala Técnica de Som
-            </h1>
-            
-          </div>
+          <h1 className="admin-page-title flex items-center gap-2">
+            <Wrench className="h-7 w-7 text-primary" />
+            Escala Técnica de Som
+          </h1>
 
-          <Button variant="outline" onClick={handleExportPdf}>
+          <Button variant="outline" className="rounded-xl border-slate-200 bg-white" onClick={handleExportPdf}>
             <Download className="mr-2 h-4 w-4" />
             Exportar PDF
           </Button>
         </div>
       </header>
 
-      <Card>
+      <Card className="admin-surface">
         <CardHeader>
           <CardTitle className="text-xl">Gerar Escala</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="space-y-2">
             <Label htmlFor="tech-start-date">Início</Label>
             <Input
@@ -325,6 +308,7 @@ export default function SoundTechSchedules() {
               value={startDate}
               onChange={(event) => setStartDate(event.target.value)}
               min={minStartDate}
+              className="rounded-xl border-slate-200 bg-white"
             />
           </div>
 
@@ -337,6 +321,7 @@ export default function SoundTechSchedules() {
               max={24}
               value={weeks}
               onChange={(event) => setWeeks(Math.max(1, Math.min(24, Number(event.target.value) || 1)))}
+              className="rounded-xl border-slate-200 bg-white"
             />
           </div>
 
@@ -346,7 +331,7 @@ export default function SoundTechSchedules() {
               value={scheduleType}
               onValueChange={(value) => setScheduleType(value as TechnicalScheduleType)}
             >
-              <SelectTrigger id="tech-schedule-type">
+              <SelectTrigger id="tech-schedule-type" className="rounded-xl border-slate-200 bg-white">
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -355,22 +340,12 @@ export default function SoundTechSchedules() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex flex-col justify-end gap-2 col-span-1">
-            <Button
-              variant="outline"
-              className="w-full"
-              disabled={generateMutation.isPending}
-              onClick={() => void handleGenerate(true)}
-            >
-              {generateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-              Simular
-            </Button>
-          </div>
-          <div className="flex flex-col justify-end gap-2 col-span-1">
+
+          <div className="flex flex-col justify-end">
             <Button
               className="w-full"
               disabled={generateMutation.isPending}
-              onClick={() => void handleGenerate(false)}
+              onClick={() => void handleGenerate()}
             >
               {generateMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Gerar e salvar
@@ -379,57 +354,19 @@ export default function SoundTechSchedules() {
         </CardContent>
       </Card>
 
-      {previewWeeks && (
-        <Card className="border-accent/40">
-          <CardHeader>
-            <CardTitle className="text-xl">Prévia da Simulação</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Índice de justiça da simulação: <strong>{previewFairness ?? 0}</strong>
-            </p>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table className="min-w-[680px] overflow-hidden rounded-lg border border-accent/30">
-              <TableHeader>
-                <TableRow className="bg-accent/20 hover:bg-accent/20 [&>th]:text-accent-foreground">
-                  <TableHead>Semana</TableHead>
-                  <TableHead>Técnico Lead</TableHead>
-                  <TableHead>Técnico Assistente</TableHead>
-                  <TableHead>Técnico de Streaming</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {previewWeeks.map((week) => (
-                  <TableRow key={`preview-${week.week_start_date}`} className="hover:bg-accent/10 data-[state=selected]:bg-accent/15">
-                    <TableCell className="font-medium capitalize">{formatWeekDate(week.week_start_date)}</TableCell>
-                    <TableCell>{week.lead_profile?.name ?? 'Não definido'}</TableCell>
-                    <TableCell>{week.sound_profile?.name ?? 'Não definido'}</TableCell>
-                    <TableCell>
-                      {week.streaming_profile?.name ?? (isGhjSchedule(week.schedule_type ?? scheduleType) ? 'Não necessário (GHJ)' : 'Não definido')}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
+      <Card className="admin-surface">
         <CardHeader>
           <CardTitle className="text-xl">Semanas Salvas</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Índice de justiça atual: <strong>{data?.fairness_score ?? 0}</strong>
-          </p>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {persistedWeeks.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhuma semana técnica cadastrada neste período.</p>
+            <p className="text-sm text-slate-500">Nenhuma semana técnica cadastrada neste período.</p>
           )}
 
           {persistedWeeks.length > 0 && (
-            <Table className="min-w-[880px] overflow-hidden rounded-lg border border-accent/30">
+            <Table className="min-w-[880px] overflow-hidden rounded-xl border border-slate-200">
               <TableHeader>
-                <TableRow className="bg-accent/20 hover:bg-accent/20 [&>th]:text-accent-foreground">
+                <TableRow className="bg-slate-100 hover:bg-slate-100 [&>th]:text-slate-700">
                   <TableHead>Semana</TableHead>
                   <TableHead>Técnico Lead</TableHead>
                   <TableHead>Técnico Assistente</TableHead>
@@ -446,13 +383,13 @@ export default function SoundTechSchedules() {
                   const streamingOptions = filterTechniciansByScheduleType(techniciansByRole.streaming, weekScheduleType);
 
                   return (
-                    <TableRow key={week.id ?? week.week_start_date} className="hover:bg-accent/10 data-[state=selected]:bg-accent/15">
+                    <TableRow key={week.id ?? week.week_start_date} className="hover:bg-slate-50 data-[state=selected]:bg-slate-100">
                       <TableCell className="font-medium capitalize">{formatWeekDate(week.week_start_date)}</TableCell>
                       <TableCell>{renderTechnicianSelect(week, 'lead', leadOptions, disabled)}</TableCell>
                       <TableCell>{renderTechnicianSelect(week, 'sound', soundOptions, disabled)}</TableCell>
                       <TableCell>
-                        {weekScheduleType === 'ghj'
-                          ? <span className="text-sm text-muted-foreground">Não necessário (GHJ)</span>
+                        {isGhjSchedule(weekScheduleType)
+                          ? <span className="text-sm text-slate-500">Não necessário (GHJ)</span>
                           : renderTechnicianSelect(week, 'streaming', streamingOptions, disabled)}
                       </TableCell>
                       <TableCell>

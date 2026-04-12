@@ -13,3 +13,15 @@ Schedule::command('notifications:weekly-rehearsal-reminder')
     ->at('09:00')
     ->timezone('Africa/Maputo')
     ->withoutOverlapping();
+
+Schedule::command('notifications:weekly-duty-reminder')
+    ->mondays()
+    ->at('09:00')
+    ->timezone('Africa/Maputo')
+    ->withoutOverlapping();
+
+Schedule::command('notifications:weekly-duty-reminder')
+    ->wednesdays()
+    ->at('09:00')
+    ->timezone('Africa/Maputo')
+    ->withoutOverlapping();

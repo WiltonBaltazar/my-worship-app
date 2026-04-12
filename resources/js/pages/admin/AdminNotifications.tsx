@@ -147,12 +147,12 @@ export default function AdminNotifications() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Notificações</h1>
-        <p className="text-muted-foreground">Envie mensagens e visualize solicitações</p>
+        <h1 className="admin-page-title">Notificações</h1>
+        <p className="admin-page-description">Envie mensagens e visualize solicitações</p>
       </header>
 
       <Tabs defaultValue="send" className="min-w-0 space-y-4">
-        <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto">
+        <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-xl border-slate-200 bg-white shadow-sm">
           <TabsTrigger value="send" className="shrink-0 gap-2">
             <Send className="h-4 w-4" />
             Enviar
@@ -168,7 +168,7 @@ export default function AdminNotifications() {
         </TabsList>
 
         <TabsContent value="send" className="space-y-4">
-          <Card className="border-none shadow-soft">
+          <Card className="admin-surface">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Send className="h-5 w-5 text-primary" />
@@ -183,6 +183,7 @@ export default function AdminNotifications() {
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="Ex: Lembrete de ensaio"
+                  className="rounded-xl border-slate-200 bg-white"
                 />
               </div>
 
@@ -194,13 +195,14 @@ export default function AdminNotifications() {
                   onChange={(event) => setMessage(event.target.value)}
                   placeholder="Digite sua mensagem..."
                   rows={4}
+                  className="rounded-xl border-slate-200 bg-white"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label>Enviar para escala específica (opcional)</Label>
                 <Select value={selectedScheduleId || 'all'} onValueChange={(value) => setSelectedScheduleId(value === 'all' ? '' : value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="rounded-xl border-slate-200 bg-white">
                     <SelectValue placeholder="Selecione uma escala ou deixe vazio para todos" />
                   </SelectTrigger>
                   <SelectContent>
@@ -216,7 +218,7 @@ export default function AdminNotifications() {
               </div>
 
               {selectedSchedule && (
-                <div className="rounded-lg bg-secondary/50 p-3 text-sm">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
                   <p className="mb-1 font-medium">Membros que receberão:</p>
                   <div className="flex flex-wrap gap-1">
                     {(selectedSchedule.members ?? []).map((member) => (
@@ -239,7 +241,7 @@ export default function AdminNotifications() {
         </TabsContent>
 
         <TabsContent value="requests" className="space-y-4">
-          <Card className="border-none shadow-soft">
+          <Card className="admin-surface">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <AlertTriangle className="h-5 w-5 text-primary" />
@@ -250,15 +252,15 @@ export default function AdminNotifications() {
               {pendingChangeRequests.length > 0 ? (
                 <div className="space-y-3">
                   {pendingChangeRequests.map((request, index) => (
-                    <div key={`${request.scheduleId}-${request.memberName}-${index}`} className="rounded-xl border border-border p-3">
+                    <div key={`${request.scheduleId}-${request.memberName}-${index}`} className="admin-surface-muted p-3">
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <p className="font-medium text-foreground">{request.memberName}</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="font-medium text-slate-900">{request.memberName}</p>
+                          <p className="text-sm text-slate-500">
                             {request.functionType}
                             {request.functionDetail ? ` - ${request.functionDetail}` : ''}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-slate-500">
                             Escala: {format(new Date(request.scheduleDate), "dd 'de' MMMM", { locale: ptBR })}
                           </p>
                           {request.reason && <p className="mt-1 text-sm text-orange-700">"{request.reason}"</p>}
@@ -279,7 +281,7 @@ export default function AdminNotifications() {
         </TabsContent>
 
         <TabsContent value="received" className="space-y-4">
-          <Card className="border-none shadow-soft">
+          <Card className="admin-surface">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Bell className="h-5 w-5 text-primary" />
@@ -300,21 +302,21 @@ export default function AdminNotifications() {
                       <div
                         key={notification.id}
                         className={`rounded-xl border p-4 ${
-                          notification.read ? 'border-border' : 'border-l-4 border-l-primary bg-primary/5'
-                        } transition-colors hover:bg-secondary/40`}
+                          notification.read ? 'border-slate-200 bg-white' : 'border-orange-200 bg-orange-50/40'
+                        } transition-colors hover:bg-slate-50`}
                         onClick={() => handleOpenReceivedNotification(notification)}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="mb-1 flex items-center gap-2">
-                              <h3 className="font-medium text-foreground">{notification.title}</h3>
+                              <h3 className="font-medium text-slate-900">{notification.title}</h3>
                               <Badge variant="secondary" className="text-xs">
                                 {typeLabels[notification.type] || notification.type}
                               </Badge>
                             </div>
-                            <p className="text-sm text-muted-foreground">{notification.message}</p>
+                            <p className="text-sm text-slate-500">{notification.message}</p>
                             <div className="mt-2 flex items-center gap-2">
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-slate-500">
                                 {format(new Date(notification.created_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
                               </p>
                               {action && (
