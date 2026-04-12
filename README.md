@@ -38,6 +38,40 @@ php artisan serve
 npm run dev
 ```
 
+## Docker / Coolify Deployment
+
+This repo includes a production Docker setup with:
+
+- Nginx + PHP-FPM (single container)
+- Queue worker (`php artisan queue:work`)
+- Scheduler worker (`php artisan schedule:work`) for weekly reminders
+- Vite assets prebuilt during image build
+
+### Local Docker run (without port 80/8080)
+
+The compose file maps host port **8090** to container port **8081**:
+
+```bash
+docker compose up -d --build
+```
+
+Open: `http://127.0.0.1:8090`
+
+### Coolify setup
+
+1. Create a new application from this repository.
+2. Choose **Dockerfile** (or Docker Compose) deployment.
+3. Set the service/container port to **8081** (not 80/8080).
+4. Configure environment variables in Coolify (`APP_KEY`, DB credentials, VAPID keys, etc.).
+5. Optional startup flags:
+   - `RUN_MIGRATIONS=true` to run migrations on deploy
+   - `AUTO_GENERATE_APP_KEY=true` only if no `APP_KEY` is provided
+
+If you use MySQL in Coolify, set:
+
+- `DB_CONNECTION=mysql`
+- `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
+
 ## Web Push (VAPID)
 
 This project supports browser push notifications using VAPID.
