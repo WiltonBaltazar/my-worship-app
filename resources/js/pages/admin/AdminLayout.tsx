@@ -1,6 +1,19 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Calendar, Eye, LayoutDashboard, Loader2, LogOut, Menu, Music, SlidersHorizontal, UserCog, Users, X } from 'lucide-react';
+import {
+  Bell,
+  Calendar,
+  Eye,
+  LayoutDashboard,
+  Loader2,
+  LogOut,
+  Menu,
+  Music,
+  SlidersHorizontal,
+  UserCog,
+  Users,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnreadNotificationCount } from '@/hooks/useNotifications';
@@ -47,31 +60,34 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3">
-        <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen((prev) => !prev)}>
+    <div className="relative min-h-screen bg-white">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
+        <Button variant="outline" size="icon" onClick={() => setIsSidebarOpen((prev) => !prev)}>
           {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
-        <div>
-          <p className="text-base font-bold text-primary">WORA</p>
-          <p className="text-xs text-muted-foreground">Painel Administrativo</p>
+
+        <div className="text-center">
+          <p className="text-base font-semibold text-slate-900">WORA Admin</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Control Center</p>
         </div>
-        <div className="w-9" />
+
+        <div className="w-10" />
       </header>
 
-      <div className="flex">
+      <div className="flex min-h-screen">
         <aside
           className={cn(
-            'fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-border bg-card transition-transform lg:sticky lg:bottom-auto lg:top-0 lg:h-screen lg:translate-x-0',
+            'fixed inset-y-0 left-0 z-40 flex w-[18rem] flex-col border-r border-slate-200 bg-white transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
           )}
         >
-          <div className="border-b border-border px-6 py-8">
-            <h1 className="text-4xl font-bold text-primary">WORA</h1>
-            <p className="text-lg text-muted-foreground">Painel Administrativo</p>
+          <div className="border-b border-slate-200 px-5 py-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">WORA PLATFORM</p>
+            <h1 className="mt-1 text-2xl font-semibold text-slate-900">Admin</h1>
+            <p className="mt-1 text-sm text-slate-500">Painel administrativo</p>
           </div>
 
-          <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-6">
+          <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
             {sidebarItems.map((item) => {
               const Icon = item.icon;
               const isActive = isPathActive(item.path);
@@ -81,7 +97,6 @@ export default function AdminLayout() {
                   : item.path === '/admin-app/users'
                     ? pendingUsersCount
                     : 0;
-              const shouldShowBadge = badgeCount > 0;
 
               return (
                 <Link
@@ -89,23 +104,22 @@ export default function AdminLayout() {
                   to={item.path}
                   onClick={() => setIsSidebarOpen(false)}
                   className={cn(
-                    'flex items-center justify-between rounded-2xl px-4 py-3 text-lg transition-colors',
+                    'group relative flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                      ? 'border-orange-200 bg-orange-50 text-orange-700'
+                      : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900',
                   )}
                 >
-                  <div className="flex items-center gap-3">
-                    <Icon className="h-5 w-5" />
-                    <span className="font-medium">{item.label}</span>
+                  <div className="flex items-center gap-2.5">
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
                   </div>
-                  {shouldShowBadge && (
+
+                  {badgeCount > 0 && (
                     <span
                       className={cn(
-                        'inline-flex min-w-6 items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold',
-                        isActive
-                          ? 'bg-primary-foreground text-primary'
-                          : 'bg-primary text-primary-foreground',
+                        'inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold',
+                        isActive ? 'bg-orange-600 text-white' : 'bg-orange-500 text-white',
                       )}
                     >
                       {badgeCount}
@@ -116,18 +130,14 @@ export default function AdminLayout() {
             })}
           </nav>
 
-          <div className="border-t border-border px-4 py-4">
+          <div className="border-t border-slate-200 p-4">
             <Button
               variant="ghost"
-              className="w-full justify-start text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="w-full justify-start rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700"
               onClick={handleSignOut}
               disabled={isSigningOut}
             >
-              {isSigningOut ? (
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              ) : (
-                <LogOut className="mr-2 h-5 w-5" />
-              )}
+              {isSigningOut ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}
               Sair
             </Button>
           </div>
@@ -142,8 +152,21 @@ export default function AdminLayout() {
           />
         )}
 
-        <main className="min-w-0 flex-1 p-4 lg:p-8">
-          <Outlet />
+        <main className="min-w-0 flex-1">
+          <div className="sticky top-0 z-20 hidden items-center justify-between border-b border-slate-200 bg-white/95 px-6 py-4 backdrop-blur lg:flex">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-slate-400">Admin Area</p>
+              <p className="text-lg font-semibold text-slate-900">Painel de Gestão</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-right shadow-sm">
+              <p className="text-sm font-semibold text-slate-900">{user?.name ?? 'Administrador'}</p>
+              <p className="text-xs text-slate-500">Sessão ativa</p>
+            </div>
+          </div>
+
+          <div className="mx-auto w-full max-w-7xl animate-fade-in px-4 py-6 lg:px-8 lg:py-8">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

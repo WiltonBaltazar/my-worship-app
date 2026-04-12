@@ -5,8 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Profile;
 use App\Models\TechnicalSchedule;
-use App\Services\TechnicalSchedule\ConstraintValidator;
-use App\Services\TechnicalSchedule\FairnessCalculator;
 use App\Services\TechnicalSchedule\ScheduleOptimizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,8 +21,6 @@ class TechnicalScheduleController extends Controller
 
     public function __construct(
         private readonly ScheduleOptimizer $scheduleOptimizer,
-        private readonly ConstraintValidator $constraintValidator,
-        private readonly FairnessCalculator $fairnessCalculator,
     ) {
     }
 
@@ -59,7 +55,6 @@ class TechnicalScheduleController extends Controller
 
         $schedules = $query->get();
         $technicians = $this->eligibleTechnicians();
-        $loadByTechnician = $this->buildLoadByTechnician($schedules, $technicians);
 
         return response()->json([
             'weeks' => $schedules
@@ -67,7 +62,6 @@ class TechnicalScheduleController extends Controller
                 ->values()
                 ->all(),
             'technicians' => array_values($technicians),
-            'fairness_score' => $this->fairnessCalculator->getFairnessScore($loadByTechnician),
         ]);
     }
 
@@ -78,18 +72,14 @@ class TechnicalScheduleController extends Controller
         $validated = $request->validate([
             'start_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
             'weeks' => ['required', 'integer', 'min:1', 'max:24'],
-            'simulate' => ['nullable', 'boolean'],
             'schedule_type' => ['nullable', 'in:' . self::SCHEDULE_TYPE_PUBLIC_WORSHIP . ',' . self::SCHEDULE_TYPE_GHJ],
-            'max_fairness_gap' => ['nullable', 'integer', 'min:0', 'max:20'],
         ]);
 
         $startDate = Carbon::parse($validated['start_date']);
         $weeks = (int) $validated['weeks'];
-        $simulate = (bool) ($validated['simulate'] ?? true);
         $scheduleType = $validated['schedule_type'] ?? self::SCHEDULE_TYPE_PUBLIC_WORSHIP;
         $requiresStreaming = $scheduleType !== self::SCHEDULE_TYPE_GHJ;
         $homeGroupFilter = $scheduleType === self::SCHEDULE_TYPE_GHJ ? self::HOME_GROUP_GHJ : null;
-        $maxFairnessGap = isset($validated['max_fairness_gap']) ? (int) $validated['max_fairness_gap'] : null;
 
         $weekDates = collect(range(0, $weeks - 1))
             ->map(fn (int $offset): string => $startDate->copy()->addWeeks($offset)->format('Y-m-d'))
@@ -105,7 +95,6 @@ class TechnicalScheduleController extends Controller
         try {
             $result = $this->scheduleOptimizer->optimize(
                 $weekDates,
-                $maxFairnessGap,
                 $requiresStreaming,
                 $homeGroupFilter,
                 $scheduleType,
@@ -116,63 +105,38 @@ class TechnicalScheduleController extends Controller
             ]);
         }
 
-        if (! $simulate) {
-            foreach ($result['assignments_by_date'] as $weekDate => $assignment) {
-                $existing = $existingSchedules[$weekDate] ?? null;
+        foreach ($result['assignments_by_date'] as $weekDate => $assignment) {
+            $existing = $existingSchedules[$weekDate] ?? null;
 
-                $schedule = $existing ?? new TechnicalSchedule([
-                    'week_start_date' => $weekDate,
-                    'created_by' => $request->user()->id,
-                ]);
+            $schedule = $existing ?? new TechnicalSchedule([
+                'week_start_date' => $weekDate,
+                'created_by' => $request->user()->id,
+            ]);
 
-                $schedule->lead_profile_id = $assignment['lead'];
-                $schedule->sound_profile_id = $assignment['sound'];
-                $schedule->streaming_profile_id = $assignment['streaming'] ?? null;
-                $schedule->schedule_type = $scheduleType;
-                $schedule->updated_by = $request->user()->id;
-                $schedule->save();
-            }
+            $schedule->lead_profile_id = $assignment['lead'];
+            $schedule->sound_profile_id = $assignment['sound'];
+            $schedule->streaming_profile_id = $assignment['streaming'] ?? null;
+            $schedule->schedule_type = $scheduleType;
+            $schedule->updated_by = $request->user()->id;
+            $schedule->save();
         }
 
-        if ($simulate) {
-            $weeksPayload = collect($result['assignments_by_date'])
-                ->map(function (array $assignment, string $weekDate) use ($result): array {
-                    return $this->formatGeneratedWeek(
-                        $weekDate,
-                        $assignment,
-                        $result['technicians'],
-                        $result['schedule_type'] ?? self::SCHEDULE_TYPE_PUBLIC_WORSHIP,
-                    );
-                })
-                ->values()
-                ->all();
-        } else {
-            $persistedSchedules = TechnicalSchedule::query()
-                ->whereIn('week_start_date', $weekDates)
-                ->orderBy('week_start_date')
-                ->with([
-                    'leadProfile:id,name,avatar_url',
-                    'soundProfile:id,name,avatar_url',
-                    'streamingProfile:id,name,avatar_url',
-                ])
-                ->get();
-
-            $weeksPayload = $persistedSchedules
-                ->map(fn (TechnicalSchedule $schedule): array => $this->formatScheduleWeek($schedule))
-                ->values()
-                ->all();
-        }
+        $persistedSchedules = TechnicalSchedule::query()
+            ->whereIn('week_start_date', $weekDates)
+            ->orderBy('week_start_date')
+            ->with([
+                'leadProfile:id,name,avatar_url',
+                'soundProfile:id,name,avatar_url',
+                'streamingProfile:id,name,avatar_url',
+            ])
+            ->get();
 
         return response()->json([
-            'simulated' => $simulate,
             'schedule_type' => $scheduleType,
-            'weeks' => $weeksPayload,
-            'fairness_score' => $result['fairness_score'],
-            'lead_coverage_deficit_score' => $result['lead_coverage_deficit_score'] ?? $result['monthly_lead_deficit_score'] ?? 0,
-            'lead_sequence_deviation_score' => $result['lead_sequence_deviation_score'] ?? 0,
-            'monthly_lead_deficit_score' => $result['monthly_lead_deficit_score'] ?? 0,
-            'role_repetition_score' => $result['role_repetition_score'],
-            'load_by_technician' => $result['load_by_technician'],
+            'weeks' => $persistedSchedules
+                ->map(fn (TechnicalSchedule $schedule): array => $this->formatScheduleWeek($schedule))
+                ->values()
+                ->all(),
         ]);
     }
 
@@ -187,7 +151,6 @@ class TechnicalScheduleController extends Controller
         ]);
 
         $requiresStreaming = $technicalSchedule->schedule_type !== self::SCHEDULE_TYPE_GHJ;
-        $requiredRoles = $this->constraintValidator->requiredRoles($requiresStreaming);
         $homeGroupFilter = $technicalSchedule->schedule_type === self::SCHEDULE_TYPE_GHJ ? self::HOME_GROUP_GHJ : null;
 
         $nextAssignment = [
@@ -198,14 +161,24 @@ class TechnicalScheduleController extends Controller
                 : null,
         ];
 
-        $technicians = $this->eligibleTechnicians($homeGroupFilter);
-
-        if (! $this->constraintValidator->hasDistinctRoles($nextAssignment, $requiredRoles)) {
-            $rolesLabel = $requiresStreaming ? 'lead, sound e streaming' : 'lead e sound';
+        // Ensure no two roles share the same person
+        $filledIds = array_filter(array_values($nextAssignment));
+        if (count($filledIds) !== count(array_unique($filledIds))) {
+            $rolesLabel = $requiresStreaming ? 'lead, som e streaming' : 'lead e som';
             throw ValidationException::withMessages([
                 'week' => ["As funções {$rolesLabel} devem ser atribuídas a pessoas diferentes."],
             ]);
         }
+
+        $technicians = $this->eligibleTechnicians($homeGroupFilter);
+
+        $roleCapabilityKey = [
+            'lead' => 'can_be_tech_lead',
+            'sound' => 'can_be_tech_sound',
+            'streaming' => 'can_be_tech_streaming',
+        ];
+
+        $requiredRoles = $requiresStreaming ? ['lead', 'sound', 'streaming'] : ['lead', 'sound'];
 
         foreach ($requiredRoles as $role) {
             $technicianId = $nextAssignment[$role];
@@ -220,7 +193,7 @@ class TechnicalScheduleController extends Controller
                 ]);
             }
 
-            if (! $this->constraintValidator->isTechnicianEligibleForRole($technicianId, $role, $technicians)) {
+            if (! $technicians[$technicianId][$roleCapabilityKey[$role]]) {
                 throw ValidationException::withMessages([
                     $role . '_profile_id' => ['Técnico sem permissão para essa função.'],
                 ]);
@@ -300,29 +273,6 @@ class TechnicalScheduleController extends Controller
             ->all();
     }
 
-    /**
-     * @param  array<string, array{id:string,name:string,avatar_url:?string,home_group:?string}>  $technicians
-     * @param  array{lead:?string,sound:?string,streaming:?string}  $assignment
-     */
-    private function formatGeneratedWeek(
-        string $weekDate,
-        array $assignment,
-        array $technicians,
-        string $scheduleType = self::SCHEDULE_TYPE_PUBLIC_WORSHIP,
-    ): array {
-        return [
-            'id' => null,
-            'week_start_date' => $weekDate,
-            'schedule_type' => $scheduleType,
-            'lead_profile_id' => $assignment['lead'],
-            'sound_profile_id' => $assignment['sound'],
-            'streaming_profile_id' => $assignment['streaming'] ?? null,
-            'lead_profile' => $assignment['lead'] ? ($technicians[$assignment['lead']] ?? null) : null,
-            'sound_profile' => $assignment['sound'] ? ($technicians[$assignment['sound']] ?? null) : null,
-            'streaming_profile' => $assignment['streaming'] ? ($technicians[$assignment['streaming']] ?? null) : null,
-        ];
-    }
-
     private function formatScheduleWeek(TechnicalSchedule $schedule): array
     {
         return [
@@ -360,34 +310,4 @@ class TechnicalScheduleController extends Controller
             abort(403, 'Forbidden.');
         }
     }
-
-    /**
-     * @param  \Illuminate\Support\Collection<int, TechnicalSchedule>  $schedules
-     * @param  array<string, mixed>  $technicians
-     * @return array<string, int>
-     */
-    private function buildLoadByTechnician($schedules, array $technicians): array
-    {
-        $loadByTechnician = [];
-
-        foreach (array_keys($technicians) as $technicianId) {
-            $loadByTechnician[$technicianId] = 0;
-        }
-
-        foreach ($schedules as $schedule) {
-            foreach (ConstraintValidator::ROLES as $role) {
-                $column = $role . '_profile_id';
-                $technicianId = $schedule->{$column};
-
-                if (! $technicianId || ! isset($loadByTechnician[$technicianId])) {
-                    continue;
-                }
-
-                $loadByTechnician[$technicianId]++;
-            }
-        }
-
-        return $loadByTechnician;
-    }
-
 }

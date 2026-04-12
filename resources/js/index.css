@@ -1,115 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Blue + orange brand palette */
-    --background: 220 35% 98%;
-    --foreground: 233 68% 20%;
+    --background: 0 0% 100%;
+    --foreground: 24 26% 14%;
 
     --card: 0 0% 100%;
-    --card-foreground: 233 68% 20%;
+    --card-foreground: 220 34% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 233 68% 20%;
+    --popover-foreground: 220 34% 14%;
 
-    --primary: 233 61% 40%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 28 92% 56%;
+    --primary-foreground: 23 52% 15%;
 
-    --secondary: 227 50% 95%;
-    --secondary-foreground: 233 40% 28%;
+    --secondary: 34 70% 94%;
+    --secondary-foreground: 24 34% 24%;
 
-    --muted: 227 38% 93%;
-    --muted-foreground: 228 22% 46%;
+    --muted: 30 36% 92%;
+    --muted-foreground: 24 14% 40%;
 
-    --accent: 19 89% 62%;
-    --accent-foreground: 233 68% 25%;
+    --accent: 203 78% 42%;
+    --accent-foreground: 204 52% 95%;
 
-    --destructive: 0 84% 50%;
+    --destructive: 3 75% 47%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 231 61% 50%;
+    --success: 156 57% 34%;
     --success-foreground: 0 0% 100%;
 
-    --border: 228 25% 60%;
-    --input: 228 25% 60%;
-    --ring: 231 61% 50%;
+    --border: 28 26% 83%;
+    --input: 28 28% 85%;
+    --ring: 28 92% 56%;
 
-    --radius: 1rem;
+    --radius: 1.15rem;
 
-    /* Custom worship app tokens */
-    --schedule-card: 231 61% 50%;
-    --schedule-card-foreground: 0 0% 100%;
-    --upcoming-card: 227 65% 96%;
-    --upcoming-card-foreground: 233 40% 25%;
+    --schedule-card: 28 92% 56%;
+    --schedule-card-foreground: 23 52% 15%;
+    --upcoming-card: 34 70% 93%;
+    --upcoming-card-foreground: 24 30% 24%;
     --repertoire-bg: 0 0% 100%;
-    
-    /* Gradient tokens */
-    --gradient-primary: linear-gradient(135deg, hsl(233 61% 40%) 0%, hsl(233 68% 25%) 100%);
-    --gradient-subtle: linear-gradient(180deg, hsl(220 35% 98%) 0%, hsl(227 50% 96%) 100%);
-    
-    /* Shadow tokens */
-    --shadow-card: 0 4px 20px -4px hsl(233 35% 30% / 0.18);
-    --shadow-elevated: 0 8px 30px -8px hsl(233 40% 25% / 0.28);
-    --shadow-soft: 0 2px 8px -2px hsl(233 28% 25% / 0.12);
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 233 32% 24%;
-    --sidebar-primary: 233 61% 40%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 227 50% 95%;
-    --sidebar-accent-foreground: 233 40% 28%;
-    --sidebar-border: 228 25% 60%;
-    --sidebar-ring: 231 61% 50%;
+    --gradient-primary: linear-gradient(135deg, hsl(28 92% 56%) 0%, hsl(24 88% 51%) 100%);
+    --gradient-subtle: linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(34 62% 94%) 100%);
+
+    --shadow-card: 0 16px 36px -24px hsl(24 42% 26% / 0.35);
+    --shadow-elevated: 0 36px 70px -34px hsl(24 48% 24% / 0.42);
+    --shadow-soft: 0 12px 28px -20px hsl(24 38% 22% / 0.26);
+
+    --sidebar-background: 33 72% 96%;
+    --sidebar-foreground: 24 32% 24%;
+    --sidebar-primary: 28 92% 56%;
+    --sidebar-primary-foreground: 23 52% 15%;
+    --sidebar-accent: 32 66% 90%;
+    --sidebar-accent-foreground: 24 32% 24%;
+    --sidebar-border: 28 24% 82%;
+    --sidebar-ring: 28 92% 56%;
   }
 
   .dark {
-    --background: 233 68% 10%;
-    --foreground: 220 40% 95%;
+    --background: 210 30% 9%;
+    --foreground: 199 45% 94%;
 
-    --card: 233 52% 14%;
-    --card-foreground: 220 40% 95%;
+    --card: 210 32% 13%;
+    --card-foreground: 199 45% 94%;
 
-    --popover: 233 52% 14%;
-    --popover-foreground: 220 40% 95%;
+    --popover: 210 32% 13%;
+    --popover-foreground: 199 45% 94%;
 
-    --primary: 231 61% 50%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 28 92% 62%;
+    --primary-foreground: 23 52% 12%;
 
-    --secondary: 233 36% 22%;
-    --secondary-foreground: 220 35% 92%;
+    --secondary: 211 22% 21%;
+    --secondary-foreground: 199 40% 92%;
 
-    --muted: 233 32% 24%;
-    --muted-foreground: 225 18% 72%;
+    --muted: 211 20% 23%;
+    --muted-foreground: 205 22% 72%;
 
-    --accent: 19 89% 62%;
-    --accent-foreground: 233 68% 25%;
+    --accent: 28 92% 62%;
+    --accent-foreground: 22 65% 11%;
 
-    --destructive: 0 62% 50%;
+    --destructive: 3 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 231 61% 50%;
+    --success: 156 48% 46%;
     --success-foreground: 0 0% 100%;
 
-    --border: 233 28% 47%;
-    --input: 233 28% 47%;
-    --ring: 231 61% 50%;
+    --border: 210 20% 30%;
+    --input: 210 20% 30%;
+    --ring: 28 92% 62%;
 
-    --schedule-card: 231 61% 50%;
-    --schedule-card-foreground: 0 0% 100%;
-    --upcoming-card: 233 36% 20%;
-    --upcoming-card-foreground: 220 30% 92%;
-    --repertoire-bg: 233 52% 14%;
+    --schedule-card: 28 82% 42%;
+    --schedule-card-foreground: 31 72% 93%;
+    --upcoming-card: 27 24% 18%;
+    --upcoming-card-foreground: 31 38% 92%;
+    --repertoire-bg: 210 32% 13%;
 
-    --sidebar-background: 233 54% 12%;
-    --sidebar-foreground: 220 30% 92%;
-    --sidebar-primary: 231 61% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 233 36% 22%;
-    --sidebar-accent-foreground: 220 30% 92%;
-    --sidebar-border: 233 28% 47%;
-    --sidebar-ring: 231 61% 50%;
+    --sidebar-background: 210 33% 11%;
+    --sidebar-foreground: 200 40% 91%;
+    --sidebar-primary: 28 92% 62%;
+    --sidebar-primary-foreground: 23 52% 12%;
+    --sidebar-accent: 210 22% 19%;
+    --sidebar-accent-foreground: 199 38% 91%;
+    --sidebar-border: 210 18% 30%;
+    --sidebar-ring: 28 92% 62%;
   }
 }
 
@@ -118,82 +116,131 @@
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground antialiased;
+  html,
+  body,
+  #root {
+    min-height: 100%;
   }
 
-  a:focus-visible {
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-color: hsl(var(--background));
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-sans;
+    letter-spacing: -0.02em;
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
-    border-radius: 0.375rem;
+    border-radius: 0.7rem;
   }
 }
 
 @layer components {
   .schedule-card {
-    @apply bg-primary text-primary-foreground rounded-2xl p-5;
-    box-shadow: var(--shadow-card);
+    @apply rounded-3xl p-6 text-primary-foreground shadow-elevated;
+    background: linear-gradient(150deg, hsl(var(--schedule-card)) 0%, hsl(24 88% 51%) 100%);
+    border: 1px solid hsl(0 0% 100% / 0.22);
   }
 
   .upcoming-card {
-    background: hsl(var(--upcoming-card));
+    @apply rounded-3xl p-5 shadow-soft;
+    background: linear-gradient(170deg, hsl(var(--upcoming-card)) 0%, hsl(34 62% 90%) 100%);
     color: hsl(var(--upcoming-card-foreground));
-    @apply rounded-2xl p-5;
-    box-shadow: var(--shadow-soft);
+    border: 1px solid hsl(28 24% 68% / 0.5);
   }
 
   .repertoire-card {
-    @apply bg-card rounded-2xl p-5;
-    box-shadow: var(--shadow-soft);
+    @apply rounded-3xl p-5 shadow-card;
+    background: hsl(var(--card) / 0.8);
+    border: 1px solid hsl(var(--border) / 0.55);
+    backdrop-filter: blur(12px);
   }
 
   .nav-item {
-    @apply flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 px-4 py-2 text-muted-foreground transition-colors;
+    @apply relative flex min-h-11 min-w-11 flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2 text-muted-foreground transition-all duration-300;
   }
 
   .nav-item.active {
     @apply text-primary;
+    background: hsl(var(--secondary) / 0.68);
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.62);
   }
 
   .page-container {
-    @apply min-h-screen pb-24 px-4 pt-6 max-w-lg mx-auto;
+    @apply relative mx-auto min-h-screen w-full max-w-3xl px-4 pb-28 pt-6 sm:px-6;
   }
 
   .admin-container {
-    @apply min-h-screen p-6 max-w-7xl mx-auto;
+    @apply mx-auto min-h-screen w-full max-w-7xl p-6;
   }
 
   .glass-effect {
-    @apply backdrop-blur-sm bg-white/80;
+    @apply border border-border/60 bg-card/74 backdrop-blur-md;
+  }
+
+  .admin-surface {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+  }
+
+  .admin-surface-muted {
+    @apply rounded-xl border border-slate-200 bg-slate-50/70;
+  }
+
+  .admin-page-title {
+    @apply text-2xl font-semibold text-slate-900 sm:text-3xl;
+  }
+
+  .admin-page-description {
+    @apply text-sm text-slate-500 sm:text-base;
   }
 }
 
 @layer utilities {
   .animate-fade-in {
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeIn 0.5s ease-out both;
   }
 
   .animate-slide-up {
-    animation: slideUp 0.4s ease-out;
+    animation: slideUp 0.58s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
   .animate-scale-in {
-    animation: scaleIn 0.3s ease-out;
+    animation: scaleIn 0.38s ease-out both;
+  }
+
+  .text-gradient {
+    background: linear-gradient(120deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 85%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   @keyframes fadeIn {
     from {
       opacity: 0;
+      transform: translateY(6px);
     }
     to {
       opacity: 1;
+      transform: translateY(0);
     }
   }
 
   @keyframes slideUp {
     from {
       opacity: 0;
-      transform: translateY(16px);
+      transform: translateY(24px);
     }
     to {
       opacity: 1;

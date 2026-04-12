@@ -109,10 +109,10 @@ export default function AdminMembers() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Membros</h1>
-          <p className="text-muted-foreground">Gerencie os membros do ministério</p>
+          <h1 className="admin-page-title">Membros</h1>
+          <p className="admin-page-description">Gerencie os membros do ministério</p>
         </div>
-        <Button className="w-full sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
+        <Button className="w-full rounded-xl sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Adicionar Membro
         </Button>
@@ -125,13 +125,13 @@ export default function AdminMembers() {
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Buscar membros..."
-            className="pl-10"
+            className="rounded-xl border-slate-200 bg-white pl-10"
           />
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="relative w-full sm:w-auto">
+            <Button variant="outline" className="relative w-full rounded-xl border-slate-200 bg-white sm:w-auto">
               <Filter className="mr-2 h-4 w-4" />
               Filtrar
               {hasActiveFilters && (
@@ -210,33 +210,33 @@ export default function AdminMembers() {
             .slice(0, 2);
 
           return (
-            <Card key={member.id} className="border-none shadow-soft">
+            <Card key={member.id} className="admin-surface">
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
-                  <Avatar className="h-12 w-12 border-2 border-primary/20">
+                  <Avatar className="h-12 w-12 border-2 border-orange-200">
                     <AvatarImage src={member.avatar_url ?? undefined} />
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">{initials}</AvatarFallback>
+                    <AvatarFallback className="bg-orange-50 font-semibold text-primary">{initials}</AvatarFallback>
                   </Avatar>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold text-foreground">{member.name}</h3>
+                      <h3 className="font-semibold text-slate-900">{member.name}</h3>
                       {member.home_group && (
-                        <Badge className="bg-accent text-accent-foreground text-xs">
+                        <Badge className="bg-slate-200 text-slate-700 text-xs">
                           {homeGroupLabels[member.home_group] ?? member.home_group}
                         </Badge>
                       )}
-                      {member.can_lead && <Badge className="bg-primary/10 text-primary text-xs">Pode liderar</Badge>}
-                      {member.can_be_tech_lead && <Badge className="bg-secondary text-secondary-foreground text-xs">Tech Lead</Badge>}
-                      {member.can_be_tech_sound && <Badge className="bg-secondary text-secondary-foreground text-xs">Tech Som</Badge>}
-                      {member.can_be_tech_streaming && <Badge className="bg-secondary text-secondary-foreground text-xs">Tech Streaming</Badge>}
+                      {member.can_lead && <Badge className="bg-orange-50 text-orange-700 text-xs">Pode liderar</Badge>}
+                      {member.can_be_tech_lead && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Lead</Badge>}
+                      {member.can_be_tech_sound && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Som</Badge>}
+                      {member.can_be_tech_streaming && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Streaming</Badge>}
                     </div>
-                    <p className="text-sm text-muted-foreground">{member.email}</p>
+                    <p className="text-sm text-slate-500">{member.email}</p>
 
                     <div className="mt-3 flex flex-wrap gap-4">
                       {(member.instruments ?? []).length > 0 && (
                         <div className="flex flex-wrap items-center gap-2">
-                          <Music className="h-4 w-4 text-muted-foreground" />
+                          <Music className="h-4 w-4 text-slate-500" />
                           {(member.instruments ?? []).map((instrument) => (
                             <Badge key={instrument} variant="secondary" className="text-xs">
                               {instrumentLabels[instrument] || instrument}
@@ -247,7 +247,7 @@ export default function AdminMembers() {
 
                       {(member.voices ?? []).length > 0 && (
                         <div className="flex flex-wrap items-center gap-2">
-                          <Mic2 className="h-4 w-4 text-muted-foreground" />
+                          <Mic2 className="h-4 w-4 text-slate-500" />
                           {(member.voices ?? []).map((voice) => (
                             <Badge key={voice} variant="secondary" className="text-xs">
                               {voiceLabels[voice] || voice}

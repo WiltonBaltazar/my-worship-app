@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import MemberDashboard from "./pages/MemberDashboard";
 import Schedules from "./pages/Schedules";
@@ -15,6 +14,7 @@ import Repertoire from "./pages/Repertoire";
 import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
 import Notifications from "./pages/Notifications";
+import ReceivedNotifications from "./pages/ReceivedNotifications";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminHome from "./pages/admin/AdminHome";
 import AdminSchedules from "./pages/admin/AdminSchedules";
@@ -36,7 +36,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Auth />} />
             <Route path="/auth" element={<Auth />} />
             
             {/* Protected member routes */}
@@ -78,6 +78,11 @@ const App = () => (
             <Route path="/notifications" element={
               <ProtectedRoute>
                 <Notifications />
+              </ProtectedRoute>
+            } />
+            <Route path="/notifications/received" element={
+              <ProtectedRoute>
+                <ReceivedNotifications />
               </ProtectedRoute>
             } />
             <Route path="/tech-schedules" element={
