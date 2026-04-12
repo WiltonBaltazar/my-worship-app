@@ -16,6 +16,9 @@ fi
 mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R ug+rwx storage bootstrap/cache
+touch storage/logs/laravel.log
+chown www-data:www-data storage/logs/laravel.log
+chmod 664 storage/logs/laravel.log
 
 if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then
   mkdir -p database
@@ -28,8 +31,8 @@ if [ "${AUTO_GENERATE_APP_KEY:-false}" = "true" ] && ! grep -q "^APP_KEY=base64:
   php artisan key:generate --force
 fi
 
-# Run migrations automatically when explicitly enabled.
-if [ "${RUN_MIGRATIONS:-false}" = "true" ]; then
+# Run migrations automatically by default.
+if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
   php artisan migrate --force
 fi
 

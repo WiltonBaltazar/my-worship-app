@@ -22,6 +22,7 @@ FROM php:8.3-fpm-bookworm AS app
 ENV APP_ENV=production
 ENV APP_DEBUG=false
 ENV NGINX_PORT=8081
+ENV RUN_MIGRATIONS=true
 
 WORKDIR /var/www/html
 

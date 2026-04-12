@@ -64,7 +64,7 @@ Open: `http://127.0.0.1:8090`
 3. Set the service/container port to **8081** (not 80/8080).
 4. Configure environment variables in Coolify (`APP_KEY`, DB credentials, VAPID keys, etc.).
 5. Optional startup flags:
-   - `RUN_MIGRATIONS=true` to run migrations on deploy
+   - `RUN_MIGRATIONS=true` to run migrations on deploy (default in this image)
    - `AUTO_GENERATE_APP_KEY=true` only if no `APP_KEY` is provided
 
 If you use MySQL in Coolify, set:
