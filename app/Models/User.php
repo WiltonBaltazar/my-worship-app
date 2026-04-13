@@ -20,6 +20,12 @@ class User extends Authenticatable
 
     protected $keyType = 'string';
 
+    /** Number of days a token stays valid without any use. */
+    public const TOKEN_TTL_DAYS = 90;
+
+    /** Extend expiry when fewer than this many days remain. */
+    public const TOKEN_RENEW_THRESHOLD_DAYS = 30;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -29,7 +35,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'api_token',
         'notification_preferences',
     ];
 
@@ -50,7 +55,6 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
-        'api_token',
         'remember_token',
     ];
 
@@ -94,6 +98,11 @@ class User extends Authenticatable
         return $this->hasMany(AppNotification::class);
     }
 
+    public function accessTokens(): HasMany
+    {
+        return $this->hasMany(PersonalAccessToken::class);
+    }
+
     public function hasRole(string $role): bool
     {
         return $this->roles()
@@ -116,21 +125,37 @@ class User extends Authenticatable
         return $this->hasRole('sound_tech');
     }
 
+    /**
+     * Create a new session token for this device and return the plain-text value.
+     */
     public function issueApiToken(): string
     {
         $plainToken = Str::random(80);
 
-        $this->forceFill([
-            'api_token' => hash('sha256', $plainToken),
-        ])->save();
+        $this->accessTokens()->create([
+            'token' => hash('sha256', $plainToken),
+            'expires_at' => now()->addDays(self::TOKEN_TTL_DAYS),
+            'created_at' => now(),
+        ]);
 
         return $plainToken;
     }
 
-    public function revokeApiToken(): void
+    /**
+     * Revoke a specific session token (logout from one device).
+     */
+    public function revokeApiToken(string $plainToken): void
     {
-        $this->forceFill([
-            'api_token' => null,
-        ])->save();
+        $this->accessTokens()
+            ->where('token', hash('sha256', $plainToken))
+            ->delete();
+    }
+
+    /**
+     * Revoke all session tokens for this user (e.g. after password reset).
+     */
+    public function revokeAllTokens(): void
+    {
+        $this->accessTokens()->delete();
     }
 }

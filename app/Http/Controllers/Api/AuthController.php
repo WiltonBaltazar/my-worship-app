@@ -184,7 +184,7 @@ class AuthController extends Controller
                     'remember_token' => Str::random(60),
                 ])->save();
 
-                $user->revokeApiToken();
+                $user->revokeAllTokens();
 
                 event(new PasswordReset($user));
             },
@@ -203,7 +203,11 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->revokeApiToken();
+        $plainToken = (string) $request->attributes->get('bearer_token', '');
+
+        if ($plainToken !== '') {
+            $request->user()->revokeApiToken($plainToken);
+        }
 
         return response()->json([
             'message' => 'Logged out successfully.',
