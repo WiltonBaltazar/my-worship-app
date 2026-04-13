@@ -594,9 +594,9 @@ export default function Auth() {
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1.5">
                     <Music2 className="h-3.5 w-3.5 text-muted-foreground" />
-                    Liderança
+                    Dirigir o louvor
                   </Label>
-                  <SkillChip id="signup-can-lead" label="Posso liderar o louvor" checked={canLead} onChange={setCanLead} />
+                  <SkillChip id="signup-can-lead" label="Posso dirigir o louvor" checked={canLead} onChange={setCanLead} />
                 </div>
 
                 {/* Technical */}
