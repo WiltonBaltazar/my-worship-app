@@ -38,6 +38,7 @@ import {
   useUpdateScheduleMemberFunction,
 } from '@/hooks/useSchedules';
 import { useSongs } from '@/hooks/useSongs';
+import { AddSongDialog } from '@/components/admin/AddSongDialog';
 import { HALF_HOUR_TIME_OPTIONS, toLocalDateInputValue } from '@/lib/date-time';
 
 interface EditScheduleDialogProps {
@@ -148,6 +149,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
 
   const [songSearch, setSongSearch] = useState('');
   const [selectedSongId, setSelectedSongId] = useState('');
+  const [addSongDialogOpen, setAddSongDialogOpen] = useState(false);
 
   const [scheduleDate, setScheduleDate] = useState('');
   const [startTime, setStartTime] = useState('11:00');
@@ -171,6 +173,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
       setFunctionDetail('');
       setSongSearch('');
       setSelectedSongId('');
+      setAddSongDialogOpen(false);
       setEditingMemberId(null);
     }
   }, [open]);
@@ -514,6 +517,24 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
     });
   };
 
+  const handleSongCreated = async (newSong: { id: string }) => {
+    if (!schedule) return;
+    const currentSongs = schedule.songs ?? [];
+    try {
+      await syncSongList([
+        ...currentSongs.map((song, index) => ({
+          song_id: song.song_id,
+          order_position: index,
+          notes: song.notes,
+        })),
+        { song_id: newSong.id, order_position: currentSongs.length, notes: null },
+      ]);
+      setSongSearch('');
+    } catch {
+      // Toast handled by hook.
+    }
+  };
+
   const handleAddSong = async () => {
     if (!schedule || !selectedSongId) {
       return;
@@ -576,6 +597,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
   const canAddMember = Boolean(selectedProfileId && selectedFunctionType && (!requiresFunctionDetail || functionDetail));
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-4xl overflow-x-hidden overflow-y-auto p-4 sm:w-full sm:p-6">
         <DialogHeader>
@@ -1049,7 +1071,19 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                       </button>
                     ))
                   ) : (
-                    <p className="py-2 text-center text-sm text-muted-foreground">Nenhuma música encontrada</p>
+                    <div className="space-y-2 py-2">
+                      <p className="text-center text-sm text-muted-foreground">Nenhuma música encontrada</p>
+                      {songSearch.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => setAddSongDialogOpen(true)}
+                          className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-primary/40 px-3 py-2 text-sm text-primary transition-colors hover:bg-primary/5"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Adicionar "{songSearch.trim()}" ao repertório
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -1112,5 +1146,13 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
         )}
       </DialogContent>
     </Dialog>
+
+    <AddSongDialog
+      open={addSongDialogOpen}
+      onOpenChange={setAddSongDialogOpen}
+      initialTitle={songSearch.trim()}
+      onSongCreated={(song) => void handleSongCreated(song)}
+    />
+    </>
   );
 }

@@ -14,6 +14,7 @@ import { RequestSubstituteDialog } from '@/components/schedule/RequestSubstitute
 import { useAuth } from '@/contexts/AuthContext';
 import { useMySchedules, useSetScheduleMemberEditPermission, useSyncScheduleSongs } from '@/hooks/useSchedules';
 import { useSongs } from '@/hooks/useSongs';
+import { AddSongDialog } from '@/components/admin/AddSongDialog';
 import { useCreateSubstituteRequests, useCancelSubstituteRequest } from '@/hooks/useSubstituteRequests';
 
 const functionTypeLabels: Record<string, string> = {
@@ -36,6 +37,7 @@ export default function ScheduleDetails() {
   const [changeDialogOpen, setChangeDialogOpen] = useState(false);
   const [songSearch, setSongSearch] = useState('');
   const [selectedSongId, setSelectedSongId] = useState('');
+  const [addSongDialogOpen, setAddSongDialogOpen] = useState(false);
 
   const schedule = schedules?.find(s => s.id === id);
   const myMembership = schedule?.members?.find(m => m.profile_id === profile?.id);
@@ -151,6 +153,24 @@ export default function ScheduleDetails() {
       scheduleId: schedule.id,
       songs: nextSongs,
     });
+  };
+
+  const handleSongCreated = async (newSong: { id: string }) => {
+    if (!schedule) return;
+    const currentSongs = schedule.songs ?? [];
+    try {
+      await syncSongList([
+        ...currentSongs.map((song, index) => ({
+          song_id: song.song_id,
+          order_position: index,
+          notes: song.notes,
+        })),
+        { song_id: newSong.id, order_position: currentSongs.length, notes: null },
+      ]);
+      setSongSearch('');
+    } catch {
+      // Toast handled by hook.
+    }
   };
 
   const handleAddSong = async () => {
@@ -349,7 +369,19 @@ export default function ScheduleDetails() {
                       </button>
                     ))
                   ) : (
-                    <p className="py-2 text-center text-sm text-muted-foreground">Nenhuma música disponível</p>
+                    <div className="space-y-2 py-2">
+                      <p className="text-center text-sm text-muted-foreground">Nenhuma música disponível</p>
+                      {songSearch.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => setAddSongDialogOpen(true)}
+                          className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-primary/40 px-3 py-2 text-sm text-primary transition-colors hover:bg-primary/5"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Adicionar "{songSearch.trim()}" ao repertório
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -425,6 +457,13 @@ export default function ScheduleDetails() {
         myMembership={myMembership || null}
         onSubmit={submitChangeRequest}
         isLoading={createSubstituteRequestsMutation.isPending}
+      />
+
+      <AddSongDialog
+        open={addSongDialogOpen}
+        onOpenChange={setAddSongDialogOpen}
+        initialTitle={songSearch.trim()}
+        onSongCreated={(song) => void handleSongCreated(song)}
       />
 
       <BottomNav />

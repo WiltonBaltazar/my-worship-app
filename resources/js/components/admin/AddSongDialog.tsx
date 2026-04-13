@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,14 +10,18 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useCreateSong } from '@/hooks/useSongs';
+import { type Song, useCreateSong } from '@/hooks/useSongs';
 
 interface AddSongDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Pre-fills the title field (e.g. from a search query) */
+  initialTitle?: string;
+  /** Called with the newly created song after saving — use to add it to a schedule */
+  onSongCreated?: (song: Song) => void;
 }
 
-export function AddSongDialog({ open, onOpenChange }: AddSongDialogProps) {
+export function AddSongDialog({ open, onOpenChange, initialTitle, onSongCreated }: AddSongDialogProps) {
   const createSongMutation = useCreateSong();
 
   const [title, setTitle] = useState('');
@@ -29,6 +33,12 @@ export function AddSongDialog({ open, onOpenChange }: AddSongDialogProps) {
   const [spotifyUrl, setSpotifyUrl] = useState('');
   const [appleMusicUrl, setAppleMusicUrl] = useState('');
   const [tags, setTags] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setTitle(initialTitle ?? '');
+    }
+  }, [open, initialTitle]);
 
   const resetForm = () => {
     setTitle('');
@@ -46,7 +56,7 @@ export function AddSongDialog({ open, onOpenChange }: AddSongDialogProps) {
     event.preventDefault();
 
     try {
-      await createSongMutation.mutateAsync({
+      const newSong = await createSongMutation.mutateAsync({
         title,
         artist: artist || null,
         chords_url: chordsUrl || null,
@@ -60,6 +70,7 @@ export function AddSongDialog({ open, onOpenChange }: AddSongDialogProps) {
 
       onOpenChange(false);
       resetForm();
+      onSongCreated?.(newSong);
     } catch {
       // Toast is handled by hook.
     }
