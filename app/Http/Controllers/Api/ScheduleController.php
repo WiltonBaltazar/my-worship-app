@@ -178,6 +178,27 @@ class ScheduleController extends Controller
 
         $member->load('profile:id,name,avatar_url,user_id');
 
+        if ($schedule->status === 'published') {
+            $userId = $member->profile?->user_id;
+            $isAdmin = $userId && \App\Models\UserRole::query()
+                ->where('user_id', $userId)
+                ->where('role', 'admin')
+                ->exists();
+
+            if ($userId && ! $isAdmin) {
+                $scheduleDate = optional($schedule->schedule_date)->format('d/m/Y');
+                AppNotification::query()->create([
+                    'user_id' => $userId,
+                    'schedule_id' => $schedule->id,
+                    'title' => 'Nova escala para você',
+                    'message' => $scheduleDate
+                        ? "Você foi adicionado(a) à escala de {$scheduleDate}."
+                        : 'Você foi adicionado(a) a uma nova escala.',
+                    'type' => 'schedule',
+                ]);
+            }
+        }
+
         return response()->json($this->formatMember($member), 201);
     }
 

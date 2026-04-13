@@ -466,6 +466,36 @@ export function useSetScheduleMemberEditPermission() {
   });
 }
 
+export function useUpdateScheduleMemberFunction() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      memberId,
+      function_type,
+      function_detail,
+    }: {
+      memberId: string;
+      function_type: 'lead_vocal' | 'backing_vocal' | 'instrumentalist';
+      function_detail: string | null;
+    }) => {
+      return apiRequest<ScheduleMember>(`/api/schedule-members/${memberId}`, {
+        method: 'PATCH',
+        body: { function_type, function_detail },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['my-schedules'] });
+      toast({ title: 'Função atualizada!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao atualizar função', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
 export function useSyncScheduleSongs() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

@@ -6,6 +6,7 @@ import {
   Clock,
   Loader2,
   Music2,
+  Pencil,
   Plus,
   Search,
   Settings,
@@ -34,6 +35,7 @@ import {
   useSetScheduleMemberEditPermission,
   useSyncScheduleSongs,
   useUpdateSchedule,
+  useUpdateScheduleMemberFunction,
 } from '@/hooks/useSchedules';
 import { useSongs } from '@/hooks/useSongs';
 import { HALF_HOUR_TIME_OPTIONS, toLocalDateInputValue } from '@/lib/date-time';
@@ -127,6 +129,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
   const addMemberMutation = useAddScheduleMember();
   const removeMemberMutation = useRemoveScheduleMemberById();
   const setMemberEditPermissionMutation = useSetScheduleMemberEditPermission();
+  const updateMemberFunctionMutation = useUpdateScheduleMemberFunction();
   const syncSongsMutation = useSyncScheduleSongs();
 
   const schedule = useMemo(
@@ -138,6 +141,10 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
   const [memberSearch, setMemberSearch] = useState('');
   const [selectedFunctionType, setSelectedFunctionType] = useState('');
   const [functionDetail, setFunctionDetail] = useState('');
+
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editFunctionType, setEditFunctionType] = useState('');
+  const [editFunctionDetail, setEditFunctionDetail] = useState('');
 
   const [songSearch, setSongSearch] = useState('');
   const [selectedSongId, setSelectedSongId] = useState('');
@@ -164,6 +171,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
       setFunctionDetail('');
       setSongSearch('');
       setSelectedSongId('');
+      setEditingMemberId(null);
     }
   }, [open]);
 
@@ -271,6 +279,41 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
       return true;
     });
   }, [allVoiceFunctionOptions.length, backingVoiceFunctionOptions.length, instrumentFunctionOptions.length, selectedProfile]);
+
+  const editingMemberProfile = useMemo(() => {
+    if (!editingMemberId || !schedule) return null;
+    const member = schedule.members?.find((m) => m.id === editingMemberId);
+    return profiles?.find((p) => p.id === member?.profile_id) ?? null;
+  }, [editingMemberId, schedule, profiles]);
+
+  const editInstrumentOptions = useMemo(() => {
+    if (!editingMemberProfile) return [];
+    return (editingMemberProfile.instruments ?? [])
+      .filter((i) => i !== 'sound_tech')
+      .map((i) => instrumentLabels[i] ?? i);
+  }, [editingMemberProfile]);
+
+  const editAllVoiceOptions = useMemo(() => {
+    if (!editingMemberProfile) return [];
+    return (editingMemberProfile.voices ?? []).map((v) => voiceLabels[v] ?? v);
+  }, [editingMemberProfile]);
+
+  const editVoiceOptions = useMemo(() => {
+    if (editFunctionType === 'backing_vocal') {
+      return editAllVoiceOptions.filter((v) => v !== voiceLabels.lead);
+    }
+    return editAllVoiceOptions;
+  }, [editAllVoiceOptions, editFunctionType]);
+
+  const editAvailableFunctionTypes = useMemo(() => {
+    if (!editingMemberProfile) return [];
+    return functionTypes.filter((item) => {
+      if (item.value === 'instrumentalist') return editInstrumentOptions.length > 0;
+      if (item.value === 'backing_vocal') return editAllVoiceOptions.filter((v) => v !== voiceLabels.lead).length > 0;
+      if (item.value === 'lead_vocal') return Boolean(editingMemberProfile.can_lead) || editAllVoiceOptions.length > 0;
+      return true;
+    });
+  }, [editingMemberProfile, editInstrumentOptions, editAllVoiceOptions]);
 
   useEffect(() => {
     setSelectedFunctionType('');
@@ -432,6 +475,20 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
     }
   };
 
+  const handleSaveMemberFunction = async (memberId: string) => {
+    if (!editFunctionType) return;
+    try {
+      await updateMemberFunctionMutation.mutateAsync({
+        memberId,
+        function_type: editFunctionType as 'lead_vocal' | 'backing_vocal' | 'instrumentalist',
+        function_detail: editFunctionDetail || null,
+      });
+      setEditingMemberId(null);
+    } catch {
+      // Toast is handled by hook.
+    }
+  };
+
   const handleToggleMemberEditPermission = async (memberId: string, canEdit: boolean) => {
     try {
       await setMemberEditPermissionMutation.mutateAsync({ memberId, canEdit });
@@ -510,6 +567,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
     addMemberMutation.isPending ||
     removeMemberMutation.isPending ||
     setMemberEditPermissionMutation.isPending ||
+    updateMemberFunctionMutation.isPending ||
     syncSongsMutation.isPending;
 
   const needsVoiceDetail = (selectedFunctionType === 'lead_vocal' || selectedFunctionType === 'backing_vocal') && voiceFunctionOptions.length > 0;
@@ -825,16 +883,101 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                         </div>
                       </div>
 
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 text-destructive hover:text-destructive"
-                        disabled={removeMemberMutation.isPending}
-                        onClick={() => handleRemoveMember(member.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (editingMemberId === member.id) {
+                              setEditingMemberId(null);
+                            } else {
+                              setEditingMemberId(member.id);
+                              setEditFunctionType(member.function_type);
+                              setEditFunctionDetail(member.function_detail ?? '');
+                            }
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          disabled={removeMemberMutation.isPending}
+                          onClick={() => handleRemoveMember(member.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
+
+                    {editingMemberId === member.id && (
+                      <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-3">
+                        <Select
+                          value={editFunctionType}
+                          onValueChange={(value) => {
+                            setEditFunctionType(value);
+                            setEditFunctionDetail('');
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Função" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {editAvailableFunctionTypes.map((item) => (
+                              <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {editFunctionType === 'instrumentalist' && editInstrumentOptions.length > 0 && (
+                          <Select value={editFunctionDetail} onValueChange={setEditFunctionDetail}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o instrumento" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {editInstrumentOptions.map((i) => (
+                                <SelectItem key={i} value={i}>{i}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+
+                        {(editFunctionType === 'lead_vocal' || editFunctionType === 'backing_vocal') && editVoiceOptions.length > 0 && (
+                          <Select value={editFunctionDetail} onValueChange={setEditFunctionDetail}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o tipo de voz" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {editVoiceOptions.map((v) => (
+                                <SelectItem key={v} value={v}>{v}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1"
+                            disabled={!editFunctionType || updateMemberFunctionMutation.isPending}
+                            onClick={() => void handleSaveMemberFunction(member.id)}
+                          >
+                            {updateMemberFunctionMutation.isPending
+                              ? <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                              : <Check className="mr-2 h-3 w-3" />}
+                            Salvar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingMemberId(null)}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between rounded-xl bg-secondary/40 px-3 py-2">
                       <Label htmlFor={`member-can-edit-${member.id}`} className="text-sm text-muted-foreground">
