@@ -832,6 +832,61 @@ class ScheduleEligibilityTest extends TestCase
         ]);
     }
 
+    public function test_lead_vocal_can_remove_all_songs_from_schedule(): void
+    {
+        $admin = User::factory()->create();
+        $lead = User::factory()->create();
+        $leadProfile = $lead->profile()->firstOrFail();
+
+        $leadProfile->update([
+            'is_approved' => true,
+            'is_active' => true,
+        ]);
+
+        $scheduleId = $this->createSchedule($admin);
+
+        $this->postJson(
+            "/api/schedules/{$scheduleId}/members",
+            [
+                'profile_id' => $leadProfile->id,
+                'function_type' => 'lead_vocal',
+                'function_detail' => 'Voz Principal (Dirigente)',
+            ],
+            $this->authHeadersFor($admin),
+        )->assertCreated();
+
+        $song = Song::query()->create([
+            'title' => 'Música de Teste',
+            'created_by' => $admin->id,
+        ]);
+
+        $this->postJson(
+            "/api/schedules/{$scheduleId}/songs",
+            [
+                'songs' => [
+                    [
+                        'song_id' => $song->id,
+                        'order_position' => 0,
+                    ],
+                ],
+            ],
+            $this->authHeadersFor($lead),
+        )->assertOk();
+
+        $this->postJson(
+            "/api/schedules/{$scheduleId}/songs",
+            [
+                'songs' => [],
+            ],
+            $this->authHeadersFor($lead),
+        )->assertOk();
+
+        $this->assertDatabaseMissing('schedule_songs', [
+            'schedule_id' => $scheduleId,
+            'song_id' => $song->id,
+        ]);
+    }
+
     public function test_regular_member_without_edit_privilege_cannot_sync_schedule_songs(): void
     {
         $admin = User::factory()->create();

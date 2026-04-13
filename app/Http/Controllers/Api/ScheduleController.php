@@ -335,7 +335,7 @@ class ScheduleController extends Controller
         $this->ensureScheduleSongManagementAccess($request, $schedule);
 
         $validated = $request->validate([
-            'songs' => ['required', 'array'],
+            'songs' => ['present', 'array'],
             'songs.*.song_id' => ['required', 'exists:songs,id'],
             'songs.*.order_position' => ['nullable', 'integer', 'min:0'],
             'songs.*.notes' => ['nullable', 'string'],
