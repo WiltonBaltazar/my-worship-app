@@ -522,7 +522,7 @@ class ScheduleController extends Controller
         }
 
         throw ValidationException::withMessages([
-            $field => ['Este membro tem apenas habilidades técnicas de som. Adicione voz, instrumento ou capacidade de liderar para escalá-lo na escala normal.'],
+            $field => ['Este membro tem apenas habilidades técnicas de som. Adicione voz, instrumento ou capacidade de dirigir para escalá-lo na escala normal.'],
         ]);
     }
 

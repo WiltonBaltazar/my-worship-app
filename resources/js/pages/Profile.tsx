@@ -154,7 +154,7 @@ export default function Profile() {
             <div className="mt-2 flex flex-wrap gap-2">
               {profile?.can_lead && (
                 <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
-                  Pode liderar
+                  Pode dirigir
                 </Badge>
               )}
               {isAdmin && (

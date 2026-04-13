@@ -154,7 +154,7 @@ export function EditMemberDialog({ member, open, onOpenChange }: EditMemberDialo
               onCheckedChange={(checked) => setCanLead(checked === true)}
             />
             <Label htmlFor="edit-member-can-lead" className="cursor-pointer">
-              Pode liderar o louvor
+              Pode dirigir o louvor
             </Label>
           </div>
 

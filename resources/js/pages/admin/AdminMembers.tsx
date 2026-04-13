@@ -226,7 +226,7 @@ export default function AdminMembers() {
                           {homeGroupLabels[member.home_group] ?? member.home_group}
                         </Badge>
                       )}
-                      {member.can_lead && <Badge className="bg-orange-50 text-orange-700 text-xs">Pode liderar</Badge>}
+                      {member.can_lead && <Badge className="bg-orange-50 text-orange-700 text-xs">Pode dirigir</Badge>}
                       {member.can_be_tech_lead && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Lead</Badge>}
                       {member.can_be_tech_sound && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Som</Badge>}
                       {member.can_be_tech_streaming && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Streaming</Badge>}

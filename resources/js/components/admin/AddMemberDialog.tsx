@@ -253,7 +253,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
               onCheckedChange={(checked) => setCanLead(checked === true)}
             />
             <Label htmlFor="add-member-can-lead" className="cursor-pointer">
-              Pode liderar o louvor
+              Pode dirigir o louvor
             </Label>
           </div>
 
