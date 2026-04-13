@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { apiRequest, clearAuthToken, getAuthToken, setAuthToken } from '@/lib/api';
+import { ApiError, apiRequest, clearAuthToken, getAuthToken, loadAuthCache, saveAuthCache, setAuthToken } from '@/lib/api';
 
 type AppRole = 'admin' | 'leader' | 'member' | 'sound_tech';
 
@@ -95,10 +95,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const applyAuthPayload = (payload: Partial<AuthPayload>, tokenOverride?: string | null) => {
     const token = tokenOverride ?? getAuthToken();
 
-    setUser(payload.user ?? null);
-    setProfile(payload.profile ?? null);
-    setRoles(payload.roles ?? []);
+    const user = payload.user ?? null;
+    const profile = payload.profile ?? null;
+    const roles = payload.roles ?? [];
+
+    setUser(user);
+    setProfile(profile);
+    setRoles(roles);
     setSession(token ? { token } : null);
+
+    if (user) {
+      saveAuthCache({ user, profile: profile as Record<string, unknown> | null, roles });
+    }
   };
 
   const refreshProfile = async () => {
@@ -122,17 +130,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Restore from cache immediately so the app shows without a loading spinner.
+      const cache = loadAuthCache();
+      if (cache) {
+        setUser(cache.user as AuthUser);
+        setProfile(cache.profile as Profile | null);
+        setRoles(cache.roles as AppRole[]);
+        setSession({ token });
+      }
+
+      setIsLoading(false);
+
+      // Validate the token in the background.
       try {
         const payload = await apiRequest<AuthPayload>('/api/auth/me');
         applyAuthPayload(payload, token);
-      } catch {
-        clearState();
-      } finally {
-        setIsLoading(false);
+      } catch (error) {
+        // Only log out on a real 401 — not on network blips or server errors.
+        if (error instanceof ApiError && error.status === 401) {
+          clearState();
+        }
       }
     };
 
     void bootstrapAuth();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const signUp = async (email: string, password: string, name: string, abilities?: SignUpAbilities) => {

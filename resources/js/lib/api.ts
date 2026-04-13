@@ -1,4 +1,5 @@
 const TOKEN_KEY = 'wora_auth_token';
+const AUTH_CACHE_KEY = 'wora_auth_cache';
 
 export function getAuthToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -10,6 +11,26 @@ export function setAuthToken(token: string): void {
 
 export function clearAuthToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(AUTH_CACHE_KEY);
+}
+
+export interface AuthCache {
+  user: { id: string; name: string; email: string };
+  profile: Record<string, unknown> | null;
+  roles: string[];
+}
+
+export function saveAuthCache(data: AuthCache): void {
+  localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(data));
+}
+
+export function loadAuthCache(): AuthCache | null {
+  try {
+    const raw = localStorage.getItem(AUTH_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as AuthCache) : null;
+  } catch {
+    return null;
+  }
 }
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
