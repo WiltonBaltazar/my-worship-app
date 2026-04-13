@@ -2,6 +2,7 @@
   "name": "Wora – My Worship Flow",
   "short_name": "Wora",
   "description": "Gerencie escalas e músicas do ministério de louvor",
+  "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -18,6 +18,7 @@ class PushNotificationService
         $vapidSubject = (string) config('webpush.vapid.subject');
 
         if ($vapidPublicKey === '' || $vapidPrivateKey === '' || $vapidSubject === '') {
+            Log::warning('Web push skipped: VAPID keys are not fully configured.');
             return;
         }
 
@@ -73,6 +74,10 @@ class PushNotificationService
                     ],
                 ]),
                 $payload,
+                [
+                    'TTL' => 3600,
+                    'urgency' => 'high',
+                ],
             );
         }
 
