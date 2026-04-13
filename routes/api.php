@@ -29,6 +29,8 @@ Route::middleware('auth.token')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
         Route::patch('/me', [AuthController::class, 'updateProfile']);
         Route::patch('/password', [AuthController::class, 'updatePassword']);
+        Route::get('/notification-preferences', [AuthController::class, 'getNotificationPreferences']);
+        Route::patch('/notification-preferences', [AuthController::class, 'updateNotificationPreferences']);
     });
 
     Route::get('/profiles', [ProfileController::class, 'index']);

@@ -30,6 +30,17 @@ class User extends Authenticatable
         'email',
         'password',
         'api_token',
+        'notification_preferences',
+    ];
+
+    public const DEFAULT_NOTIFICATION_PREFERENCES = [
+        'push_enabled' => true,
+        'announcement' => true,
+        'change_request' => true,
+        'approval_request' => true,
+        'confirmation' => true,
+        'substitute_request' => true,
+        'schedule' => true,
     ];
 
     /**
@@ -53,7 +64,19 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'notification_preferences' => 'array',
         ];
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    public function getEffectiveNotificationPreferences(): array
+    {
+        return array_merge(
+            self::DEFAULT_NOTIFICATION_PREFERENCES,
+            $this->notification_preferences ?? [],
+        );
     }
 
     public function profile(): HasOne

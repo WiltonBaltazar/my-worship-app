@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AppNotification;
 use App\Models\PushSubscription;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Minishlink\WebPush\Subscription;
 use Minishlink\WebPush\WebPush;
@@ -18,6 +19,23 @@ class PushNotificationService
 
         if ($vapidPublicKey === '' || $vapidPrivateKey === '' || $vapidSubject === '') {
             return;
+        }
+
+        /** @var User|null $user */
+        $user = User::query()->find($notification->user_id);
+
+        if ($user) {
+            $prefs = $user->getEffectiveNotificationPreferences();
+
+            if (! ($prefs['push_enabled'] ?? true)) {
+                return;
+            }
+
+            $type = $notification->type;
+
+            if ($type !== null && array_key_exists($type, $prefs) && ! $prefs[$type]) {
+                return;
+            }
         }
 
         $subscriptions = PushSubscription::query()

@@ -15,6 +15,7 @@ import {
   Save,
   Wrench,
   Trash2,
+  Smartphone,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PushNotificationToggle } from '@/components/notifications/PushNotificationToggle';
 import { InstallAppButton } from '@/components/pwa/InstallAppButton';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
 import { useApproveProfile, usePendingProfiles, useProfiles, useUpdateProfile } from '@/hooks/useProfiles';
 import { toLocalDateInputValue } from '@/lib/date-time';
 
@@ -49,6 +53,9 @@ const voiceLabels: Record<string, string> = {
 
 export default function Profile() {
   const { profile, signOut, isAdmin, isLeader, roles } = useAuth();
+  const { isSubscribed, permission } = usePushNotifications();
+  const { preferences, update: updatePreferences, isPending: isUpdatingPrefs } = useNotificationPreferences();
+  const pushIsActive = permission === 'granted' && isSubscribed;
   const { data: profiles } = useProfiles();
   const { data: pendingProfiles, isLoading: isLoadingPendingProfiles } = usePendingProfiles(isAdmin);
   const approveProfileMutation = useApproveProfile();
@@ -137,7 +144,7 @@ export default function Profile() {
               {initials}
             </AvatarFallback>
           </Avatar>
-          
+
           <div className="flex-1">
             <h2 className="text-xl font-bold text-foreground">{profile?.name}</h2>
             <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
@@ -170,7 +177,7 @@ export default function Profile() {
             </div>
           </div>
         </div>
-        
+
         <Button variant="outline" className="w-full" onClick={() => navigate('/profile/edit')}>
           <Edit className="h-4 w-4 mr-2" />
           Editar Perfil
@@ -261,6 +268,23 @@ export default function Profile() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2">
+              <Smartphone className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-foreground">Instalar App</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Instale o app para acesso rápido e agilidade no teu celular.
+            </p>
+          </div>
+          <div className="flex flex-col items-stretch gap-2 sm:items-end">
+            <InstallAppButton />
+          </div>
+        </div>
+      </div>
+
+      <div className="repertoire-card mb-6 animate-slide-up" style={{ animationDelay: '0.05s' }}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
               <Bell className="h-5 w-5 text-primary" />
               <h3 className="font-semibold text-foreground">Notificações Push</h3>
             </div>
@@ -270,10 +294,38 @@ export default function Profile() {
           </div>
           <div className="flex flex-col items-stretch gap-2 sm:items-end">
             <PushNotificationToggle hideIfUnsupported={false} />
-            <InstallAppButton />
           </div>
         </div>
       </div>
+
+      {pushIsActive && (
+        <div className="repertoire-card mb-6 animate-slide-up" style={{ animationDelay: '0.06s' }}>
+          <div className="mb-3 flex items-center gap-2">
+            <Bell className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold text-foreground">Preferências de notificação</h3>
+          </div>
+          <div className="space-y-3">
+            {([
+              { key: 'schedule', label: 'Escalas', description: 'Quando for escalado ou removido' },
+              { key: 'confirmation', label: 'Confirmações', description: 'Confirmações de participação' },
+              { key: 'substitute_request', label: 'Substituições', description: 'Pedidos de substituição' },
+              { key: 'announcement', label: 'Anúncios', description: 'Avisos gerais do ministério' },
+            ] as const).map(({ key, label, description }) => (
+              <div key={key} className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{label}</p>
+                  <p className="text-xs text-muted-foreground">{description}</p>
+                </div>
+                <Switch
+                  checked={preferences[key]}
+                  onCheckedChange={(checked) => void updatePreferences({ [key]: checked })}
+                  disabled={isUpdatingPrefs}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isAdmin && (
         <div className="repertoire-card mb-6 animate-slide-up" style={{ animationDelay: '0.07s' }}>

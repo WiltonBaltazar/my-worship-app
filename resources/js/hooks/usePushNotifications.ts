@@ -166,12 +166,38 @@ export function usePushNotifications() {
     });
   }, [isSupported, permission]);
 
+  const unsubscribe = useCallback(async () => {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+
+      if (subscription) {
+        await subscription.unsubscribe();
+        await apiRequest('/api/push-subscriptions', {
+          method: 'DELETE',
+          body: { endpoint: subscription.endpoint },
+        });
+      }
+
+      setIsSubscribed(false);
+      toast({ title: 'Notificações desativadas' });
+    } catch (error) {
+      console.error('Error unsubscribing:', error);
+      toast({
+        title: 'Erro ao desativar',
+        description: 'Não foi possível desativar as notificações agora.',
+        variant: 'destructive',
+      });
+    }
+  }, [toast]);
+
   return {
     isSupported,
     isSubscribed,
     permission,
     unsupportedReason,
     requestPermission,
+    unsubscribe,
     showLocalNotification
   };
 }

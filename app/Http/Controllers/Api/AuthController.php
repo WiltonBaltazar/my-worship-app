@@ -267,6 +267,39 @@ class AuthController extends Controller
         ]);
     }
 
+    public function getNotificationPreferences(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        return response()->json([
+            'preferences' => $user->getEffectiveNotificationPreferences(),
+        ]);
+    }
+
+    public function updateNotificationPreferences(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $allowed = array_keys(User::DEFAULT_NOTIFICATION_PREFERENCES);
+
+        $validated = $request->validate(
+            collect($allowed)
+                ->mapWithKeys(fn (string $key): array => [$key => ['sometimes', 'boolean']])
+                ->all(),
+        );
+
+        $current = $user->getEffectiveNotificationPreferences();
+        $updated = array_merge($current, $validated);
+
+        $user->update(['notification_preferences' => $updated]);
+
+        return response()->json([
+            'preferences' => $updated,
+        ]);
+    }
+
     private function authPayload(User $user): array
     {
         $user->loadMissing(['profile', 'roles']);
