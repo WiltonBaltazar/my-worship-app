@@ -184,7 +184,7 @@ class AuthController extends Controller
                     'remember_token' => Str::random(60),
                 ])->save();
 
-                $user->revokeApiToken();
+                $user->revokeAllTokens();
 
                 event(new PasswordReset($user));
             },
@@ -203,7 +203,11 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->revokeApiToken();
+        $plainToken = (string) $request->attributes->get('bearer_token', '');
+
+        if ($plainToken !== '') {
+            $request->user()->revokeApiToken($plainToken);
+        }
 
         return response()->json([
             'message' => 'Logged out successfully.',
@@ -264,6 +268,39 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Password updated successfully.',
+        ]);
+    }
+
+    public function getNotificationPreferences(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        return response()->json([
+            'preferences' => $user->getEffectiveNotificationPreferences(),
+        ]);
+    }
+
+    public function updateNotificationPreferences(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $allowed = array_keys(User::DEFAULT_NOTIFICATION_PREFERENCES);
+
+        $validated = $request->validate(
+            collect($allowed)
+                ->mapWithKeys(fn (string $key): array => [$key => ['sometimes', 'boolean']])
+                ->all(),
+        );
+
+        $current = $user->getEffectiveNotificationPreferences();
+        $updated = array_merge($current, $validated);
+
+        $user->update(['notification_preferences' => $updated]);
+
+        return response()->json([
+            'preferences' => $updated,
         ]);
     }
 

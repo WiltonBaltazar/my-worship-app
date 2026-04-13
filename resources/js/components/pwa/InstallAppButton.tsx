@@ -114,7 +114,7 @@ export function InstallAppButton() {
           <AlertDialogHeader>
             <AlertDialogTitle>Instalar no iPhone</AlertDialogTitle>
             <AlertDialogDescription>
-              No Safari, toque em Compartilhar, escolha &quot;Adicionar à Tela de Início&quot; e abra o app pelo ícone criado.
+              No iPhone (iOS), toque em Compartilhar, escolha &quot;Adicionar à Tela de Início&quot; e abra o app pelo ícone criado.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -1,17 +1,33 @@
 {
-  "name": "Wora",
+  "name": "Wora – My Worship Flow",
   "short_name": "Wora",
-  "description": "My Worship Flow",
+  "description": "Gerencie escalas e músicas do ministério de louvor",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#111827",
   "theme_color": "#111827",
+  "categories": ["productivity", "utilities"],
   "icons": [
     {
       "src": "/favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
 }
