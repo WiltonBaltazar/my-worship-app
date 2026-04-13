@@ -1,17 +1,107 @@
 const TOKEN_KEY = 'wora_auth_token';
 const AUTH_CACHE_KEY = 'wora_auth_cache';
+const TOKEN_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+
+function isBrowserEnvironment(): boolean {
+  return typeof window !== 'undefined' && typeof document !== 'undefined';
+}
+
+function getFromLocalStorage(key: string): string | null {
+  if (!isBrowserEnvironment()) {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function setInLocalStorage(key: string, value: string): void {
+  if (!isBrowserEnvironment()) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Ignore storage failures (e.g. private mode restrictions).
+  }
+}
+
+function removeFromLocalStorage(key: string): void {
+  if (!isBrowserEnvironment()) {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Ignore storage failures (e.g. private mode restrictions).
+  }
+}
+
+function getCookie(name: string): string | null {
+  if (!isBrowserEnvironment()) {
+    return null;
+  }
+
+  const prefix = `${encodeURIComponent(name)}=`;
+  const cookie = document.cookie
+    .split(';')
+    .map((entry) => entry.trim())
+    .find((entry) => entry.startsWith(prefix));
+
+  if (!cookie) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(cookie.slice(prefix.length));
+  } catch {
+    return null;
+  }
+}
+
+function setCookie(name: string, value: string, maxAgeSeconds = TOKEN_COOKIE_MAX_AGE_SECONDS): void {
+  if (!isBrowserEnvironment()) {
+    return;
+  }
+
+  const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax${secureFlag}`;
+}
+
+function removeCookie(name: string): void {
+  setCookie(name, '', 0);
+}
 
 export function getAuthToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  const localToken = getFromLocalStorage(TOKEN_KEY);
+
+  if (localToken) {
+    return localToken;
+  }
+
+  const cookieToken = getCookie(TOKEN_KEY);
+
+  if (cookieToken) {
+    setInLocalStorage(TOKEN_KEY, cookieToken);
+  }
+
+  return cookieToken;
 }
 
 export function setAuthToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
+  setInLocalStorage(TOKEN_KEY, token);
+  setCookie(TOKEN_KEY, token);
 }
 
 export function clearAuthToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(AUTH_CACHE_KEY);
+  removeFromLocalStorage(TOKEN_KEY);
+  removeFromLocalStorage(AUTH_CACHE_KEY);
+  removeCookie(TOKEN_KEY);
 }
 
 export interface AuthCache {
@@ -21,12 +111,12 @@ export interface AuthCache {
 }
 
 export function saveAuthCache(data: AuthCache): void {
-  localStorage.setItem(AUTH_CACHE_KEY, JSON.stringify(data));
+  setInLocalStorage(AUTH_CACHE_KEY, JSON.stringify(data));
 }
 
 export function loadAuthCache(): AuthCache | null {
   try {
-    const raw = localStorage.getItem(AUTH_CACHE_KEY);
+    const raw = getFromLocalStorage(AUTH_CACHE_KEY);
     return raw ? (JSON.parse(raw) as AuthCache) : null;
   } catch {
     return null;
@@ -90,7 +180,11 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       : null;
 
   if (!response.ok) {
-    if (response.status === 401) {
+    const shouldClearToken =
+      response.status === 401
+      && (path.startsWith('/api/auth/me') || path.startsWith('/api/auth/logout'));
+
+    if (shouldClearToken) {
       clearAuthToken();
     }
 

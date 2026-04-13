@@ -1,12 +1,25 @@
 // Service Worker for Push Notifications
 
-self.addEventListener('push', function(event) {
-  if (!event.data) return;
+function parsePushData(event) {
+  if (!event.data) {
+    return {};
+  }
 
-  const data = event.data.json();
-  
+  try {
+    return event.data.json();
+  } catch {
+    return {
+      title: 'Nova notificação',
+      message: event.data.text(),
+    };
+  }
+}
+
+self.addEventListener('push', function(event) {
+  const data = parsePushData(event);
+
   const options = {
-    body: data.message || data.body,
+    body: data.message || data.body || 'Você recebeu uma atualização.',
     icon: '/favicon.ico',
     badge: '/favicon.ico',
     vibrate: [100, 50, 100],
@@ -21,7 +34,7 @@ self.addEventListener('push', function(event) {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Nova notificação', options)
+    self.registration.showNotification(data.title || 'Nova notificação', options),
   );
 });
 

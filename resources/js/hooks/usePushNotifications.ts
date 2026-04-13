@@ -33,6 +33,7 @@ export function usePushNotifications() {
 
   const ensureSubscription = useCallback(async () => {
     if (!isSupported || permission !== 'granted') {
+      setIsSubscribed(false);
       return false;
     }
 
@@ -48,6 +49,11 @@ export function usePushNotifications() {
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(publicKey),
       });
+    }
+
+    if (!subscription) {
+      setIsSubscribed(false);
+      return false;
     }
 
     await registerSubscription(subscription);
@@ -82,19 +88,22 @@ export function usePushNotifications() {
     setPermission(Notification.permission);
 
     navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        registration.pushManager.getSubscription().then((subscription) => {
-          setIsSubscribed(!!subscription);
-        });
-
+      .then(async (registration) => {
         if (Notification.permission === 'granted') {
-          ensureSubscription().catch((error) => {
+          try {
+            await ensureSubscription();
+            return;
+          } catch (error) {
             console.error('Failed to ensure push subscription:', error);
-          });
+          }
         }
+
+        const subscription = await registration.pushManager.getSubscription();
+        setIsSubscribed(Notification.permission === 'granted' && !!subscription);
       })
       .catch((error) => {
         console.error('Service Worker registration failed:', error);
+        setIsSubscribed(false);
       });
   }, [ensureSubscription]);
 
@@ -114,15 +123,33 @@ export function usePushNotifications() {
 
     try {
       if (permission === 'granted') {
-        await ensureSubscription();
-        return true;
+        const isReady = await ensureSubscription();
+
+        if (!isReady) {
+          toast({
+            title: 'Falha ao ativar push',
+            description: 'Não foi possível concluir a ativação das notificações.',
+            variant: 'destructive',
+          });
+        }
+
+        return isReady;
       }
 
       const result = await Notification.requestPermission();
       setPermission(result);
       
       if (result === 'granted') {
-        await ensureSubscription();
+        const isReady = await ensureSubscription();
+
+        if (!isReady) {
+          toast({
+            title: 'Falha ao ativar push',
+            description: 'Permissão concedida, mas a inscrição não foi concluída.',
+            variant: 'destructive',
+          });
+          return false;
+        }
 
         toast({
           title: 'Notificações ativadas',
@@ -130,6 +157,7 @@ export function usePushNotifications() {
         });
         return true;
       } else if (result === 'denied') {
+        setIsSubscribed(false);
         toast({
           title: 'Notificações bloqueadas',
           description: 'Você bloqueou as notificações. Habilite-as nas configurações do navegador.',
@@ -142,6 +170,7 @@ export function usePushNotifications() {
       return false;
     } catch (error) {
       console.error('Error requesting permission:', error);
+      setIsSubscribed(false);
 
       toast({
         title: 'Falha ao ativar push',
