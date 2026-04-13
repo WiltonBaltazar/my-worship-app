@@ -153,7 +153,7 @@ export default function Auth() {
   const [hasUsers, setHasUsers] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -202,6 +202,14 @@ export default function Auth() {
     setEmail(searchParams.get('email') ?? '');
     setResetToken(searchParams.get('token') ?? '');
   }, [searchParams]);
+
+  useEffect(() => {
+    if (isLoading || !user) {
+      return;
+    }
+
+    navigate('/dashboard', { replace: true });
+  }, [isLoading, navigate, user]);
 
   const switchToLogin = () => {
     setMode('login');
