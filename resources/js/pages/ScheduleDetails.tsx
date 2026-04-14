@@ -2,17 +2,18 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, Calendar, Clock, Music, User, Check, AlertCircle, Loader2, Plus, Search, Trash2 } from 'lucide-react';
+import { ChevronLeft, Calendar, Clock, Music, User, Check, AlertCircle, Loader2, Plus, Search, Trash2, Save, StickyNote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { ActionButtons } from '@/components/schedule/ActionButtons';
 import { RequestSubstituteDialog } from '@/components/schedule/RequestSubstituteDialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMySchedules, useSetScheduleMemberEditPermission, useSyncScheduleSongs } from '@/hooks/useSchedules';
+import { useMySchedules, useSetScheduleMemberEditPermission, useSyncScheduleSongs, useUpdateScheduleNotes } from '@/hooks/useSchedules';
 import { useSongs } from '@/hooks/useSongs';
 import { AddSongDialog } from '@/components/admin/AddSongDialog';
 import { useCreateSubstituteRequests, useCancelSubstituteRequest } from '@/hooks/useSubstituteRequests';
@@ -34,10 +35,12 @@ export default function ScheduleDetails() {
   const cancelSubstituteRequestMutation = useCancelSubstituteRequest();
   const syncSongsMutation = useSyncScheduleSongs();
   const setMemberEditPermissionMutation = useSetScheduleMemberEditPermission();
+  const updateScheduleMutation = useUpdateScheduleNotes();
   const [changeDialogOpen, setChangeDialogOpen] = useState(false);
   const [songSearch, setSongSearch] = useState('');
   const [selectedSongId, setSelectedSongId] = useState('');
   const [addSongDialogOpen, setAddSongDialogOpen] = useState(false);
+  const [scheduleNotes, setScheduleNotes] = useState('');
 
   const schedule = schedules?.find(s => s.id === id);
   const myMembership = schedule?.members?.find(m => m.profile_id === profile?.id);
@@ -72,6 +75,12 @@ export default function ScheduleDetails() {
         );
       });
   }, [schedule, songSearch, songs]);
+
+  useEffect(() => {
+    if (schedule) {
+      setScheduleNotes(schedule.notes ?? '');
+    }
+  }, [schedule?.id]);
 
   useEffect(() => {
     if (!selectedSongId) {
@@ -229,6 +238,15 @@ export default function ScheduleDetails() {
     }
   };
 
+  const handleSaveScheduleNotes = async () => {
+    if (!schedule) return;
+    try {
+      await updateScheduleMutation.mutateAsync({ id: schedule.id, notes: scheduleNotes.trim() || null });
+    } catch {
+      // toast handled by hook
+    }
+  };
+
   const date = new Date(`${schedule.schedule_date}T${schedule.start_time || '11:00'}`);
 
   return (
@@ -261,9 +279,36 @@ export default function ScheduleDetails() {
           </div>
 
           {schedule.notes && (
-            <p className="mt-3 text-sm text-muted-foreground bg-secondary/50 p-3 rounded-lg">
-              {schedule.notes}
-            </p>
+            <div className="mt-3 flex items-start gap-2 rounded-lg bg-secondary/50 p-3">
+              <StickyNote className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <p className="text-sm text-foreground whitespace-pre-wrap">{schedule.notes}</p>
+            </div>
+          )}
+
+          {canManageSongs && (
+            <div className="mt-3 space-y-2">
+              <Textarea
+                className="text-sm resize-none"
+                placeholder="Observações para a equipe (ex: Música 1 + Música 2, Intervalo...)"
+                value={scheduleNotes}
+                onChange={(e) => setScheduleNotes(e.target.value)}
+                rows={3}
+                disabled={updateScheduleMutation.isPending}
+              />
+              <Button
+                size="sm"
+                className="w-full"
+                onClick={handleSaveScheduleNotes}
+                disabled={updateScheduleMutation.isPending || scheduleNotes.trim() === (schedule.notes ?? '')}
+              >
+                {updateScheduleMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                Salvar observações
+              </Button>
+            </div>
           )}
         </Card>
 

@@ -170,6 +170,28 @@ export function useUpdateSchedule() {
   });
 }
 
+export function useUpdateScheduleNotes() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes: string | null }) => {
+      return apiRequest<Schedule>(`/api/schedules/${id}/notes`, {
+        method: 'PATCH',
+        body: { notes },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['my-schedules'] });
+      toast({ title: 'Observações salvas!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao salvar observações', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
 export function useAddScheduleMember() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

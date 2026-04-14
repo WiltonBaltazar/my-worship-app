@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -154,6 +155,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
   const [scheduleDate, setScheduleDate] = useState('');
   const [startTime, setStartTime] = useState('11:00');
   const [scheduleTitle, setScheduleTitle] = useState('');
+  const [scheduleNotes, setScheduleNotes] = useState('');
 
   useEffect(() => {
     if (!schedule) {
@@ -163,6 +165,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
     setScheduleDate(schedule.schedule_date);
     setStartTime(timeToInput(schedule.start_time));
     setScheduleTitle(schedule.title ?? '');
+    setScheduleNotes(schedule.notes ?? '');
   }, [schedule]);
 
   useEffect(() => {
@@ -426,15 +429,18 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
     }
 
     const nextTitle = scheduleTitle.trim();
+    const nextNotes = scheduleNotes.trim();
     const updates: {
       id: string;
       schedule_date?: string;
       start_time: string;
       title: string | null;
+      notes: string | null;
     } = {
       id: schedule.id,
       start_time: startTime,
       title: nextTitle || null,
+      notes: nextNotes || null,
     };
 
     if (scheduleDate !== schedule.schedule_date) {
@@ -673,6 +679,17 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                     onChange={(event) => setScheduleTitle(event.target.value)}
                     placeholder="Ex: Culto de Domingo"
                     maxLength={255}
+                  />
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  <Label htmlFor="schedule-notes">Observações da escala</Label>
+                  <Textarea
+                    id="schedule-notes"
+                    value={scheduleNotes}
+                    onChange={(event) => setScheduleNotes(event.target.value)}
+                    placeholder="Ex: Culto especial, tema da mensagem, avisos para a equipe..."
+                    rows={3}
                   />
                 </div>
 
@@ -1109,7 +1126,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                 {(schedule.songs ?? []).map((scheduleSong, index) => (
                   <div key={scheduleSong.id} className="flex items-center justify-between rounded-2xl border border-border bg-card p-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                         {index + 1}
                       </span>
                       <div className="min-w-0">

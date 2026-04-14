@@ -33,7 +33,7 @@ export function ActionButtons({
       ) : (
         <Button
           variant="request"
-          className="flex-1"
+          className="flex-1 bg-primary text-primary-foreground border-primary hover:bg-primary/90 hover:text-primary-foreground"
           onClick={onRequestChange}
         >
           <RefreshCw className="h-4 w-4" />

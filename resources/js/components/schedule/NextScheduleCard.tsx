@@ -135,7 +135,7 @@ export function NextScheduleCard({ schedule, myMembership }: NextScheduleCardPro
 
             <div className="space-y-2">
               {myMembership && (
-                <Button variant="request" className="w-full" onClick={handleRequestChange}>
+                <Button variant="request" className="w-full bg-primary text-primary-foreground" onClick={handleRequestChange}>
                   <RefreshCw className="h-4 w-4" />
                   Solicitar troca
                 </Button>

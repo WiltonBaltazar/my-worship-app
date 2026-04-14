@@ -131,6 +131,25 @@ class ScheduleController extends Controller
         return response()->json($this->formatSchedule($schedule));
     }
 
+    public function updateNotes(Request $request, Schedule $schedule): JsonResponse
+    {
+        $this->ensureScheduleSongManagementAccess($request, $schedule);
+
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $schedule->update(['notes' => $validated['notes'] ?? null]);
+
+        $schedule->load([
+            'members.profile:id,name,avatar_url,user_id',
+            'members.profile.user.roles:user_id,role',
+            'songs.song:id,title,artist',
+        ]);
+
+        return response()->json($this->formatSchedule($schedule));
+    }
+
     public function destroy(Request $request, Schedule $schedule): JsonResponse
     {
         $this->ensureLeaderAccess($request);
