@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Loader2, Eye } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Loader2, Eye, Users, Download } from 'lucide-react';
 import {
   format,
   addMonths,
@@ -13,12 +13,90 @@ import {
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMySchedules } from '@/hooks/useSchedules';
+import { useMySchedules, useSchedules } from '@/hooks/useSchedules';
 import type { Schedule } from '@/hooks/useSchedules';
+
+function functionLabel(type: string, detail: string | null): string {
+  if (type === 'lead_vocal') return 'Vocal Principal';
+  if (type === 'backing_vocal') return 'Backing Vocal';
+  if (type === 'sound_tech') return 'Técnico de Som';
+  return detail || 'Instrumentista';
+}
+
+function downloadMonthPDF(month: Date, schedules: Schedule[]) {
+  const monthSchedules = schedules
+    .filter((s) => isSameMonth(new Date(s.schedule_date), month))
+    .sort((a, b) => a.schedule_date.localeCompare(b.schedule_date));
+
+  const doc = new jsPDF();
+  const monthLabel = format(month, 'MMMM yyyy', { locale: ptBR });
+  const titleText = `Escalas — ${monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)}`;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text(titleText, 14, 20);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(120);
+  doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}`, 14, 28);
+  doc.setTextColor(0);
+
+  if (monthSchedules.length === 0) {
+    doc.setFontSize(12);
+    doc.text('Nenhuma escala encontrada para este mês.', 14, 42);
+    doc.save(`escalas-${format(month, 'yyyy-MM')}.pdf`);
+    return;
+  }
+
+  let startY = 36;
+
+  for (const schedule of monthSchedules) {
+    const dateLabel = format(new Date(schedule.schedule_date), "EEEE, dd 'de' MMMM", { locale: ptBR });
+    const sectionTitle = `${dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}${schedule.title ? ` — ${schedule.title}` : ''}`;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(sectionTitle, 14, startY);
+    startY += 2;
+
+    const rows = (schedule.members ?? []).map((m) => [
+      m.profile?.name ?? '—',
+      functionLabel(m.function_type, m.function_detail),
+      m.confirmed ? 'Confirmado' : 'Pendente',
+    ]);
+
+    autoTable(doc, {
+      startY,
+      head: [['Nome', 'Função', 'Status']],
+      body: rows.length > 0 ? rows : [['—', '—', '—']],
+      theme: 'striped',
+      headStyles: { fillColor: [234, 88, 12], textColor: 255, fontStyle: 'bold' },
+      styles: { fontSize: 10, cellPadding: 3 },
+      margin: { left: 14, right: 14 },
+    });
+
+    startY = (doc as any).lastAutoTable.finalY + 10;
+
+    if (schedule.songs && schedule.songs.length > 0) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(9);
+      doc.setTextColor(80);
+      const songList = schedule.songs.map((s, i) => `${i + 1}. ${s.song?.title ?? '—'}`).join('   ');
+      doc.text(`Repertório: ${songList}`, 14, startY);
+      doc.setTextColor(0);
+      startY += 10;
+    }
+  }
+
+  doc.save(`escalas-${format(month, 'yyyy-MM')}.pdf`);
+}
 
 export default function Schedules() {
   const navigate = useNavigate();
@@ -26,7 +104,10 @@ export default function Schedules() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const { profile } = useAuth();
-  const { data: schedules, isLoading } = useMySchedules(profile?.id);
+  const { data: mySchedules, isLoading: myLoading } = useMySchedules(profile?.id);
+  const { data: allSchedules, isLoading: allLoading } = useSchedules();
+
+  const isLoading = myLoading || allLoading;
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -34,10 +115,11 @@ export default function Schedules() {
 
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-  const getScheduleForDate = (date: Date): Schedule | undefined =>
-    schedules?.find((schedule) => isSameDay(new Date(schedule.schedule_date), date));
+  const getMyScheduleForDate = (date: Date): Schedule | undefined =>
+    mySchedules?.find((s) => isSameDay(new Date(s.schedule_date), date));
 
-  const isScheduled = (date: Date) => !!getScheduleForDate(date);
+  const getAnyScheduleForDate = (date: Date): Schedule | undefined =>
+    allSchedules?.find((s) => isSameDay(new Date(s.schedule_date), date));
 
   if (isLoading) {
     return (
@@ -48,8 +130,9 @@ export default function Schedules() {
     );
   }
 
-  const selectedSchedule = selectedDate ? getScheduleForDate(selectedDate) : null;
-  const myRole = selectedSchedule?.members?.find((member) => member.profile_id === profile?.id);
+  const selectedMySchedule = selectedDate ? getMyScheduleForDate(selectedDate) : null;
+  const selectedAnySchedule = selectedDate ? getAnyScheduleForDate(selectedDate) : null;
+  const myRole = selectedMySchedule?.members?.find((member) => member.profile_id === profile?.id);
 
   return (
     <div className="page-container">
@@ -72,9 +155,20 @@ export default function Schedules() {
 
           <h2 className="text-lg font-semibold capitalize text-foreground">{format(currentMonth, 'MMMM yyyy', { locale: ptBR })}</h2>
 
-          <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-            <ChevronRight className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Baixar escala do mês"
+              onClick={() => downloadMonthPDF(currentMonth, allSchedules ?? [])}
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+
+            <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         <div className="mb-2 grid grid-cols-7 gap-0.5 sm:gap-1">
@@ -91,7 +185,8 @@ export default function Schedules() {
           ))}
 
           {days.map((day) => {
-            const scheduled = isScheduled(day);
+            const myScheduled = !!getMyScheduleForDate(day);
+            const otherScheduled = !myScheduled && !!getAnyScheduleForDate(day);
             const selected = selectedDate && isSameDay(day, selectedDate);
             const today = isToday(day);
 
@@ -100,15 +195,20 @@ export default function Schedules() {
                 key={day.toISOString()}
                 onClick={() => setSelectedDate(day)}
                 className={cn(
-                  'flex h-11 w-full touch-manipulation items-center justify-center rounded-xl border border-transparent text-sm font-semibold transition-all',
+                  'relative flex h-11 w-full touch-manipulation flex-col items-center justify-center rounded-xl border border-transparent text-sm font-semibold transition-all',
                   !isSameMonth(day, currentMonth) && 'text-muted-foreground/50',
-                  scheduled && 'border-primary/35 bg-[linear-gradient(145deg,hsl(var(--primary))_0%,hsl(24_88%_51%)_100%)] text-primary-foreground shadow-soft',
-                  selected && !scheduled && 'border-border/70 bg-secondary',
-                  today && !scheduled && 'border-primary/60 ring-2 ring-primary/30',
-                  !scheduled && !selected && !today && 'hover:border-border/55 hover:bg-secondary/70',
+                  myScheduled &&
+                    'border-primary/35 bg-[linear-gradient(145deg,hsl(var(--primary))_0%,hsl(24_88%_51%)_100%)] text-primary-foreground shadow-soft',
+                  otherScheduled && 'border-border/50 bg-secondary/70 text-foreground',
+                  selected && !myScheduled && !otherScheduled && 'border-border/70 bg-secondary',
+                  today && !myScheduled && !otherScheduled && 'border-primary/60 ring-2 ring-primary/30',
+                  !myScheduled && !otherScheduled && !selected && !today && 'hover:border-border/55 hover:bg-secondary/70',
                 )}
               >
                 {format(day, 'd')}
+                {otherScheduled && (
+                  <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-primary/50" />
+                )}
               </button>
             );
           })}
@@ -122,6 +222,10 @@ export default function Schedules() {
             <span>Escalado</span>
           </div>
           <div className="flex items-center gap-2">
+            <div className="h-4 w-4 rounded border border-border/50 bg-secondary/70" />
+            <span>Outra equipe</span>
+          </div>
+          <div className="flex items-center gap-2">
             <div className="h-4 w-4 rounded ring-2 ring-primary" />
             <span>Hoje</span>
           </div>
@@ -130,33 +234,44 @@ export default function Schedules() {
 
       {selectedDate && (
         <div className="mt-6 upcoming-card animate-scale-in">
-          <div className="mb-2 flex items-center gap-3">
+          <div className="mb-3 flex items-center gap-3">
             <Calendar className="h-5 w-5 text-primary" />
             <h3 className="font-semibold capitalize text-foreground">
               {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
             </h3>
           </div>
 
-          {selectedSchedule ? (
+          {selectedMySchedule ? (
             <div>
-              <p className="mb-2 text-foreground">
+              <p className="mb-3 text-foreground">
                 Você está escalado como:{' '}
-                <strong>
-                  {myRole?.function_type === 'lead_vocal'
-                    ? 'Vocal Principal'
-                    : myRole?.function_type === 'backing_vocal'
-                      ? 'Backing Vocal'
-                      : myRole?.function_type === 'sound_tech'
-                        ? 'Técnico de Som'
-                        : myRole?.function_detail || 'Instrumentista'}
-                </strong>
+                <strong>{functionLabel(myRole?.function_type ?? '', myRole?.function_detail ?? null)}</strong>
               </p>
 
-              {selectedSchedule.songs && selectedSchedule.songs.length > 0 && (
-                <div className="mt-3">
+              {selectedMySchedule.members && selectedMySchedule.members.length > 0 && (
+                <div className="mb-3">
+                  <p className="mb-2 flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                    <Users className="h-3.5 w-3.5" />
+                    Equipe:
+                  </p>
+                  <ul className="space-y-1.5 text-sm">
+                    {selectedMySchedule.members.map((member) => (
+                      <li key={member.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-1.5">
+                        <span className="font-medium text-foreground">{member.profile?.name ?? '—'}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {functionLabel(member.function_type, member.function_detail)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {selectedMySchedule.songs && selectedMySchedule.songs.length > 0 && (
+                <div className="mb-3">
                   <p className="mb-1 text-sm text-muted-foreground">Repertório:</p>
                   <ul className="space-y-1 text-sm">
-                    {selectedSchedule.songs.map((song, index) => (
+                    {selectedMySchedule.songs.map((song, index) => (
                       <li key={song.id} className="text-foreground">
                         {index + 1}. {song.song?.title}
                       </li>
@@ -165,13 +280,41 @@ export default function Schedules() {
                 </div>
               )}
 
-              <Button className="mt-4 w-full" onClick={() => navigate(`/schedules/${selectedSchedule.id}`)}>
+              <Button className="w-full" onClick={() => navigate(`/schedules/${selectedMySchedule.id}`)}>
+                <Eye className="mr-2 h-4 w-4" />
+                Ver Escala
+              </Button>
+            </div>
+          ) : selectedAnySchedule ? (
+            <div>
+              <p className="mb-3 text-sm text-muted-foreground">Você não está nesta escala.</p>
+
+              {selectedAnySchedule.members && selectedAnySchedule.members.length > 0 && (
+                <div className="mb-3">
+                  <p className="mb-2 flex items-center gap-1.5 text-sm font-medium text-foreground">
+                    <Users className="h-3.5 w-3.5 text-primary" />
+                    Equipe escalada:
+                  </p>
+                  <ul className="space-y-1.5 text-sm">
+                    {selectedAnySchedule.members.map((member) => (
+                      <li key={member.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-1.5">
+                        <span className="font-medium text-foreground">{member.profile?.name ?? '—'}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {functionLabel(member.function_type, member.function_detail)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <Button variant="outline" className="w-full" onClick={() => navigate(`/schedules/${selectedAnySchedule.id}`)}>
                 <Eye className="mr-2 h-4 w-4" />
                 Ver Escala
               </Button>
             </div>
           ) : (
-            <p className="text-muted-foreground">Você não está escalado para este dia.</p>
+            <p className="text-muted-foreground">Nenhuma escala para este dia.</p>
           )}
         </div>
       )}

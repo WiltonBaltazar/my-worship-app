@@ -13,7 +13,7 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { ActionButtons } from '@/components/schedule/ActionButtons';
 import { RequestSubstituteDialog } from '@/components/schedule/RequestSubstituteDialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMySchedules, useSetScheduleMemberEditPermission, useSyncScheduleSongs, useUpdateScheduleNotes } from '@/hooks/useSchedules';
+import { useMySchedules, useSchedules, useSetScheduleMemberEditPermission, useSyncScheduleSongs, useUpdateScheduleNotes } from '@/hooks/useSchedules';
 import { useSongs } from '@/hooks/useSongs';
 import { AddSongDialog } from '@/components/admin/AddSongDialog';
 import { useCreateSubstituteRequests, useCancelSubstituteRequest } from '@/hooks/useSubstituteRequests';
@@ -29,7 +29,9 @@ export default function ScheduleDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { profile, isAdmin, isLeader } = useAuth();
-  const { data: schedules, isLoading } = useMySchedules(profile?.id);
+  const { data: mySchedules, isLoading: myLoading } = useMySchedules(profile?.id);
+  const { data: allSchedules, isLoading: allLoading } = useSchedules();
+  const isLoading = myLoading || allLoading;
   const { data: songs } = useSongs();
   const createSubstituteRequestsMutation = useCreateSubstituteRequests();
   const cancelSubstituteRequestMutation = useCancelSubstituteRequest();
@@ -42,7 +44,7 @@ export default function ScheduleDetails() {
   const [addSongDialogOpen, setAddSongDialogOpen] = useState(false);
   const [scheduleNotes, setScheduleNotes] = useState('');
 
-  const schedule = schedules?.find(s => s.id === id);
+  const schedule = mySchedules?.find(s => s.id === id) ?? allSchedules?.find(s => s.id === id);
   const myMembership = schedule?.members?.find(m => m.profile_id === profile?.id);
   const canManageSongs = Boolean(
     isAdmin ||
