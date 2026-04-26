@@ -12,6 +12,14 @@ export interface ScheduleMember {
   requested_change: boolean;
   change_reason: string | null;
   suggested_substitute_id: string | null;
+  pending_substitute_requests?: Array<{
+    id: string;
+    candidate_profile: {
+      id: string;
+      name: string;
+      avatar_url: string | null;
+    } | null;
+  }>;
   profile?: {
     id: string;
     name: string;

@@ -34,6 +34,8 @@ class ScheduleController extends Controller
             ->with([
                 'members.profile:id,name,avatar_url,user_id',
                 'members.profile.user.roles:user_id,role',
+                'members.substituteRequests' => fn ($q) => $q->where('status', 'pending')
+                    ->with('candidateProfile:id,name,avatar_url'),
                 'songs.song:id,title,artist',
             ]);
 
@@ -69,6 +71,8 @@ class ScheduleController extends Controller
             ->with([
                 'members.profile:id,name,avatar_url,user_id',
                 'members.profile.user.roles:user_id,role',
+                'members.substituteRequests' => fn ($q) => $q->where('status', 'pending')
+                    ->with('candidateProfile:id,name,avatar_url'),
                 'songs.song:id,title,artist',
             ])
             ->get()
@@ -101,6 +105,8 @@ class ScheduleController extends Controller
         $schedule->load([
             'members.profile:id,name,avatar_url,user_id',
             'members.profile.user.roles:user_id,role',
+            'members.substituteRequests' => fn ($q) => $q->where('status', 'pending')
+                ->with('candidateProfile:id,name,avatar_url'),
             'songs.song:id,title,artist',
         ]);
 
@@ -125,6 +131,8 @@ class ScheduleController extends Controller
         $schedule->load([
             'members.profile:id,name,avatar_url,user_id',
             'members.profile.user.roles:user_id,role',
+            'members.substituteRequests' => fn ($q) => $q->where('status', 'pending')
+                ->with('candidateProfile:id,name,avatar_url'),
             'songs.song:id,title,artist',
         ]);
 
@@ -144,6 +152,8 @@ class ScheduleController extends Controller
         $schedule->load([
             'members.profile:id,name,avatar_url,user_id',
             'members.profile.user.roles:user_id,role',
+            'members.substituteRequests' => fn ($q) => $q->where('status', 'pending')
+                ->with('candidateProfile:id,name,avatar_url'),
             'songs.song:id,title,artist',
         ]);
 
@@ -165,7 +175,7 @@ class ScheduleController extends Controller
 
         $validated = $request->validate([
             'profile_id' => ['required', 'exists:profiles,id'],
-            'function_type' => ['required', 'in:lead_vocal,backing_vocal,instrumentalist'],
+            'function_type' => ['required', 'in:lead_vocal,backing_vocal,instrumentalist,sound_tech'],
             'function_detail' => ['nullable', 'string', 'max:255'],
             'confirmed' => ['nullable', 'boolean'],
             'can_edit' => ['nullable', 'boolean'],
@@ -243,7 +253,7 @@ class ScheduleController extends Controller
         }
 
         $validated = $request->validate([
-            'function_type' => ['sometimes', 'in:lead_vocal,backing_vocal,instrumentalist'],
+            'function_type' => ['sometimes', 'in:lead_vocal,backing_vocal,instrumentalist,sound_tech'],
             'function_detail' => ['nullable', 'string', 'max:255'],
             'confirmed' => ['sometimes', 'boolean'],
             'can_edit' => ['sometimes', 'boolean'],
@@ -395,6 +405,8 @@ class ScheduleController extends Controller
         $schedule->load([
             'members.profile:id,name,avatar_url,user_id',
             'members.profile.user.roles:user_id,role',
+            'members.substituteRequests' => fn ($q) => $q->where('status', 'pending')
+                ->with('candidateProfile:id,name,avatar_url'),
             'songs.song:id,title,artist',
         ]);
 
@@ -441,6 +453,19 @@ class ScheduleController extends Controller
 
     private function formatMember(ScheduleMember $member): array
     {
+        $pendingRequests = $member->relationLoaded('substituteRequests')
+            ? $member->substituteRequests
+                ->where('status', 'pending')
+                ->map(fn (SubstituteRequest $req) => [
+                    'id' => $req->id,
+                    'candidate_profile' => $req->candidateProfile ? [
+                        'id' => $req->candidateProfile->id,
+                        'name' => $req->candidateProfile->name,
+                        'avatar_url' => $req->candidateProfile->avatar_url,
+                    ] : null,
+                ])->values()->all()
+            : [];
+
         return [
             'id' => $member->id,
             'profile_id' => $member->profile_id,
@@ -451,6 +476,7 @@ class ScheduleController extends Controller
             'requested_change' => (bool) $member->requested_change,
             'change_reason' => $member->change_reason,
             'suggested_substitute_id' => $member->suggested_substitute_id,
+            'pending_substitute_requests' => $pendingRequests,
             'profile' => $member->profile ? [
                 'id' => $member->profile->id,
                 'name' => $member->profile->name,

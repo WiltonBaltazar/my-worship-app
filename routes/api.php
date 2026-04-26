@@ -74,6 +74,7 @@ Route::middleware('auth.token')->group(function (): void {
     Route::get('/substitute-requests/pending-count', [SubstituteRequestController::class, 'pendingCount']);
     Route::post('/substitute-requests', [SubstituteRequestController::class, 'create']);
     Route::delete('/substitute-requests/member/{scheduleMemberId}', [SubstituteRequestController::class, 'cancelByMember']);
+    Route::post('/substitute-requests/member/{scheduleMemberId}/deny', [SubstituteRequestController::class, 'leaderDeny']);
     Route::post('/substitute-requests/{substituteRequest}/accept', [SubstituteRequestController::class, 'accept']);
     Route::post('/substitute-requests/{substituteRequest}/reject', [SubstituteRequestController::class, 'reject']);
 });

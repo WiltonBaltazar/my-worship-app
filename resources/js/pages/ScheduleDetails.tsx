@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, Calendar, Clock, Music, User, Check, AlertCircle, Loader2, Plus, Search, Trash2, Save, StickyNote } from 'lucide-react';
+import { ChevronLeft, Calendar, Clock, Music, User, Check, AlertCircle, Loader2, Plus, Search, Trash2, Save, StickyNote, UserCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMySchedules, useSchedules, useSetScheduleMemberEditPermission, useSyncScheduleSongs, useUpdateScheduleNotes } from '@/hooks/useSchedules';
 import { useSongs } from '@/hooks/useSongs';
 import { AddSongDialog } from '@/components/admin/AddSongDialog';
-import { useCreateSubstituteRequests, useCancelSubstituteRequest } from '@/hooks/useSubstituteRequests';
+import { useCreateSubstituteRequests, useCancelSubstituteRequest, useLeaderDenyChangeRequest, useAcceptSubstituteRequest } from '@/hooks/useSubstituteRequests';
 
 const functionTypeLabels: Record<string, string> = {
   lead_vocal: 'Vocal Principal',
@@ -35,6 +35,8 @@ export default function ScheduleDetails() {
   const { data: songs } = useSongs();
   const createSubstituteRequestsMutation = useCreateSubstituteRequests();
   const cancelSubstituteRequestMutation = useCancelSubstituteRequest();
+  const leaderDenyMutation = useLeaderDenyChangeRequest();
+  const acceptSubstituteRequestMutation = useAcceptSubstituteRequest();
   const syncSongsMutation = useSyncScheduleSongs();
   const setMemberEditPermissionMutation = useSetScheduleMemberEditPermission();
   const updateScheduleMutation = useUpdateScheduleNotes();
@@ -54,6 +56,11 @@ export default function ScheduleDetails() {
   );
   const canManageEditors = Boolean(
     isAdmin || isLeader || myMembership?.function_type === 'lead_vocal',
+  );
+  const canManageRequests = Boolean(isAdmin || isLeader);
+  const allCandidatesRejected = Boolean(
+    myMembership?.requested_change &&
+      (myMembership?.pending_substitute_requests?.length ?? 0) === 0,
   );
 
   const availableSongs = useMemo(() => {
@@ -146,6 +153,29 @@ export default function ScheduleDetails() {
       } catch {
         // toast handled in hook
       }
+    }
+  };
+
+  const handleLeaderDeny = async (memberId: string) => {
+    try {
+      await leaderDenyMutation.mutateAsync(memberId);
+    } catch {
+      // toast handled in hook
+    }
+  };
+
+  const handleLeaderAccept = async (requestId: string) => {
+    try {
+      await acceptSubstituteRequestMutation.mutateAsync({
+        requestId,
+        scheduleMemberId: '',
+        candidateProfileId: '',
+        candidateName: '',
+        functionType: '',
+        functionDetail: null,
+      });
+    } catch {
+      // toast handled in hook
     }
   };
 
@@ -316,11 +346,12 @@ export default function ScheduleDetails() {
 
         {/* Action Buttons for my schedule */}
         {myMembership && (
-          <ActionButtons 
+          <ActionButtons
             onRequestChange={handleRequestChange}
             onCancelRequest={myMembership.requested_change ? handleCancelRequest : undefined}
             isCanceling={cancelSubstituteRequestMutation.isPending}
             hasRequestedChange={myMembership.requested_change || false}
+            allCandidatesRejected={allCandidatesRejected}
           />
         )}
 
@@ -376,6 +407,46 @@ export default function ScheduleDetails() {
                     </div>
                   )}
                 </div>
+
+                {canManageRequests && member.requested_change && member.profile_id !== profile?.id && (
+                  <div className="mt-2 space-y-2 rounded-xl border border-orange-200 bg-orange-50 p-3">
+                    <p className="text-xs font-medium text-orange-700">Solicitação de troca pendente</p>
+                    {(member.pending_substitute_requests ?? []).length > 0 ? (
+                      <div className="space-y-1">
+                        {(member.pending_substitute_requests ?? []).map((req) => (
+                          <div key={req.id} className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <UserCheck className="h-3.5 w-3.5 text-orange-600 shrink-0" />
+                              <span className="text-xs text-orange-800">{req.candidate_profile?.name ?? 'Candidato'}</span>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 px-2 text-xs border-orange-300 text-orange-700 hover:bg-orange-100"
+                              onClick={() => void handleLeaderAccept(req.id)}
+                              disabled={acceptSubstituteRequestMutation.isPending}
+                            >
+                              <Check className="h-3 w-3 mr-1" />
+                              Confirmar
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-orange-600">Nenhum candidato indicado — escolha um substituto.</p>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full h-7 text-xs border-orange-300 text-orange-700 hover:bg-orange-100"
+                      onClick={() => void handleLeaderDeny(member.id)}
+                      disabled={leaderDenyMutation.isPending}
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Recusar troca
+                    </Button>
+                  </div>
+                )}
               </Card>
             ))}
           </div>

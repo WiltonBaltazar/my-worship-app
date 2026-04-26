@@ -171,6 +171,29 @@ export function useRejectSubstituteRequest() {
   });
 }
 
+export function useLeaderDenyChangeRequest() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (scheduleMemberId: string) => {
+      return apiRequest<{ message: string }>(`/api/substitute-requests/member/${scheduleMemberId}/deny`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['substitute-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['my-schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast({ title: 'Solicitação de troca recusada' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
 export function usePendingSubstituteRequestsCount(userId?: string) {
   return useQuery({
     queryKey: ['substitute-requests', 'pending-count', userId],

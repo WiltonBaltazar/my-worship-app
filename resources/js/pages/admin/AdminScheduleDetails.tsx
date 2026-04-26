@@ -12,7 +12,9 @@ import {
   Music2,
   Trash2,
   User,
+  UserCheck,
   Users,
+  X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -29,6 +31,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { EditScheduleDialog } from '@/components/admin/EditScheduleDialog';
 import { useDeleteSchedule, useSchedules } from '@/hooks/useSchedules';
+import { useLeaderDenyChangeRequest, useAcceptSubstituteRequest } from '@/hooks/useSubstituteRequests';
 
 const functionLabelMap: Record<string, string> = {
   lead_vocal: 'Vocal Principal',
@@ -49,6 +52,8 @@ export default function AdminScheduleDetails() {
 
   const { data: schedules, isLoading } = useSchedules();
   const deleteScheduleMutation = useDeleteSchedule();
+  const leaderDenyMutation = useLeaderDenyChangeRequest();
+  const acceptSubstituteRequestMutation = useAcceptSubstituteRequest();
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -144,37 +149,84 @@ export default function AdminScheduleDetails() {
           </div>
           <div className="space-y-2">
             {(schedule.members ?? []).map((member) => (
-              <div key={member.id} className="admin-surface-muted flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-50">
-                    {member.profile?.avatar_url ? (
-                      <img src={member.profile.avatar_url} alt={member.profile.name} className="h-10 w-10 rounded-full object-cover" />
-                    ) : (
-                      <User className="h-5 w-5 text-primary" />
+              <div key={member.id} className="admin-surface-muted p-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-50">
+                      {member.profile?.avatar_url ? (
+                        <img src={member.profile.avatar_url} alt={member.profile.name} className="h-10 w-10 rounded-full object-cover" />
+                      ) : (
+                        <User className="h-5 w-5 text-primary" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-slate-900">{member.profile?.name}</p>
+                      <p className="truncate text-sm text-slate-500">
+                        {functionLabelMap[member.function_type] || member.function_type}
+                        {member.function_detail ? ` - ${member.function_detail}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    {member.confirmed && (
+                      <Badge className="bg-success/10 text-success">
+                        <Check className="mr-1 h-3 w-3" />
+                        Confirmado
+                      </Badge>
+                    )}
+                    {member.requested_change && (
+                      <Badge variant="outline" className="border-orange-400 text-orange-700">
+                        <AlertTriangle className="mr-1 h-3 w-3" />
+                        Troca solicitada
+                      </Badge>
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-slate-900">{member.profile?.name}</p>
-                    <p className="truncate text-sm text-slate-500">
-                      {functionLabelMap[member.function_type] || member.function_type}
-                      {member.function_detail ? ` - ${member.function_detail}` : ''}
-                    </p>
+                </div>
+
+                {member.requested_change && (
+                  <div className="mt-3 space-y-2 rounded-xl border border-orange-200 bg-orange-50 p-3">
+                    <p className="text-xs font-medium text-orange-700">Gerenciar solicitação de troca</p>
+                    {(member.pending_substitute_requests ?? []).length > 0 ? (
+                      <div className="space-y-1">
+                        {(member.pending_substitute_requests ?? []).map((req) => (
+                          <div key={req.id} className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <UserCheck className="h-3.5 w-3.5 text-orange-600 shrink-0" />
+                              <span className="text-xs text-orange-800">{req.candidate_profile?.name ?? 'Candidato'}</span>
+                            </div>
+                            <button
+                              type="button"
+                              className="inline-flex h-6 items-center gap-1 rounded-md border border-green-300 bg-white px-2 text-xs font-medium text-green-700 hover:bg-green-50 disabled:opacity-50"
+                              onClick={() => acceptSubstituteRequestMutation.mutate({
+                                requestId: req.id,
+                                scheduleMemberId: member.id,
+                                candidateProfileId: req.candidate_profile?.id ?? '',
+                                candidateName: req.candidate_profile?.name ?? '',
+                                functionType: member.function_type,
+                                functionDetail: member.function_detail,
+                              })}
+                              disabled={acceptSubstituteRequestMutation.isPending}
+                            >
+                              <Check className="h-3 w-3" />
+                              Confirmar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-orange-600">Nenhum candidato indicado — edite a escala para adicionar um substituto.</p>
+                    )}
+                    <button
+                      type="button"
+                      className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-orange-300 bg-white px-2 py-1 text-xs font-medium text-orange-700 hover:bg-orange-100 disabled:opacity-50"
+                      onClick={() => leaderDenyMutation.mutate(member.id)}
+                      disabled={leaderDenyMutation.isPending}
+                    >
+                      <X className="h-3 w-3" />
+                      Recusar troca
+                    </button>
                   </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                  {member.confirmed && (
-                    <Badge className="bg-success/10 text-success">
-                      <Check className="mr-1 h-3 w-3" />
-                      Confirmado
-                    </Badge>
-                  )}
-                  {member.requested_change && (
-                    <Badge variant="outline" className="border-orange-400 text-orange-700">
-                      <AlertTriangle className="mr-1 h-3 w-3" />
-                      Troca solicitada
-                    </Badge>
-                  )}
-                </div>
+                )}
               </div>
             ))}
 

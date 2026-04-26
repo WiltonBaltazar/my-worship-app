@@ -52,6 +52,7 @@ const functionTypes = [
   { value: 'lead_vocal', label: 'Vocal Principal' },
   { value: 'backing_vocal', label: 'Backing Vocal' },
   { value: 'instrumentalist', label: 'Instrumentista' },
+  { value: 'sound_tech', label: 'Técnico de Som' },
 ] as const;
 
 const instrumentLabels: Record<string, string> = {
@@ -192,7 +193,6 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
       (profile) =>
         profile.role !== 'admin' &&
         !existingProfileIds.has(profile.id) &&
-        !isTechOnlyProfile(profile) &&
         !isProfileUnavailableOnDate(profile, schedule.schedule_date),
     );
   }, [profiles, schedule]);
@@ -208,7 +208,6 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
       (profile) =>
         profile.role !== 'admin' &&
         !existingProfileIds.has(profile.id) &&
-        !isTechOnlyProfile(profile) &&
         isProfileUnavailableOnDate(profile, schedule.schedule_date),
     ).length;
   }, [profiles, schedule]);
@@ -282,6 +281,10 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
         return Boolean(selectedProfile.can_lead) || allVoiceFunctionOptions.length > 0;
       }
 
+      if (item.value === 'sound_tech') {
+        return Boolean(selectedProfile.can_be_tech_lead || selectedProfile.can_be_tech_sound || selectedProfile.can_be_tech_streaming);
+      }
+
       return true;
     });
   }, [allVoiceFunctionOptions.length, backingVoiceFunctionOptions.length, instrumentFunctionOptions.length, selectedProfile]);
@@ -317,6 +320,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
       if (item.value === 'instrumentalist') return editInstrumentOptions.length > 0;
       if (item.value === 'backing_vocal') return editAllVoiceOptions.filter((v) => v !== voiceLabels.lead).length > 0;
       if (item.value === 'lead_vocal') return Boolean(editingMemberProfile.can_lead) || editAllVoiceOptions.length > 0;
+      if (item.value === 'sound_tech') return Boolean(editingMemberProfile.can_be_tech_lead || editingMemberProfile.can_be_tech_sound || editingMemberProfile.can_be_tech_streaming);
       return true;
     });
   }, [editingMemberProfile, editInstrumentOptions, editAllVoiceOptions]);
@@ -463,7 +467,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
       await addMemberMutation.mutateAsync({
         schedule_id: schedule.id,
         profile_id: selectedProfileId,
-        function_type: selectedFunctionType as 'lead_vocal' | 'backing_vocal' | 'instrumentalist',
+        function_type: selectedFunctionType as 'lead_vocal' | 'backing_vocal' | 'instrumentalist' | 'sound_tech',
         function_detail: functionDetail || undefined,
       });
 

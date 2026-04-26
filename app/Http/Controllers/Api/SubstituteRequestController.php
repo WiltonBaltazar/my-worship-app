@@ -171,17 +171,47 @@ class SubstituteRequestController extends Controller
         ]);
     }
 
-    public function accept(Request $request, SubstituteRequest $substituteRequest): JsonResponse
+    public function leaderDeny(Request $request, string $scheduleMemberId): JsonResponse
     {
+        $user = $request->user();
         $profile = $this->currentProfileOrFail($request);
 
-        if ($substituteRequest->candidate_profile_id !== $profile->id) {
+        $scheduleMember = ScheduleMember::query()
+            ->with(['profile', 'schedule'])
+            ->findOrFail($scheduleMemberId);
+
+        if (! $user->isAdmin() && ! ($user->isLeader() && $this->isProfileInSchedule($profile, $scheduleMember->schedule_id))) {
             abort(403, 'Forbidden.');
         }
 
-        if ($substituteRequest->status !== 'pending') {
-            return response()->json(['message' => 'Request is no longer pending.'], 422);
-        }
+        DB::transaction(function () use ($scheduleMember, $profile): void {
+            SubstituteRequest::query()
+                ->where('schedule_member_id', $scheduleMember->id)
+                ->where('status', 'pending')
+                ->update(['status' => 'rejected', 'responded_at' => Carbon::now()]);
+
+            $scheduleMember->update(['requested_change' => false]);
+
+            $memberUserId = $scheduleMember->profile?->user_id;
+
+            if ($memberUserId && $memberUserId !== $profile->user_id) {
+                AppNotification::query()->create([
+                    'user_id' => $memberUserId,
+                    'schedule_id' => $scheduleMember->schedule_id,
+                    'title' => 'Solicitação de troca recusada',
+                    'message' => 'A liderança não aprovou sua solicitação de troca.',
+                    'type' => 'schedule',
+                ]);
+            }
+        });
+
+        return response()->json(['message' => 'Change request denied.']);
+    }
+
+    public function accept(Request $request, SubstituteRequest $substituteRequest): JsonResponse
+    {
+        $profile = $this->currentProfileOrFail($request);
+        $user = $request->user();
 
         $substituteRequest->load([
             'scheduleMember.profile',
@@ -191,32 +221,53 @@ class SubstituteRequestController extends Controller
 
         $scheduleMember = $substituteRequest->scheduleMember;
 
+        $isLeaderInTeam = ($user->isAdmin() || $user->isLeader())
+            && $this->isProfileInSchedule($profile, $scheduleMember?->schedule_id);
+
+        if ($substituteRequest->candidate_profile_id !== $profile->id && ! $isLeaderInTeam) {
+            abort(403, 'Forbidden.');
+        }
+
+        if ($substituteRequest->status !== 'pending') {
+            return response()->json(['message' => 'Request is no longer pending.'], 422);
+        }
+
         if (! $scheduleMember) {
             return response()->json(['message' => 'Schedule member not found.'], 404);
         }
 
-        $profile->loadMissing(['unavailableDates', 'instruments', 'voices']);
+        // Use candidate profile for eligibility checks (even when leader is accepting on behalf)
+        $candidateProfile = $substituteRequest->candidateProfile
+            ?? Profile::query()->with(['unavailableDates', 'instruments', 'voices'])->find($substituteRequest->candidate_profile_id);
+
+        if ($candidateProfile) {
+            $candidateProfile->loadMissing(['unavailableDates', 'instruments', 'voices']);
+        }
+
         $schedule = $scheduleMember->schedule;
 
-        if ($schedule && $profile->isUnavailableOnDate($schedule->schedule_date)) {
+        if ($candidateProfile && $schedule && $candidateProfile->isUnavailableOnDate($schedule->schedule_date)) {
             $formattedDate = optional($schedule->schedule_date)->format('d/m/Y');
 
             throw ValidationException::withMessages([
                 'candidate_profile_id' => [
-                    "{$profile->name} está indisponível em {$formattedDate}.",
+                    "{$candidateProfile->name} está indisponível em {$formattedDate}.",
                 ],
             ]);
         }
 
-        if (! NormalScheduleEligibility::canServeFunction($profile, $scheduleMember->function_type)) {
+        if ($candidateProfile && ! NormalScheduleEligibility::canServeFunction($candidateProfile, $scheduleMember->function_type)) {
             throw ValidationException::withMessages([
                 'candidate_profile_id' => [
-                    "{$profile->name} tem apenas habilidades técnicas de som e não pode assumir funções da escala normal.",
+                    "{$candidateProfile->name} tem apenas habilidades técnicas de som e não pode assumir funções da escala normal.",
                 ],
             ]);
         }
 
-        DB::transaction(function () use ($substituteRequest, $scheduleMember, $profile): void {
+        $acceptingProfile = $candidateProfile ?? $profile;
+
+        DB::transaction(function () use ($substituteRequest, $scheduleMember, $acceptingProfile): void {
+            $profile = $acceptingProfile;
             $now = Carbon::now();
 
             $substituteRequest->update([
@@ -348,5 +399,17 @@ class SubstituteRequestController extends Controller
         return Profile::query()
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
+    }
+
+    private function isProfileInSchedule(?Profile $profile, ?string $scheduleId): bool
+    {
+        if (! $profile || ! $scheduleId) {
+            return false;
+        }
+
+        return ScheduleMember::query()
+            ->where('schedule_id', $scheduleId)
+            ->where('profile_id', $profile->id)
+            ->exists();
     }
 }
