@@ -36,9 +36,15 @@ const roleIcons: Record<string, React.ReactNode> = {
 
 export default function AdminUsers() {
   const { isAdmin } = useAuth();
-  const { data: users, isLoading } = useProfilesByFilters({
-    status: isAdmin ? 'all' : 'pending',
-    activity: isAdmin ? 'all' : 'active',
+  const { data: pendingData, isLoading: pendingLoading } = useProfilesByFilters({
+    status: 'pending',
+    activity: 'active',
+  });
+
+  const { data: allData, isLoading: allLoading } = useProfilesByFilters({
+    status: 'all',
+    activity: 'all',
+    enabled: isAdmin,
   });
 
   const updateProfileMutation = useUpdateProfile();
@@ -46,9 +52,10 @@ export default function AdminUsers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingUser, setDeletingUser] = useState<Profile | null>(null);
 
-  const pendingUsers = useMemo(() => (users ?? []).filter((user) => !user.is_approved && user.is_active), [users]);
-  const approvedUsers = useMemo(() => (users ?? []).filter((user) => user.is_approved && user.is_active), [users]);
-  const deactivatedUsers = useMemo(() => (users ?? []).filter((user) => !user.is_active), [users]);
+  const isLoading = pendingLoading || (isAdmin && allLoading);
+  const pendingUsers = pendingData ?? [];
+  const approvedUsers = useMemo(() => (allData ?? []).filter((user) => user.is_approved && user.is_active), [allData]);
+  const deactivatedUsers = useMemo(() => (allData ?? []).filter((user) => !user.is_active), [allData]);
 
   const normalizedSearch = searchQuery.toLowerCase();
 
