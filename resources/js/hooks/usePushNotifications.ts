@@ -31,8 +31,8 @@ export function usePushNotifications() {
     });
   }, []);
 
-  const ensureSubscription = useCallback(async () => {
-    if (!isSupported || permission !== 'granted') {
+  const ensureSubscription = useCallback(async (currentPermission: NotificationPermission = Notification.permission) => {
+    if (!isSupported || currentPermission !== 'granted') {
       setIsSubscribed(false);
       return false;
     }
@@ -60,7 +60,7 @@ export function usePushNotifications() {
     setIsSubscribed(true);
 
     return true;
-  }, [isSupported, permission, registerSubscription]);
+  }, [isSupported, registerSubscription]);
 
   useEffect(() => {
     const hasBrowserSupport = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
@@ -91,7 +91,7 @@ export function usePushNotifications() {
       .then(async (registration) => {
         if (Notification.permission === 'granted') {
           try {
-            await ensureSubscription();
+            await ensureSubscription('granted');
             return;
           } catch (error) {
             console.error('Failed to ensure push subscription:', error);
@@ -123,7 +123,7 @@ export function usePushNotifications() {
 
     try {
       if (permission === 'granted') {
-        const isReady = await ensureSubscription();
+        const isReady = await ensureSubscription('granted');
 
         if (!isReady) {
           toast({
@@ -140,7 +140,7 @@ export function usePushNotifications() {
       setPermission(result);
       
       if (result === 'granted') {
-        const isReady = await ensureSubscription();
+        const isReady = await ensureSubscription(result);
 
         if (!isReady) {
           toast({

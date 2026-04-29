@@ -25,6 +25,7 @@ self.addEventListener('push', function(event) {
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
+      notificationId: data.id || null,
       url: data.url || '/'
     },
     actions: [
@@ -43,7 +44,14 @@ self.addEventListener('notificationclick', function(event) {
 
   if (event.action === 'close') return;
 
-  const urlToOpen = new URL(event.notification.data?.url || '/dashboard', self.location.origin).href;
+  const url = new URL(event.notification.data?.url || '/dashboard', self.location.origin);
+  const notificationId = event.notification.data?.notificationId;
+
+  if (notificationId) {
+    url.searchParams.set('wora_notification_id', notificationId);
+  }
+
+  const urlToOpen = url.href;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async function(clientList) {

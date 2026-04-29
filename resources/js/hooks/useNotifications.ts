@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
 
+const NOTIFICATION_SYNC_INTERVAL_MS = 30_000;
+const UNREAD_COUNT_SYNC_INTERVAL_MS = 15_000;
+
 interface Notification {
   id: string;
   user_id: string;
@@ -23,6 +26,9 @@ export function useNotifications(userId?: string) {
 
       return apiRequest<Notification[]>('/api/notifications');
     },
+    refetchInterval: NOTIFICATION_SYNC_INTERVAL_MS,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -38,6 +44,9 @@ export function useUnreadNotificationCount(userId?: string) {
       const response = await apiRequest<{ count: number }>('/api/notifications/unread-count');
       return response.count ?? 0;
     },
+    refetchInterval: UNREAD_COUNT_SYNC_INTERVAL_MS,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
   });
 }
 

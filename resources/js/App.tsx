@@ -1,10 +1,12 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { apiRequest, getAuthToken } from "@/lib/api";
 import Auth from "./pages/Auth";
 import MemberDashboard from "./pages/MemberDashboard";
 import Schedules from "./pages/Schedules";
@@ -28,6 +30,57 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function PushNotificationReadSync() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const notificationId = params.get('wora_notification_id');
+
+    if (!notificationId || !getAuthToken()) {
+      return;
+    }
+
+    let isMounted = true;
+
+    apiRequest<{ message: string }>(`/api/notifications/${notificationId}/read`, {
+      method: 'PATCH',
+    })
+      .catch((error) => {
+        console.error('Failed to mark opened push notification as read:', error);
+      })
+      .finally(() => {
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
+
+        if (!isMounted) {
+          return;
+        }
+
+        const nextParams = new URLSearchParams(location.search);
+        nextParams.delete('wora_notification_id');
+        const nextSearch = nextParams.toString();
+
+        navigate(
+          {
+            pathname: location.pathname,
+            search: nextSearch ? `?${nextSearch}` : '',
+            hash: location.hash,
+          },
+          { replace: true },
+        );
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [location.hash, location.pathname, location.search, navigate, queryClient]);
+
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -35,6 +88,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <PushNotificationReadSync />
           <Routes>
             <Route path="/" element={<Auth />} />
             <Route path="/auth" element={<Auth />} />
