@@ -23,7 +23,7 @@ export function SongDetailDialog({ song, open, onOpenChange }: SongDetailDialogP
   const hasExternalLinks = song.spotify_url || song.apple_music_url || song.video_url || song.chords_url || song.lyrics_url;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
       <DialogContent className="flex max-h-[90vh] w-[calc(100vw-1rem)] max-w-lg flex-col p-4 sm:w-full sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 break-words pr-8">

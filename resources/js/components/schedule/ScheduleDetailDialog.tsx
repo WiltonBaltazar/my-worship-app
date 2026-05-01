@@ -42,7 +42,7 @@ export function ScheduleDetailDialog({
   const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
       <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-lg overflow-y-auto p-4 sm:w-full sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

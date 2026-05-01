@@ -76,6 +76,7 @@ export function RequestSubstituteDialog({
 
   return (
     <Dialog
+      modal={false}
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {

@@ -84,7 +84,7 @@ export default function MemberDashboard() {
       />
 
       <div className="space-y-6">
-        <section className="relative overflow-hidden rounded-[1.8rem] border border-border/65 bg-card/84 p-5 shadow-card backdrop-blur-sm animate-slide-up sm:p-6">
+        <section className="relative overflow-hidden rounded-[1.8rem] border border-border/65 bg-card/95 p-5 shadow-card animate-slide-up sm:p-6">
           <div className="pointer-events-none absolute -right-12 -top-16 h-36 w-36 rounded-full bg-primary/20 blur-3xl" />
           <div className="pointer-events-none absolute -left-12 -bottom-14 h-36 w-36 rounded-full bg-accent/18 blur-3xl" />
 

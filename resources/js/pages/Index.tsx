@@ -34,7 +34,7 @@ export default function Index() {
       <div className="pointer-events-none absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
 
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-        <section className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-card/78 p-7 shadow-elevated backdrop-blur-sm animate-fade-in sm:p-10">
+        <section className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-card/95 p-7 shadow-elevated animate-fade-in sm:p-10">
           <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-accent/25 blur-3xl" />
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">Worship Agenda</p>
           <h1 className="mt-4 text-5xl font-bold leading-[1.05] text-foreground sm:text-6xl">WORA</h1>
@@ -60,7 +60,7 @@ export default function Index() {
             return (
               <article
                 key={highlight.title}
-                className="rounded-3xl border border-border/70 bg-card/78 p-5 shadow-card backdrop-blur-sm"
+                className="rounded-3xl border border-border/70 bg-card/95 p-5 shadow-card"
               >
                 <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary">
                   <Icon className="h-5 w-5" />

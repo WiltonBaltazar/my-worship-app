@@ -47,7 +47,7 @@ export function BottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 px-4 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-2">
       <div className="mx-auto w-full max-w-3xl">
-        <div className="mx-auto max-w-xl rounded-[1.85rem] border border-border/65 bg-card/88 p-2 shadow-elevated backdrop-blur-xl">
+        <div className="mx-auto max-w-xl rounded-[1.85rem] border border-border/65 bg-card p-2 shadow-elevated">
           <ul className="grid grid-cols-4 gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;

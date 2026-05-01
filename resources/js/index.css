@@ -162,9 +162,8 @@
 
   .repertoire-card {
     @apply rounded-3xl p-5 shadow-card;
-    background: hsl(var(--card) / 0.8);
+    background: hsl(var(--card) / 0.95);
     border: 1px solid hsl(var(--border) / 0.55);
-    backdrop-filter: blur(12px);
   }
 
   .nav-item {

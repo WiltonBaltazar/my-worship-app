@@ -16,7 +16,7 @@ function NotificationButton({ notificationCount = 0 }: { notificationCount?: num
     <Button
       variant="outline"
       size="icon"
-      className="relative rounded-2xl border-border/70 bg-card/82 shadow-soft backdrop-blur-sm"
+      className="relative rounded-2xl border-border/70 bg-card/95 shadow-soft"
       asChild
     >
       <Link to="/notifications/received">
@@ -57,7 +57,7 @@ export function Header({
 
   if (title && !userName) {
     return (
-      <header className="relative mb-6 overflow-hidden rounded-[1.75rem] border border-border/70 bg-card/82 p-5 shadow-card backdrop-blur-sm animate-fade-in">
+      <header className="relative mb-6 overflow-hidden rounded-[1.75rem] border border-border/70 bg-card/95 p-5 shadow-card animate-fade-in">
         <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/20 blur-2xl" />
         <div className="pointer-events-none absolute -left-10 -bottom-10 h-24 w-24 rounded-full bg-accent/20 blur-2xl" />
 
@@ -75,7 +75,7 @@ export function Header({
   }
 
   return (
-    <header className="relative mb-6 overflow-hidden rounded-[1.85rem] border border-border/65 bg-card/84 p-4 shadow-card backdrop-blur-sm animate-fade-in sm:p-5">
+    <header className="relative mb-6 overflow-hidden rounded-[1.85rem] border border-border/65 bg-card/95 p-4 shadow-card animate-fade-in sm:p-5">
       <div className="pointer-events-none absolute -left-10 -top-10 h-28 w-28 rounded-full bg-primary/18 blur-3xl" />
       <div className="pointer-events-none absolute -right-10 -bottom-10 h-28 w-28 rounded-full bg-accent/20 blur-3xl" />
 
