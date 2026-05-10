@@ -49,6 +49,7 @@ export default function ReceivedNotifications() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   const unreadCount = notifications?.filter((notification) => !notification.read).length || 0;
 
@@ -231,9 +232,18 @@ export default function ReceivedNotifications() {
                           className="shrink-0 text-muted-foreground hover:text-destructive"
                           onClick={(event) => {
                             event.stopPropagation();
-                            deleteNotificationMutation.mutate(notif.id);
+                            setDeletingIds((prev) => new Set(prev).add(notif.id));
+                            deleteNotificationMutation.mutate(notif.id, {
+                              onSettled: () => {
+                                setDeletingIds((prev) => {
+                                  const next = new Set(prev);
+                                  next.delete(notif.id);
+                                  return next;
+                                });
+                              },
+                            });
                           }}
-                          disabled={deleteNotificationMutation.isPending}
+                          disabled={deletingIds.has(notif.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

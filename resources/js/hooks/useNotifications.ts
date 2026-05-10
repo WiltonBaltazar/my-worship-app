@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/api';
+import { apiRequest, ApiError } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 const NOTIFICATION_SYNC_INTERVAL_MS = 30_000;
 const UNREAD_COUNT_SYNC_INTERVAL_MS = 15_000;
@@ -52,6 +53,7 @@ export function useUnreadNotificationCount(userId?: string) {
 
 export function useMarkAsRead() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (notificationId: string) => {
@@ -63,11 +65,16 @@ export function useMarkAsRead() {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
+    onError: (error: unknown) => {
+      const message = error instanceof ApiError ? error.message : 'Não foi possível marcar como lida.';
+      toast({ title: 'Erro', description: message, variant: 'destructive' });
+    },
   });
 }
 
 export function useMarkAllAsRead() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async () => {
@@ -79,11 +86,16 @@ export function useMarkAllAsRead() {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
+    onError: (error: unknown) => {
+      const message = error instanceof ApiError ? error.message : 'Não foi possível marcar todas como lidas.';
+      toast({ title: 'Erro', description: message, variant: 'destructive' });
+    },
   });
 }
 
 export function useDeleteNotification() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (notificationId: string) => {
@@ -94,6 +106,10 @@ export function useDeleteNotification() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof ApiError ? error.message : 'Não foi possível excluir a notificação.';
+      toast({ title: 'Erro', description: message, variant: 'destructive' });
     },
   });
 }
