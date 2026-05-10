@@ -180,7 +180,7 @@ class SubstituteRequestController extends Controller
             ->with(['profile', 'schedule'])
             ->findOrFail($scheduleMemberId);
 
-        if (! $user->isAdmin() && ! ($user->isLeader() && $this->isProfileInSchedule($profile, $scheduleMember->schedule_id))) {
+        if (! $user->isAdmin() && ! $user->isLeader()) {
             abort(403, 'Forbidden.');
         }
 
@@ -221,8 +221,7 @@ class SubstituteRequestController extends Controller
 
         $scheduleMember = $substituteRequest->scheduleMember;
 
-        $isLeaderInTeam = ($user->isAdmin() || $user->isLeader())
-            && $this->isProfileInSchedule($profile, $scheduleMember?->schedule_id);
+        $isLeaderInTeam = $user->isAdmin() || $user->isLeader();
 
         if ($substituteRequest->candidate_profile_id !== $profile->id && ! $isLeaderInTeam) {
             abort(403, 'Forbidden.');

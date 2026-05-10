@@ -320,7 +320,7 @@ class ScheduleController extends Controller
         }
 
         $member->loadMissing([
-            'profile:id,name,user_id',
+            'profile:id,name,user_id,home_group',
             'schedule:id,schedule_date,status',
         ]);
 
