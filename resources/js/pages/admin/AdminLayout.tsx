@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
   Calendar,
+  CalendarOff,
   Eye,
   LayoutDashboard,
   Loader2,
@@ -25,6 +26,7 @@ const sidebarItems = [
   { icon: Calendar, label: 'Escalas', path: '/admin-app/schedules' },
   { icon: SlidersHorizontal, label: 'Escala Técnica', path: '/admin-app/tech-schedules' },
   { icon: Users, label: 'Membros', path: '/admin-app/members' },
+  { icon: CalendarOff, label: 'Indisponibilidades', path: '/admin-app/availability' },
   { icon: Music, label: 'Repertório', path: '/admin-app/repertoire' },
   { icon: UserCog, label: 'Usuários', path: '/admin-app/users' },
   { icon: Bell, label: 'Notificações', path: '/admin-app/notifications' },

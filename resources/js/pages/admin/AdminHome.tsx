@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMarkAsRead, useNotifications } from '@/hooks/useNotifications';
 import { useProfiles } from '@/hooks/useProfiles';
+import { UnavailableMembersList } from '@/components/admin/UnavailableMembersList';
 import { useSchedules } from '@/hooks/useSchedules';
 import { useSongs } from '@/hooks/useSongs';
 import { cn } from '@/lib/utils';
@@ -223,6 +224,8 @@ export default function AdminHome() {
           </CardContent>
         </Card>
       </div>
+
+      <UnavailableMembersList maxMembers={5} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Card className="admin-surface">

@@ -22,6 +22,7 @@ import AdminHome from "./pages/admin/AdminHome";
 import AdminSchedules from "./pages/admin/AdminSchedules";
 import AdminScheduleDetails from "./pages/admin/AdminScheduleDetails";
 import AdminMembers from "./pages/admin/AdminMembers";
+import AdminAvailability from "./pages/admin/AdminAvailability";
 import AdminRepertoire from "./pages/admin/AdminRepertoire";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -156,6 +157,7 @@ const App = () => (
               <Route path="schedules/:id" element={<AdminScheduleDetails />} />
               <Route path="tech-schedules" element={<SoundTechSchedules />} />
               <Route path="members" element={<AdminMembers />} />
+              <Route path="availability" element={<AdminAvailability />} />
               <Route path="repertoire" element={<AdminRepertoire />} />
               <Route path="notifications" element={<AdminNotifications />} />
               <Route path="users" element={

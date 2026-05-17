@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CreateScheduleDialog } from '@/components/admin/CreateScheduleDialog';
 import { EditScheduleDialog } from '@/components/admin/EditScheduleDialog';
+import { UnavailableMembersList } from '@/components/admin/UnavailableMembersList';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -118,6 +119,10 @@ export default function AdminSchedules() {
           Nova Escala
         </Button>
       </div>
+
+      <UnavailableMembersList
+        description="Verifique antes de escalar — datas em que membros não podem servir."
+      />
 
       <div className="space-y-4">
         {worshipSchedules.map((schedule) => {

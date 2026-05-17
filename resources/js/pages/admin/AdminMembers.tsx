@@ -25,6 +25,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { AddMemberDialog } from '@/components/admin/AddMemberDialog';
 import { EditMemberDialog } from '@/components/admin/EditMemberDialog';
+import { UnavailableMembersList } from '@/components/admin/UnavailableMembersList';
 import { type Profile, useDeleteProfile, useProfiles } from '@/hooks/useProfiles';
 
 const instrumentLabels: Record<string, string> = {
@@ -117,6 +118,8 @@ export default function AdminMembers() {
           Adicionar Membro
         </Button>
       </div>
+
+      <UnavailableMembersList />
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
