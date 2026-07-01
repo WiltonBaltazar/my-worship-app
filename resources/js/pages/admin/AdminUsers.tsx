@@ -184,7 +184,7 @@ export default function AdminUsers() {
       </header>
 
       {isAdmin ? (
-        <Tabs defaultValue={pendingUsers.length > 0 ? 'pending' : 'approved'} className="min-w-0">
+        <Tabs defaultValue="pending" className="min-w-0">
           <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-xl border-slate-200 bg-white shadow-sm">
             <TabsTrigger value="pending" className="shrink-0 gap-2">
               Pendentes
