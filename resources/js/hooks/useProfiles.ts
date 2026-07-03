@@ -141,6 +141,22 @@ export function useDeleteProfile() {
   });
 }
 
+export function useSetTemporaryPassword() {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (profileId: string) => {
+      return apiRequest<{ message: string; temporary_password: string }>(
+        `/api/profiles/${profileId}/temporary-password`,
+        { method: 'POST' },
+      );
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao definir senha temporária', description: error.message, variant: 'destructive' });
+    }
+  });
+}
+
 export function useApproveProfile() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

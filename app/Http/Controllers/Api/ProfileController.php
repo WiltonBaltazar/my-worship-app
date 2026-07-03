@@ -307,6 +307,39 @@ class ProfileController extends Controller
         ]);
     }
 
+    public function setTemporaryPassword(Request $request, Profile $profile): JsonResponse
+    {
+        if (! $request->user()->isAdmin()) {
+            abort(403, 'Forbidden.');
+        }
+
+        $profile->loadMissing('user');
+
+        $temporaryPassword = $this->generateTemporaryPassword();
+
+        $profile->user->update(['password' => $temporaryPassword]);
+        $profile->user->revokeAllTokens();
+
+        return response()->json([
+            'message' => 'Senha temporária definida com sucesso.',
+            'temporary_password' => $temporaryPassword,
+        ]);
+    }
+
+    private function generateTemporaryPassword(): string
+    {
+        // Excludes visually ambiguous characters (0/O, 1/l/I) so it's easy to read aloud or retype.
+        $alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+
+        $password = '';
+
+        for ($i = 0; $i < 10; $i++) {
+            $password .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+        }
+
+        return $password;
+    }
+
     private function formatProfile(Profile $profile): array
     {
         return [

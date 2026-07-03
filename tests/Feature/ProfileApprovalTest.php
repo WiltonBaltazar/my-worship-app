@@ -6,6 +6,7 @@ use App\Models\Profile;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class ProfileApprovalTest extends TestCase
@@ -295,6 +296,57 @@ class ProfileApprovalTest extends TestCase
         )
             ->assertStatus(422)
             ->assertJsonValidationErrors(['home_group']);
+    }
+
+    public function test_admin_can_set_temporary_password_for_user(): void
+    {
+        $admin = User::factory()->create();
+        $member = User::factory()->create();
+        $memberProfile = $member->profile()->firstOrFail();
+        $originalPasswordHash = $member->password;
+
+        $token = $member->issueApiToken();
+
+        $response = $this->postJson(
+            "/api/profiles/{$memberProfile->id}/temporary-password",
+            [],
+            $this->authHeadersFor($admin),
+        );
+
+        $response->assertOk();
+
+        $temporaryPassword = $response->json('temporary_password');
+        $this->assertIsString($temporaryPassword);
+        $this->assertNotEmpty($temporaryPassword);
+
+        $member->refresh();
+        $this->assertNotSame($originalPasswordHash, $member->password);
+        $this->assertTrue(Hash::check($temporaryPassword, $member->password));
+
+        $this->assertSame(0, $member->accessTokens()->count());
+
+        $this->getJson('/api/auth/me', [
+            'Authorization' => "Bearer {$token}",
+            'Accept' => 'application/json',
+        ])->assertStatus(401);
+    }
+
+    public function test_non_admin_cannot_set_temporary_password_for_user(): void
+    {
+        User::factory()->create(); // First user becomes admin.
+        $leader = $this->createLeaderWithHomeGroup('GHJ');
+
+        $member = User::factory()->create();
+        $memberProfile = $member->profile()->firstOrFail();
+        $originalPasswordHash = $member->password;
+
+        $this->postJson(
+            "/api/profiles/{$memberProfile->id}/temporary-password",
+            [],
+            $this->authHeadersFor($leader),
+        )->assertForbidden();
+
+        $this->assertSame($originalPasswordHash, $member->refresh()->password);
     }
 
     private function authHeadersFor(User $user): array

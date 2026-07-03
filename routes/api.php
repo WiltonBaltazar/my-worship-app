@@ -37,6 +37,7 @@ Route::middleware('auth.token')->group(function (): void {
     Route::get('/profiles/pending-count', [ProfileController::class, 'pendingCount']);
     Route::patch('/profiles/{profile}', [ProfileController::class, 'update']);
     Route::delete('/profiles/{profile}', [ProfileController::class, 'destroy']);
+    Route::post('/profiles/{profile}/temporary-password', [ProfileController::class, 'setTemporaryPassword']);
 
     Route::get('/songs', [SongController::class, 'index']);
     Route::post('/songs', [SongController::class, 'store']);

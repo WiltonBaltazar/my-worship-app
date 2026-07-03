@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, Loader2, RefreshCw, Search, Shield, ShieldCheck, Trash2, User, UserPlus, X } from 'lucide-react';
+import { Check, Copy, KeyRound, Loader2, RefreshCw, Search, Shield, ShieldCheck, Trash2, User, UserPlus, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   AlertDialog,
@@ -14,11 +14,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
-import { type Profile, useProfilesByFilters, useUpdateProfile } from '@/hooks/useProfiles';
+import { useToast } from '@/hooks/use-toast';
+import { type Profile, useProfilesByFilters, useSetTemporaryPassword, useUpdateProfile } from '@/hooks/useProfiles';
 
 const roleLabels: Record<string, string> = {
   admin: 'Administrador',
@@ -48,9 +50,13 @@ export default function AdminUsers() {
   });
 
   const updateProfileMutation = useUpdateProfile();
+  const setTemporaryPasswordMutation = useSetTemporaryPassword();
+  const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingUser, setDeletingUser] = useState<Profile | null>(null);
+  const [resettingPasswordUser, setResettingPasswordUser] = useState<Profile | null>(null);
+  const [temporaryPasswordResult, setTemporaryPasswordResult] = useState<{ user: Profile; password: string } | null>(null);
 
   const isLoading = pendingLoading || (isAdmin && allLoading);
   const pendingUsers = pendingData ?? [];
@@ -75,6 +81,35 @@ export default function AdminUsers() {
       });
     } catch {
       // Toast is handled by hook.
+    }
+  };
+
+  const confirmSetTemporaryPassword = async () => {
+    if (!resettingPasswordUser) {
+      return;
+    }
+
+    const user = resettingPasswordUser;
+
+    try {
+      const result = await setTemporaryPasswordMutation.mutateAsync(user.id);
+      setResettingPasswordUser(null);
+      setTemporaryPasswordResult({ user, password: result.temporary_password });
+    } catch {
+      setResettingPasswordUser(null);
+    }
+  };
+
+  const copyTemporaryPassword = async () => {
+    if (!temporaryPasswordResult) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(temporaryPasswordResult.password);
+      toast({ title: 'Senha copiada!' });
+    } catch {
+      toast({ title: 'Não foi possível copiar a senha', variant: 'destructive' });
     }
   };
 
@@ -159,6 +194,16 @@ export default function AdminUsers() {
                     <SelectItem value="admin">Administrador</SelectItem>
                   </SelectContent>
                 </Select>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-slate-500 hover:text-slate-700"
+                  title="Definir senha temporária"
+                  onClick={() => setResettingPasswordUser(user)}
+                >
+                  <KeyRound className="h-4 w-4" />
+                </Button>
 
                 <Button
                   variant="ghost"
@@ -335,6 +380,54 @@ export default function AdminUsers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={resettingPasswordUser !== null} onOpenChange={(open) => !open && setResettingPasswordUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Definir senha temporária?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Uma nova senha temporária será gerada para <strong>{resettingPasswordUser?.name}</strong>. A senha atual
+              deixará de funcionar e todas as sessões ativas desse usuário serão encerradas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmSetTemporaryPassword}
+              disabled={setTemporaryPasswordMutation.isPending}
+            >
+              Definir senha
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={temporaryPasswordResult !== null} onOpenChange={(open) => !open && setTemporaryPasswordResult(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Senha temporária gerada</DialogTitle>
+            <DialogDescription>
+              Compartilhe esta senha com <strong>{temporaryPasswordResult?.user.name}</strong> por um canal seguro. Ela
+              só é exibida uma vez.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <code className="flex-1 select-all font-mono text-lg tracking-wide text-slate-900">
+              {temporaryPasswordResult?.password}
+            </code>
+            <Button type="button" variant="outline" size="icon" onClick={copyTemporaryPassword}>
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" onClick={() => setTemporaryPasswordResult(null)}>
+              Concluído
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
