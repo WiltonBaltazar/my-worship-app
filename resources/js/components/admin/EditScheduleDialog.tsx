@@ -30,7 +30,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useProfiles, type Profile } from '@/hooks/useProfiles';
+import { useProfiles } from '@/hooks/useProfiles';
 import {
   useAddScheduleMember,
   useRemoveScheduleMemberById,
@@ -78,7 +78,7 @@ const voiceLabels: Record<string, string> = {
 };
 
 const voiceShortLabels: Record<string, string> = {
-  lead: 'Dirigente',
+  lead: 'Voz principal',
   soprano: 'Soprano',
   alto: 'Alto',
   tenor: 'Tenor',
@@ -91,6 +91,41 @@ const functionTypeLabel: Record<string, string> = {
   instrumentalist: 'Instrumentista',
   sound_tech: 'Técnico de Som',
 };
+
+// Everything a member is set up to do, deduped, ordered:
+// leadership → voices → instruments → technical roles.
+function profileCapabilities(profile: {
+  can_lead: boolean;
+  can_be_tech_lead: boolean;
+  can_be_tech_sound: boolean;
+  can_be_tech_streaming: boolean;
+  instruments?: string[] | null;
+  voices?: string[] | null;
+}): string[] {
+  const caps: string[] = [];
+
+  if (profile.can_lead) {
+    caps.push('Dirigente');
+  }
+
+  (profile.voices ?? []).forEach((voice) => caps.push(voiceShortLabels[voice] ?? voice));
+
+  (profile.instruments ?? [])
+    .filter((instrument) => instrument !== 'sound_tech')
+    .forEach((instrument) => caps.push(instrumentLabels[instrument] ?? instrument));
+
+  if (profile.can_be_tech_lead) {
+    caps.push('Técnico de Som');
+  }
+  if (profile.can_be_tech_sound) {
+    caps.push('Som');
+  }
+  if (profile.can_be_tech_streaming) {
+    caps.push('Transmissão');
+  }
+
+  return Array.from(new Set(caps));
+}
 
 function timeToInput(time?: string | null): string {
   if (!time) {
@@ -242,84 +277,48 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
     });
   }, [availableProfiles, memberSearch]);
 
-  // Every available person, split into the roles they can fill so the leader
-  // sees the whole roster at a glance instead of searching name by name.
-  const memberGroups = useMemo(() => {
-    const groups = [
+  // How much of each role is available for this date. Counts overlap on
+  // purpose — a member who sings and plays is counted in both.
+  const availabilityBreakdown = useMemo(() => {
+    const countWhere = (predicate: (profile: (typeof filteredAvailableProfiles)[number]) => boolean) =>
+      filteredAvailableProfiles.filter(predicate).length;
+
+    return [
       {
         key: 'lead',
-        label: 'Dirigente / Vocal principal',
         icon: Mic,
-        functionType: 'lead_vocal' as const,
-        badges: (profile: Profile) => [
-          ...(profile.can_lead ? ['Pode dirigir'] : []),
-          ...(profile.voices ?? [])
-            .filter((voice) => voice === 'lead')
-            .map((voice) => voiceShortLabels[voice] ?? voice),
-        ],
-        profiles: filteredAvailableProfiles.filter(
-          (profile) => profile.can_lead || (profile.voices ?? []).includes('lead'),
-        ),
+        singular: 'dirigente',
+        plural: 'dirigentes',
+        count: countWhere((profile) => profile.can_lead || (profile.voices ?? []).includes('lead')),
       },
       {
-        key: 'backing',
-        label: 'Backing vocal',
+        key: 'vocal',
         icon: Users,
-        functionType: 'backing_vocal' as const,
-        badges: (profile: Profile) =>
-          (profile.voices ?? [])
-            .filter((voice) => voice !== 'lead')
-            .map((voice) => voiceShortLabels[voice] ?? voice),
-        profiles: filteredAvailableProfiles.filter((profile) =>
-          (profile.voices ?? []).some((voice) => voice !== 'lead'),
-        ),
+        singular: 'vocal',
+        plural: 'vocais',
+        count: countWhere((profile) => (profile.voices ?? []).length > 0),
       },
       {
         key: 'instrument',
-        label: 'Instrumentistas',
         icon: Music2,
-        functionType: 'instrumentalist' as const,
-        badges: (profile: Profile) =>
-          (profile.instruments ?? [])
-            .filter((instrument) => instrument !== 'sound_tech')
-            .map((instrument) => instrumentLabels[instrument] ?? instrument),
-        profiles: filteredAvailableProfiles.filter((profile) =>
+        singular: 'instrumentista',
+        plural: 'instrumentistas',
+        count: countWhere((profile) =>
           (profile.instruments ?? []).some((instrument) => instrument !== 'sound_tech'),
         ),
       },
       {
         key: 'tech',
-        label: 'Técnicos',
         icon: Volume2,
-        functionType: 'sound_tech' as const,
-        badges: (profile: Profile) => [
-          ...(profile.can_be_tech_lead ? ['Direção técnica'] : []),
-          ...(profile.can_be_tech_sound ? ['Som'] : []),
-          ...(profile.can_be_tech_streaming ? ['Transmissão'] : []),
-        ],
-        profiles: filteredAvailableProfiles.filter(
+        singular: 'técnico',
+        plural: 'técnicos',
+        count: countWhere(
           (profile) =>
             profile.can_be_tech_lead || profile.can_be_tech_sound || profile.can_be_tech_streaming,
         ),
       },
     ];
-
-    return groups.filter((group) => group.profiles.length > 0);
   }, [filteredAvailableProfiles]);
-
-  const uncategorizedProfiles = useMemo(
-    () =>
-      filteredAvailableProfiles.filter(
-        (profile) =>
-          !profile.can_lead &&
-          (profile.voices ?? []).length === 0 &&
-          (profile.instruments ?? []).filter((instrument) => instrument !== 'sound_tech').length === 0 &&
-          !profile.can_be_tech_lead &&
-          !profile.can_be_tech_sound &&
-          !profile.can_be_tech_streaming,
-      ),
-    [filteredAvailableProfiles],
-  );
 
   const instrumentFunctionOptions = useMemo(() => {
     if (!selectedProfile) {
@@ -415,6 +414,11 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
   }, [editingMemberProfile, editInstrumentOptions, editAllVoiceOptions]);
 
   useEffect(() => {
+    setSelectedFunctionType('');
+    setFunctionDetail('');
+  }, [selectedProfileId]);
+
+  useEffect(() => {
     if (!selectedFunctionType) {
       return;
     }
@@ -426,17 +430,6 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
       setFunctionDetail('');
     }
   }, [availableFunctionTypes, selectedFunctionType]);
-
-  // Picking a person from a role group also pre-selects that role; the effect
-  // above still clears it if the person can't actually fill it.
-  const handlePickFromGroup = (
-    profileId: string,
-    functionType: 'lead_vocal' | 'backing_vocal' | 'instrumentalist' | 'sound_tech',
-  ) => {
-    setSelectedProfileId(profileId);
-    setSelectedFunctionType(functionType);
-    setFunctionDetail('');
-  };
 
   useEffect(() => {
     if (selectedFunctionType !== 'instrumentalist') {
@@ -847,7 +840,25 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                     </div>
                   )}
 
-                  <div className="max-h-[360px] space-y-4 overflow-y-auto rounded-xl border border-border p-2">
+                  {filteredAvailableProfiles.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {availabilityBreakdown.map((item) => (
+                        <span
+                          key={item.key}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                            item.count === 0
+                              ? 'bg-orange-100 text-orange-700'
+                              : 'bg-secondary text-muted-foreground'
+                          }`}
+                        >
+                          <item.icon className="h-3.5 w-3.5" />
+                          {item.count} {item.count === 1 ? item.singular : item.plural}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="max-h-[360px] space-y-1 overflow-y-auto rounded-xl border border-border p-2">
                     {filteredAvailableProfiles.length === 0 ? (
                       <p className="py-6 text-center text-sm text-muted-foreground">
                         {availableProfiles.length === 0
@@ -855,100 +866,51 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                           : `Nenhum membro encontrado para "${memberSearch.trim()}"`}
                       </p>
                     ) : (
-                      <>
-                        {memberGroups.map((group) => (
-                          <div key={group.key} className="space-y-1">
-                            <div className="flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                              <group.icon className="h-3.5 w-3.5" />
-                              <span>{group.label}</span>
-                              <span className="rounded-full bg-secondary px-1.5 text-[10px] font-medium">
-                                {group.profiles.length}
-                              </span>
+                      filteredAvailableProfiles.map((profile) => {
+                        const capabilities = profileCapabilities(profile);
+                        const isSelected = selectedProfileId === profile.id;
+
+                        return (
+                          <button
+                            key={profile.id}
+                            type="button"
+                            onClick={() => setSelectedProfileId(profile.id)}
+                            className={`w-full min-h-11 touch-manipulation rounded-lg px-3 py-2 text-left transition-colors hover:bg-secondary ${
+                              isSelected ? 'bg-primary/10 ring-1 ring-primary/40' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                                {profile.avatar_url ? (
+                                  <img src={profile.avatar_url} alt={profile.name} className="h-8 w-8 rounded-full object-cover" />
+                                ) : (
+                                  <User className="h-4 w-4 text-primary" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-foreground">{profile.name}</p>
+                                {capabilities.length > 0 ? (
+                                  <div className="mt-0.5 flex flex-wrap gap-1">
+                                    {capabilities.map((capability) => (
+                                      <span
+                                        key={capability}
+                                        className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                                      >
+                                        {capability}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="truncate text-xs text-muted-foreground">
+                                    Sem função configurada
+                                  </p>
+                                )}
+                              </div>
+                              {isSelected && <Check className="h-4 w-4 shrink-0 text-primary" />}
                             </div>
-
-                            {group.profiles.map((profile) => {
-                              const badges = group.badges(profile);
-                              const isSelected = selectedProfileId === profile.id;
-
-                              return (
-                                <button
-                                  key={`${group.key}-${profile.id}`}
-                                  type="button"
-                                  onClick={() => handlePickFromGroup(profile.id, group.functionType)}
-                                  className={`w-full min-h-11 touch-manipulation rounded-lg px-3 py-2 text-left transition-colors hover:bg-secondary ${
-                                    isSelected ? 'bg-primary/10 ring-1 ring-primary/40' : ''
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                                      {profile.avatar_url ? (
-                                        <img src={profile.avatar_url} alt={profile.name} className="h-8 w-8 rounded-full object-cover" />
-                                      ) : (
-                                        <User className="h-4 w-4 text-primary" />
-                                      )}
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="truncate text-sm font-medium text-foreground">{profile.name}</p>
-                                      {badges.length > 0 && (
-                                        <div className="mt-0.5 flex flex-wrap gap-1">
-                                          {badges.map((badge) => (
-                                            <span
-                                              key={badge}
-                                              className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-                                            >
-                                              {badge}
-                                            </span>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                    {isSelected && <Check className="h-4 w-4 shrink-0 text-primary" />}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        ))}
-
-                        {uncategorizedProfiles.length > 0 && (
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                              <User className="h-3.5 w-3.5" />
-                              <span>Sem função configurada</span>
-                              <span className="rounded-full bg-secondary px-1.5 text-[10px] font-medium">
-                                {uncategorizedProfiles.length}
-                              </span>
-                            </div>
-                            {uncategorizedProfiles.map((profile) => (
-                              <button
-                                key={`uncategorized-${profile.id}`}
-                                type="button"
-                                onClick={() => setSelectedProfileId(profile.id)}
-                                className={`w-full min-h-11 touch-manipulation rounded-lg px-3 py-2 text-left transition-colors hover:bg-secondary ${
-                                  selectedProfileId === profile.id ? 'bg-primary/10 ring-1 ring-primary/40' : ''
-                                }`}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                                    {profile.avatar_url ? (
-                                      <img src={profile.avatar_url} alt={profile.name} className="h-8 w-8 rounded-full object-cover" />
-                                    ) : (
-                                      <User className="h-4 w-4 text-primary" />
-                                    )}
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-medium text-foreground">{profile.name}</p>
-                                    <p className="truncate text-xs text-muted-foreground">
-                                      Configure instrumentos e vozes em Membros
-                                    </p>
-                                  </div>
-                                  {selectedProfileId === profile.id && <Check className="h-4 w-4 shrink-0 text-primary" />}
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </>
+                          </button>
+                        );
+                      })
                     )}
                   </div>
 
