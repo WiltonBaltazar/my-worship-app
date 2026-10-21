@@ -13,6 +13,7 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { ActionButtons } from '@/components/schedule/ActionButtons';
 import { RequestSubstituteDialog } from '@/components/schedule/RequestSubstituteDialog';
 import { ScheduleGuests } from '@/components/schedule/ScheduleGuests';
+import { SubstituteRequestPrompt } from '@/components/schedule/SubstituteRequestPrompt';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMySchedules, useSchedules, useSetScheduleMemberEditPermission, useSyncScheduleSongs, useUpdateScheduleNotes } from '@/hooks/useSchedules';
 import { useSongs } from '@/hooks/useSongs';
@@ -121,6 +122,8 @@ export default function ScheduleDetails() {
           </Button>
           <h1 className="text-xl font-bold">Escala não encontrada</h1>
         </div>
+        {/* The person asked to cover can still answer even if they can't see the schedule. */}
+        {id && <SubstituteRequestPrompt scheduleId={id} />}
         <BottomNav />
       </div>
     );
@@ -292,6 +295,8 @@ export default function ScheduleDetails() {
       </div>
 
       <div className="space-y-6 pb-20">
+        <SubstituteRequestPrompt scheduleId={schedule.id} />
+
         {/* Schedule Header Card */}
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-3">
