@@ -6,7 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { type Profile, useProfiles } from '@/hooks/useProfiles';
-import type { UnavailablePeriod } from '@/lib/availability';
+import type { UnavailableDate, UnavailablePeriod } from '@/lib/availability';
+import { type Ministry, MINISTRY_LABELS } from '@/lib/ministry';
 import { toLocalDateInputValue } from '@/lib/date-time';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +24,7 @@ interface UnavailableEntry {
   profile: Profile;
   isPaused: boolean;
   periods: UnavailablePeriod[];
-  dates: string[];
+  dates: UnavailableDate[];
   /** Sort key: paused members first, then by the earliest absence. */
   firstDate: string;
 }
@@ -32,6 +33,11 @@ function formatUnavailableDate(date: string): string {
   const parsed = new Date(`${date}T00:00:00`);
   const formatted = format(parsed, "EEE, d 'de' MMM", { locale: ptBR });
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+}
+
+/** " · GHJ" for absences limited to one ministry; nothing when they cover all. */
+function ministrySuffix(ministry?: Ministry | null): string {
+  return ministry ? ` · ${MINISTRY_LABELS[ministry]}` : '';
 }
 
 function getInitials(name: string | undefined | null): string {
@@ -68,13 +74,13 @@ export function UnavailableMembersList({
     return profiles
       .map((profile) => {
         const dates = (profile.unavailable_dates ?? [])
-          .filter((date) => date >= today)
-          .sort();
+          .filter((entry) => entry.date >= today)
+          .sort((a, b) => a.date.localeCompare(b.date));
         const periods = (profile.unavailable_periods ?? [])
           .filter((period) => period.end_date >= today)
           .sort((a, b) => a.start_date.localeCompare(b.start_date));
         const isPaused = Boolean(profile.is_paused);
-        const firstDate = isPaused ? '' : [dates[0], periods[0]?.start_date].filter(Boolean).sort()[0] ?? '';
+        const firstDate = isPaused ? '' : [dates[0]?.date, periods[0]?.start_date].filter(Boolean).sort()[0] ?? '';
 
         return { profile, isPaused, periods, dates, firstDate };
       })
@@ -116,25 +122,27 @@ export function UnavailableMembersList({
               <div className="flex flex-wrap gap-1.5 sm:justify-end">
                 {isPaused && (
                   <Badge variant="secondary" className="whitespace-nowrap bg-amber-100 text-amber-800 hover:bg-amber-100">
-                    Escalas pausadas
+                    Escalas pausadas{ministrySuffix(profile.pause_ministry)}
                   </Badge>
                 )}
                 {periods.map((period) => (
                   <Badge
-                    key={`${period.start_date}-${period.end_date}`}
+                    key={`${period.start_date}-${period.end_date}-${period.ministry ?? 'all'}`}
                     variant="secondary"
                     className="whitespace-nowrap bg-orange-50 text-orange-700 hover:bg-orange-50"
                   >
                     {formatUnavailableDate(period.start_date)} → {formatUnavailableDate(period.end_date)}
+                    {ministrySuffix(period.ministry)}
                   </Badge>
                 ))}
-                {dates.map((date) => (
+                {dates.map(({ date, ministry }) => (
                   <Badge
                     key={date}
                     variant="secondary"
                     className="whitespace-nowrap bg-orange-50 text-orange-700 hover:bg-orange-50"
                   >
                     {formatUnavailableDate(date)}
+                    {ministrySuffix(ministry)}
                   </Badge>
                 ))}
               </div>

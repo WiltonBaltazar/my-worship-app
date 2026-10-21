@@ -83,7 +83,7 @@ class ProfileController extends Controller
 
         $profiles = $profilesQuery
             ->get()
-            ->map(fn (Profile $profile): array => $this->formatProfile($profile))
+            ->map(fn (Profile $profile): array => $this->formatProfile($profile, $user))
             ->values();
 
         return response()->json($profiles);
@@ -155,11 +155,15 @@ class ProfileController extends Controller
             'voices' => ['sometimes', 'array'],
             'voices.*' => ['string', Rule::in(self::VOICES)],
             'unavailable_dates' => ['sometimes', 'array'],
-            'unavailable_dates.*' => ['date_format:Y-m-d', 'distinct'],
+            'unavailable_dates.*' => ['array'],
+            'unavailable_dates.*.date' => ['required', 'date_format:Y-m-d'],
+            'unavailable_dates.*.ministry' => ['nullable', Rule::in(MinistryAccess::ALL)],
             'unavailable_periods' => ['sometimes', 'array', 'max:50'],
             'unavailable_periods.*.start_date' => ['required', 'date_format:Y-m-d'],
             'unavailable_periods.*.end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:unavailable_periods.*.start_date'],
+            'unavailable_periods.*.ministry' => ['nullable', Rule::in(MinistryAccess::ALL)],
             'is_paused' => ['sometimes', 'boolean'],
+            'pause_ministry' => ['nullable', Rule::in(MinistryAccess::ALL)],
         ]);
 
         if (isset($validated['email'])) {
@@ -181,7 +185,7 @@ class ProfileController extends Controller
             // Leaders may pause or resume members of the ministries they lead.
             $isLeaderPauseUpdate = ! $isOwnProfile
                 && array_key_exists('is_paused', $validated)
-                && collect($validated)->except('is_paused')->isEmpty()
+                && collect($validated)->except(['is_paused', 'pause_ministry'])->isEmpty()
                 && MinistryAccess::inAnyPool($profile, $ledMinistries);
 
             if ($isOwnProfile) {
@@ -209,7 +213,12 @@ class ProfileController extends Controller
             }
         }
 
-        DB::transaction(function () use ($profile, $validated): void {
+        // Leaders only pause or resume the ministries they lead; members and admins pick one or all.
+        $pauseScope = ! $isAdmin && ! $isOwnProfile
+            ? $ledMinistries
+            : (isset($validated['pause_ministry']) ? [$validated['pause_ministry']] : MinistryAccess::ALL);
+
+        DB::transaction(function () use ($profile, $validated, $pauseScope): void {
             $profileUpdates = collect($validated)
                 ->only([
                     'name',
@@ -230,8 +239,7 @@ class ProfileController extends Controller
                 ->all();
 
             if (array_key_exists('is_paused', $validated)) {
-                // Keep the original pause date when the flag is re-sent unchanged.
-                $profileUpdates['paused_at'] = $validated['is_paused'] ? ($profile->paused_at ?? now()) : null;
+                $profileUpdates = [...$profileUpdates, ...$this->pauseUpdates($profile, (bool) $validated['is_paused'], $pauseScope)];
             }
 
             if ($profileUpdates !== []) {
@@ -299,17 +307,20 @@ class ProfileController extends Controller
             if (array_key_exists('unavailable_dates', $validated)) {
                 $profile->unavailableDates()->delete();
 
+                // One row per date: the same date marked for each ministry becomes a date for all of them.
                 $unavailableDates = collect($validated['unavailable_dates'] ?? [])
-                    ->unique()
+                    ->groupBy('date')
+                    ->map(fn ($entries, string $date): array => [
+                        'unavailable_date' => $date,
+                        'ministry' => $entries->pluck('ministry')->unique()->count() === 1
+                            ? $this->absenceMinistry($profile, $entries->first()['ministry'] ?? null)
+                            : null,
+                    ])
                     ->values()
                     ->all();
 
                 if ($unavailableDates !== []) {
-                    $profile->unavailableDates()->createMany(
-                        collect($unavailableDates)
-                            ->map(fn (string $date): array => ['unavailable_date' => $date])
-                            ->all(),
-                    );
+                    $profile->unavailableDates()->createMany($unavailableDates);
                 }
             }
 
@@ -320,8 +331,9 @@ class ProfileController extends Controller
                     ->map(fn (array $period): array => [
                         'start_date' => $period['start_date'],
                         'end_date' => $period['end_date'],
+                        'ministry' => $this->absenceMinistry($profile, $period['ministry'] ?? null),
                     ])
-                    ->unique(fn (array $period): string => $period['start_date'].'|'.$period['end_date'])
+                    ->unique(fn (array $period): string => $period['start_date'].'|'.$period['end_date'].'|'.$period['ministry'])
                     ->values()
                     ->all();
 
@@ -333,7 +345,7 @@ class ProfileController extends Controller
 
         $profile->refresh()->load(['instruments', 'voices', 'unavailableDates', 'unavailablePeriods', 'user.roles']);
 
-        return response()->json($this->formatProfile($profile));
+        return response()->json($this->formatProfile($profile, $user));
     }
 
     public function destroy(Request $request, Profile $profile): JsonResponse
@@ -382,8 +394,73 @@ class ProfileController extends Controller
         return $password;
     }
 
-    private function formatProfile(Profile $profile): array
+    /**
+     * Ministry an absence is stored under: only members of both ministries can narrow it to
+     * one; everyone else's absences cover every schedule (technical ones included).
+     */
+    private function absenceMinistry(Profile $profile, ?string $ministry): ?string
     {
+        $pools = $this->profilePools($profile);
+
+        return count($pools) > 1 && in_array($ministry, $pools, true) ? $ministry : null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function profilePools(Profile $profile): array
+    {
+        return array_values(array_filter(
+            MinistryAccess::ALL,
+            fn (string $ministry): bool => MinistryAccess::inPool($profile, $ministry),
+        ));
+    }
+
+    /**
+     * Adds or removes the scoped ministries from the member's pause, collapsing a pause that
+     * covers all of their ministries into a pause without a ministry.
+     *
+     * @param  list<string>  $scope
+     * @return array{paused_at: mixed, paused_ministry: ?string}
+     */
+    private function pauseUpdates(Profile $profile, bool $pause, array $scope): array
+    {
+        $pools = $this->profilePools($profile);
+
+        // Members of a single ministry only ever pause everything.
+        if (count($pools) < 2) {
+            return $pause
+                ? ['paused_at' => $profile->paused_at ?? now(), 'paused_ministry' => null]
+                : ['paused_at' => null, 'paused_ministry' => null];
+        }
+
+        $scope = array_values(array_intersect($scope, $pools)) ?: $pools;
+        $current = array_values(array_intersect($profile->pausedMinistries(), $pools));
+
+        $paused = $pause
+            ? array_values(array_unique([...$current, ...$scope]))
+            : array_values(array_diff($current, $scope));
+
+        if ($paused === []) {
+            return ['paused_at' => null, 'paused_ministry' => null];
+        }
+
+        return [
+            // Keep the original pause date when the pause only changes scope.
+            'paused_at' => $profile->paused_at ?? now(),
+            'paused_ministry' => array_diff($pools, $paused) === [] ? null : $paused[0],
+        ];
+    }
+
+    private function formatProfile(Profile $profile, User $viewer): array
+    {
+        // Absences and pauses for one ministry stay hidden from people outside it.
+        $visibleMinistries = $viewer->isAdmin() || $profile->user_id === $viewer->id
+            ? MinistryAccess::ALL
+            : MinistryAccess::viewableMinistries($viewer);
+        $isVisible = fn (?string $ministry): bool => $ministry === null || in_array($ministry, $visibleMinistries, true);
+        $isPaused = array_intersect($profile->pausedMinistries(), $visibleMinistries) !== [];
+
         return [
             'id' => $profile->id,
             'user_id' => $profile->user_id,
@@ -411,19 +488,26 @@ class ProfileController extends Controller
                 ->all(),
             'voices' => $profile->voices->pluck('voice_type')->values()->all(),
             'unavailable_dates' => $profile->unavailableDates
-                ->map(fn ($dateRecord) => $dateRecord->unavailable_date?->format('Y-m-d'))
-                ->filter()
-                ->values()
-                ->all(),
-            'unavailable_periods' => $profile->unavailablePeriods
-                ->map(fn ($period) => [
-                    'start_date' => $period->start_date?->format('Y-m-d'),
-                    'end_date' => $period->end_date?->format('Y-m-d'),
+                ->filter(fn ($dateRecord): bool => $dateRecord->unavailable_date !== null && $isVisible($dateRecord->ministry))
+                ->sortBy('unavailable_date')
+                ->map(fn ($dateRecord) => [
+                    'date' => $dateRecord->unavailable_date->format('Y-m-d'),
+                    'ministry' => $dateRecord->ministry,
                 ])
                 ->values()
                 ->all(),
-            'is_paused' => $profile->isPaused(),
-            'paused_at' => $profile->paused_at?->toISOString(),
+            'unavailable_periods' => $profile->unavailablePeriods
+                ->filter(fn ($period): bool => $isVisible($period->ministry))
+                ->map(fn ($period) => [
+                    'start_date' => $period->start_date?->format('Y-m-d'),
+                    'end_date' => $period->end_date?->format('Y-m-d'),
+                    'ministry' => $period->ministry,
+                ])
+                ->values()
+                ->all(),
+            'is_paused' => $isPaused,
+            'pause_ministry' => $isPaused ? $profile->paused_ministry : null,
+            'paused_at' => $isPaused ? $profile->paused_at?->toISOString() : null,
         ];
     }
 

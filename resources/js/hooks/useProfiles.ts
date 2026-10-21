@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
-import type { UnavailablePeriod } from '@/lib/availability';
+import type { UnavailableDate, UnavailablePeriod } from '@/lib/availability';
 import { useToast } from '@/hooks/use-toast';
 import type { Ministry } from '@/lib/ministry';
 
@@ -28,9 +28,11 @@ export interface Profile {
   updated_at: string;
   instruments?: string[];
   voices?: string[];
-  unavailable_dates?: string[];
+  unavailable_dates?: UnavailableDate[];
   unavailable_periods?: UnavailablePeriod[];
   is_paused?: boolean;
+  /** Ministry the pause applies to; null when it covers every ministry. */
+  pause_ministry?: Ministry | null;
   paused_at?: string | null;
 }
 
@@ -107,14 +109,17 @@ export function useUpdateProfile() {
       unavailableDates,
       unavailablePeriods,
       isPaused,
+      pauseMinistry,
     }: {
       profileId: string; 
       updates: Partial<Profile>; 
       instruments?: string[];
       voices?: string[];
-      unavailableDates?: string[];
+      unavailableDates?: UnavailableDate[];
       unavailablePeriods?: UnavailablePeriod[];
       isPaused?: boolean;
+      /** Ministry to pause or resume; omitted means every ministry. */
+      pauseMinistry?: Ministry | null;
       /** Toast title on success; defaults to "Perfil atualizado!". */
       successTitle?: string;
     }) => {
@@ -127,6 +132,7 @@ export function useUpdateProfile() {
           ...(unavailableDates !== undefined ? { unavailable_dates: unavailableDates } : {}),
           ...(unavailablePeriods !== undefined ? { unavailable_periods: unavailablePeriods } : {}),
           ...(isPaused !== undefined ? { is_paused: isPaused } : {}),
+          ...(pauseMinistry ? { pause_ministry: pauseMinistry } : {}),
         },
       });
     },

@@ -260,7 +260,7 @@ class SubstituteRequestController extends Controller
 
         $schedule = $scheduleMember->schedule;
 
-        if ($candidateProfile && $schedule && $candidateProfile->isUnavailableOnDate($schedule->schedule_date)) {
+        if ($candidateProfile && $schedule && $candidateProfile->isUnavailableOnDate($schedule->schedule_date, $schedule->ministry)) {
             $formattedDate = optional($schedule->schedule_date)->format('d/m/Y');
 
             throw ValidationException::withMessages([

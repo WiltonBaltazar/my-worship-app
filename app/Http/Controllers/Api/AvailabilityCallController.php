@@ -28,13 +28,13 @@ class AvailabilityCallController extends Controller
     {
         $profile = $request->user()->profile;
 
-        if (! $profile || $request->user()->isAdmin() || $profile->isPaused()) {
+        if (! $profile || $request->user()->isAdmin()) {
             return response()->json([]);
         }
 
         $ministries = array_values(array_filter(
             MinistryAccess::ALL,
-            fn (string $ministry) => MinistryAccess::inPool($profile, $ministry),
+            fn (string $ministry) => MinistryAccess::inPool($profile, $ministry) && ! $profile->isPaused($ministry),
         ));
 
         if ($ministries === []) {
@@ -118,9 +118,9 @@ class AvailabilityCallController extends Controller
             abort(403, 'Forbidden.');
         }
 
-        if ($validated['available'] && $schedule->schedule_date && $profile->isUnavailableOnDate($schedule->schedule_date)) {
+        if ($validated['available'] && $schedule->schedule_date && $profile->isUnavailableOnDate($schedule->schedule_date, $schedule->ministry)) {
             throw ValidationException::withMessages([
-                'available' => [$profile->isPaused()
+                'available' => [$profile->isPaused($schedule->ministry)
                     ? 'Suas escalas estão pausadas. Retome no seu perfil para participar.'
                     : 'Você marcou esta data como indisponível. Atualize sua disponibilidade primeiro.'],
             ]);
@@ -183,7 +183,7 @@ class AvailabilityCallController extends Controller
         $userIds = MinistryAccess::scopePool(Profile::query(), $schedule->ministry)
             ->where('is_approved', true)
             ->where('is_active', true)
-            ->whereNull('paused_at')
+            ->notPausedFor($schedule->ministry)
             ->where('user_id', '!=', $sender->id)
             ->whereDoesntHave('user.roles', fn (Builder $roles) => $roles->where('role', 'admin'))
             ->pluck('user_id');

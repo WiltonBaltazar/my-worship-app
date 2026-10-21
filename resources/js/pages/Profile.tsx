@@ -27,11 +27,13 @@ import { Label } from '@/components/ui/label';
 import { PushNotificationToggle } from '@/components/notifications/PushNotificationToggle';
 import { InstallAppButton } from '@/components/pwa/InstallAppButton';
 import { Switch } from '@/components/ui/switch';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
 import { useApproveProfile, usePendingProfiles, useProfiles, useUpdateProfile } from '@/hooks/useProfiles';
-import type { UnavailablePeriod } from '@/lib/availability';
+import type { UnavailableDate, UnavailablePeriod } from '@/lib/availability';
+import { type Ministry, MINISTRIES, MINISTRY_LABELS } from '@/lib/ministry';
 import { toLocalDateInputValue } from '@/lib/date-time';
 
 const instrumentLabels: Record<string, string> = {
@@ -57,6 +59,32 @@ function sortPeriods(periods: UnavailablePeriod[]): UnavailablePeriod[] {
   return [...periods].sort((a, b) => a.start_date.localeCompare(b.start_date));
 }
 
+function sortDates(dates: UnavailableDate[]): UnavailableDate[] {
+  return [...dates].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Same date marked for the other ministry becomes one date for both, like the server stores it. */
+function addDate(dates: UnavailableDate[], added: UnavailableDate): UnavailableDate[] {
+  const existing = dates.find((entry) => entry.date === added.date);
+
+  if (!existing) {
+    return sortDates([...dates, added]);
+  }
+
+  if ((existing.ministry ?? null) === (added.ministry ?? null) || !existing.ministry) {
+    return dates;
+  }
+
+  return dates.map((entry) => (entry === existing ? { date: entry.date, ministry: null } : entry));
+}
+
+/** Where an absence applies; only shown to members of both ministries, where "Ambos" means something. */
+function MinistryTag({ ministry, show }: { ministry?: Ministry | null; show: boolean }) {
+  return show ? (
+    <Badge variant="secondary" className="ml-2 text-[10px]">{ministry ? MINISTRY_LABELS[ministry] : 'Ambos'}</Badge>
+  ) : null;
+}
+
 function formatShortDate(date: string): string {
   return format(new Date(`${date}T00:00:00`), 'dd/MM/yyyy');
 }
@@ -75,11 +103,15 @@ export default function Profile() {
 
   const myProfile = profiles?.find(p => p.id === profile?.id);
   const [newUnavailableDate, setNewUnavailableDate] = useState('');
-  const [unavailableDates, setUnavailableDates] = useState<string[]>([]);
+  const [unavailableDates, setUnavailableDates] = useState<UnavailableDate[]>([]);
   const [unavailablePeriods, setUnavailablePeriods] = useState<UnavailablePeriod[]>([]);
   const [newPeriodStart, setNewPeriodStart] = useState('');
   const [newPeriodEnd, setNewPeriodEnd] = useState('');
   const isPaused = Boolean(myProfile?.is_paused);
+  // Members of both DMS and GHJ choose which ministry an absence or pause applies to.
+  const inBothMinistries = Boolean(myProfile?.in_dms && myProfile?.home_group === 'GHJ');
+  const [absenceScope, setAbsenceScope] = useState<Ministry | 'all'>('all');
+  const scopeMinistry: Ministry | null = inBothMinistries && absenceScope !== 'all' ? absenceScope : null;
 
   const handleSignOut = async () => {
     await signOut();
@@ -95,7 +127,7 @@ export default function Profile() {
       return;
     }
 
-    setUnavailableDates([...(myProfile.unavailable_dates ?? [])].sort());
+    setUnavailableDates(sortDates(myProfile.unavailable_dates ?? []));
     setUnavailablePeriods(sortPeriods(myProfile.unavailable_periods ?? []));
   }, [myProfile]);
 
@@ -108,6 +140,8 @@ export default function Profile() {
       profileId: profile.id,
       updates: {},
       isPaused: paused,
+      // Resuming always resumes every ministry.
+      pauseMinistry: paused ? scopeMinistry : null,
       successTitle: paused ? 'Escalas pausadas' : 'Escalas retomadas',
     });
   };
@@ -116,7 +150,7 @@ export default function Profile() {
    * Saves absences as soon as they change. The list updates immediately and is
    * rolled back if the save fails (the hook shows the error toast).
    */
-  const saveAbsences = async (next: { dates?: string[]; periods?: UnavailablePeriod[] }, successTitle: string) => {
+  const saveAbsences = async (next: { dates?: UnavailableDate[]; periods?: UnavailablePeriod[] }, successTitle: string) => {
     if (!profile?.id) {
       return false;
     }
@@ -148,14 +182,16 @@ export default function Profile() {
       return;
     }
 
-    if (unavailablePeriods.some((period) => period.start_date === newPeriodStart && period.end_date === newPeriodEnd)) {
+    if (unavailablePeriods.some((period) => period.start_date === newPeriodStart
+      && period.end_date === newPeriodEnd
+      && (period.ministry ?? null) === scopeMinistry)) {
       setNewPeriodStart('');
       setNewPeriodEnd('');
       return;
     }
 
     const saved = await saveAbsences(
-      { periods: sortPeriods([...unavailablePeriods, { start_date: newPeriodStart, end_date: newPeriodEnd }]) },
+      { periods: sortPeriods([...unavailablePeriods, { start_date: newPeriodStart, end_date: newPeriodEnd, ministry: scopeMinistry }]) },
       'Indisponibilidade salva',
     );
 
@@ -168,9 +204,7 @@ export default function Profile() {
   const handleRemovePeriod = (target: UnavailablePeriod) => {
     void saveAbsences(
       {
-        periods: unavailablePeriods.filter(
-          (period) => period.start_date !== target.start_date || period.end_date !== target.end_date,
-        ),
+        periods: unavailablePeriods.filter((period) => period !== target),
       },
       'Indisponibilidade removida',
     );
@@ -181,13 +215,15 @@ export default function Profile() {
       return;
     }
 
-    if (unavailableDates.includes(newUnavailableDate)) {
+    const nextDates = addDate(unavailableDates, { date: newUnavailableDate, ministry: scopeMinistry });
+
+    if (nextDates === unavailableDates) {
       setNewUnavailableDate('');
       return;
     }
 
     const saved = await saveAbsences(
-      { dates: [...unavailableDates, newUnavailableDate].sort() },
+      { dates: nextDates },
       'Indisponibilidade salva',
     );
 
@@ -198,7 +234,7 @@ export default function Profile() {
 
   const handleRemoveUnavailableDate = (date: string) => {
     void saveAbsences(
-      { dates: unavailableDates.filter((item) => item !== date) },
+      { dates: unavailableDates.filter((item) => item.date !== date) },
       'Indisponibilidade removida',
     );
   };
@@ -275,6 +311,27 @@ export default function Profile() {
           Pause as escalas ou marque períodos e datas em que você não pode ser escalado. As alterações são salvas automaticamente.
         </p>
 
+        {inBothMinistries && (
+          <div className="mb-4 space-y-2">
+            <Label>Aplicar a</Label>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              className="justify-start"
+              value={absenceScope}
+              onValueChange={(value) => value && setAbsenceScope(value as Ministry | 'all')}
+            >
+              <ToggleGroupItem value="all">Ambos</ToggleGroupItem>
+              {MINISTRIES.map((ministry) => (
+                <ToggleGroupItem key={ministry} value={ministry}>{MINISTRY_LABELS[ministry]}</ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <p className="text-xs text-muted-foreground">
+              Pausas e indisponibilidades de um só ministério ficam visíveis apenas para ele.
+            </p>
+          </div>
+        )}
+
         <div
           className={`mb-5 rounded-xl border p-3 ${isPaused ? 'border-amber-300 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10' : 'border-border bg-secondary/40'}`}
         >
@@ -287,7 +344,7 @@ export default function Profile() {
                 </Label>
                 <p className="text-xs text-muted-foreground">
                   {isPaused
-                    ? `Pausado${myProfile?.paused_at ? ` desde ${format(new Date(myProfile.paused_at), 'dd/MM/yyyy')}` : ''}. Você não será escalado nem convocado até retomar.`
+                    ? `Pausado${!inBothMinistries ? '' : myProfile?.pause_ministry ? ` no ${MINISTRY_LABELS[myProfile.pause_ministry]}` : ' no DMS e GHJ'}${myProfile?.paused_at ? ` desde ${format(new Date(myProfile.paused_at), 'dd/MM/yyyy')}` : ''}. Você não será escalado nem convocado até retomar.`
                     : 'Enquanto estiver pausado, você não será escalado nem convocado.'}
                 </p>
               </div>
@@ -345,11 +402,12 @@ export default function Profile() {
               <Label>Períodos marcados</Label>
               {unavailablePeriods.map((period) => (
                 <div
-                  key={`${period.start_date}-${period.end_date}`}
+                  key={`${period.start_date}-${period.end_date}-${period.ministry ?? 'all'}`}
                   className="flex items-center justify-between rounded-lg border border-border bg-secondary/40 px-3 py-2"
                 >
                   <span className="text-sm text-foreground">
                     {formatShortDate(period.start_date)} até {formatShortDate(period.end_date)}
+                    <MinistryTag ministry={period.ministry} show={inBothMinistries} />
                   </span>
                   <Button
                     type="button"
@@ -392,12 +450,15 @@ export default function Profile() {
             <Label>Datas marcadas</Label>
             {unavailableDates.length > 0 ? (
               <div className="space-y-2">
-                {unavailableDates.map((date) => (
+                {unavailableDates.map(({ date, ministry }) => (
                   <div
                     key={date}
                     className="flex items-center justify-between rounded-lg border border-border bg-secondary/40 px-3 py-2"
                   >
-                    <span className="text-sm text-foreground">{formatShortDate(date)}</span>
+                    <span className="text-sm text-foreground">
+                      {formatShortDate(date)}
+                      <MinistryTag ministry={ministry} show={inBothMinistries} />
+                    </span>
                     <Button
                       type="button"
                       variant="ghost"

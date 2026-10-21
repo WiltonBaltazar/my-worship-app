@@ -29,10 +29,15 @@ class ScheduleOptimizer
         }
 
         $techniciansQuery = Profile::query()
-            ->with(['user.roles:user_id,role', 'unavailableDates', 'unavailablePeriods'])
+            // Technical schedules have no ministry, so only absences and pauses covering every ministry apply.
+            ->with([
+                'user.roles:user_id,role',
+                'unavailableDates' => fn ($query) => Profile::scopeAbsencesTo($query, null),
+                'unavailablePeriods' => fn ($query) => Profile::scopeAbsencesTo($query, null),
+            ])
             ->where('is_active', true)
             ->where('is_approved', true)
-            ->whereNull('paused_at')
+            ->notPausedFor()
             ->where(function ($query): void {
                 $query
                     ->where('can_be_tech_lead', true)

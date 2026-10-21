@@ -258,7 +258,7 @@ export default function AdminMembers() {
                           {homeGroupLabels[member.home_group] ?? member.home_group}
                         </Badge>
                       )}
-                      {member.is_paused && <Badge className="bg-amber-100 text-amber-800 text-xs">Pausado</Badge>}
+                      {member.is_paused && <Badge className="bg-amber-100 text-amber-800 text-xs">Pausado{member.pause_ministry ? ` · ${MINISTRY_LABELS[member.pause_ministry]}` : ''}</Badge>}
                       {member.in_dms && <Badge className="bg-orange-50 text-orange-700 text-xs">DMS</Badge>}
                       {member.can_lead && <Badge className="bg-orange-50 text-orange-700 text-xs">Pode dirigir</Badge>}
                       {member.can_be_tech_lead && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Lead</Badge>}
