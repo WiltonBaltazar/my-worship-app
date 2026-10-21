@@ -109,6 +109,7 @@ export interface AuthCache {
   profile: Record<string, unknown> | null;
   roles: string[];
   led_ministries?: string[];
+  viewable_ministries?: string[];
 }
 
 export function saveAuthCache(data: AuthCache): void {

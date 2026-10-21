@@ -16,7 +16,14 @@ import { useNavigate } from 'react-router-dom';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { MinistryBadge } from '@/components/schedule/MinistryBadge';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { downloadMonthSchedulePdf } from '@/lib/schedule-pdf';
+import { MINISTRY_LABELS, type Ministry } from '@/lib/ministry';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMySchedules, useSchedules } from '@/hooks/useSchedules';
@@ -34,11 +41,13 @@ export default function Schedules() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
-  const { profile } = useAuth();
+  const { profile, viewableMinistries } = useAuth();
   const { data: mySchedules, isLoading: myLoading } = useMySchedules(profile?.id);
   const { data: allSchedules, isLoading: allLoading } = useSchedules();
 
   const isLoading = myLoading || allLoading;
+  // A member in both DMS and GHJ picks which rota to download; everyone else gets theirs.
+  const pdfMinistries: Ministry[] = viewableMinistries.length > 0 ? viewableMinistries : ['dms'];
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -88,14 +97,34 @@ export default function Schedules() {
           <h2 className="text-lg font-semibold capitalize text-foreground">{format(currentMonth, 'MMMM yyyy', { locale: ptBR })}</h2>
 
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              title="Baixar escala do mês"
-              onClick={() => downloadMonthSchedulePdf(currentMonth, allSchedules ?? [])}
-            >
-              <Download className="h-4 w-4" />
-            </Button>
+            {pdfMinistries.length > 1 ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" title="Baixar escala do mês">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {pdfMinistries.map((ministry) => (
+                    <DropdownMenuItem
+                      key={ministry}
+                      onClick={() => downloadMonthSchedulePdf(currentMonth, allSchedules ?? [], ministry)}
+                    >
+                      Escala {MINISTRY_LABELS[ministry]}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                title={`Baixar escala ${MINISTRY_LABELS[pdfMinistries[0]]} do mês`}
+                onClick={() => downloadMonthSchedulePdf(currentMonth, allSchedules ?? [], pdfMinistries[0])}
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            )}
 
             <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
               <ChevronRight className="h-5 w-5" />

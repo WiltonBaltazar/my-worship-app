@@ -162,6 +162,8 @@ export function useRejectSubstituteRequest() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['substitute-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['my-schedules'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast({ title: 'Solicitação recusada' });
     },

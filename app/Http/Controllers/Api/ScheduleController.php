@@ -43,15 +43,16 @@ class ScheduleController extends Controller
 
         if (! $user->isAdmin()) {
             $ledMinistries = MinistryAccess::ledMinistries($user);
+            $memberMinistries = MinistryAccess::memberMinistries($user);
             $profileId = $user->profile?->id;
 
-            // Outside the ministries they lead, users see published DMS schedules
-            // plus any published schedule they are personally on.
-            $query->where(function ($visibility) use ($ledMinistries, $profileId): void {
-                $visibility->where(function ($published) use ($profileId): void {
+            // Published schedules of the ministries they belong to (or are personally on),
+            // plus every schedule, drafts included, of the ministries they lead.
+            $query->where(function ($visibility) use ($ledMinistries, $memberMinistries, $profileId): void {
+                $visibility->where(function ($published) use ($memberMinistries, $profileId): void {
                     $published->where('status', '!=', 'draft')
-                        ->where(function ($scope) use ($profileId): void {
-                            $scope->where('ministry', MinistryAccess::DMS);
+                        ->where(function ($scope) use ($memberMinistries, $profileId): void {
+                            $scope->whereIn('ministry', $memberMinistries);
 
                             if ($profileId) {
                                 $scope->orWhereHas('members', fn ($members) => $members->where('profile_id', $profileId))
