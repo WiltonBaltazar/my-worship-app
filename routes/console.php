@@ -25,3 +25,8 @@ Schedule::command('notifications:weekly-duty-reminder')
     ->at('09:00')
     ->timezone('Africa/Maputo')
     ->withoutOverlapping();
+
+Schedule::command('absences:prune')
+    ->dailyAt('00:30')
+    ->timezone('Africa/Maputo')
+    ->withoutOverlapping();
