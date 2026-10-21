@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Profile;
 use App\Models\TechnicalSchedule;
 use App\Services\TechnicalSchedule\ScheduleOptimizer;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -78,7 +79,7 @@ class TechnicalScheduleController extends Controller
         $startDate = Carbon::parse($validated['start_date']);
         $weeks = (int) $validated['weeks'];
         $scheduleType = $validated['schedule_type'] ?? self::SCHEDULE_TYPE_PUBLIC_WORSHIP;
-        $requiresStreaming = $scheduleType !== self::SCHEDULE_TYPE_GHJ;
+        $requiresStreaming = $this->requiresStreaming($scheduleType);
         $homeGroupFilter = $scheduleType === self::SCHEDULE_TYPE_GHJ ? self::HOME_GROUP_GHJ : null;
 
         $weekDates = collect(range(0, $weeks - 1))
@@ -86,9 +87,7 @@ class TechnicalScheduleController extends Controller
             ->values()
             ->all();
 
-        $existingSchedules = TechnicalSchedule::query()
-            ->whereIn('week_start_date', $weekDates)
-            ->orderBy('week_start_date')
+        $existingSchedules = $this->schedulesForWeeks($weekDates)
             ->get()
             ->keyBy(fn (TechnicalSchedule $schedule): string => $schedule->week_start_date->format('Y-m-d'));
 
@@ -121,9 +120,7 @@ class TechnicalScheduleController extends Controller
             $schedule->save();
         }
 
-        $persistedSchedules = TechnicalSchedule::query()
-            ->whereIn('week_start_date', $weekDates)
-            ->orderBy('week_start_date')
+        $persistedSchedules = $this->schedulesForWeeks($weekDates)
             ->with([
                 'leadProfile:id,name,avatar_url',
                 'soundProfile:id,name,avatar_url',
@@ -150,7 +147,7 @@ class TechnicalScheduleController extends Controller
             'streaming_profile_id' => ['nullable', 'exists:profiles,id'],
         ]);
 
-        $requiresStreaming = $technicalSchedule->schedule_type !== self::SCHEDULE_TYPE_GHJ;
+        $requiresStreaming = $this->requiresStreaming($technicalSchedule->schedule_type);
         $homeGroupFilter = $technicalSchedule->schedule_type === self::SCHEDULE_TYPE_GHJ ? self::HOME_GROUP_GHJ : null;
 
         $nextAssignment = [
@@ -222,6 +219,23 @@ class TechnicalScheduleController extends Controller
         return response()->json($this->formatScheduleWeek($technicalSchedule));
     }
 
+    public function destroyMany(Request $request): JsonResponse
+    {
+        $this->ensureTechnicalManagementAccess($request);
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:100'],
+            'ids.*' => ['uuid'],
+        ]);
+
+        $deleted = TechnicalSchedule::query()->whereIn('id', $validated['ids'])->delete();
+
+        return response()->json([
+            'message' => 'Semanas técnicas removidas com sucesso.',
+            'deleted' => $deleted,
+        ]);
+    }
+
     public function destroy(Request $request, TechnicalSchedule $technicalSchedule): JsonResponse
     {
         $this->ensureTechnicalManagementAccess($request);
@@ -234,6 +248,29 @@ class TechnicalScheduleController extends Controller
     }
 
     /**
+     * Matches on the calendar date: some drivers (SQLite) store date columns with a
+     * time part, so a plain whereIn on 'Y-m-d' strings would miss existing weeks.
+     *
+     * @param  list<string>  $weekDates
+     */
+    private function schedulesForWeeks(array $weekDates): Builder
+    {
+        return TechnicalSchedule::query()
+            ->where(function (Builder $query) use ($weekDates): void {
+                foreach ($weekDates as $weekDate) {
+                    $query->orWhereDate('week_start_date', $weekDate);
+                }
+            })
+            ->orderBy('week_start_date');
+    }
+
+    private function requiresStreaming(?string $scheduleType): bool
+    {
+        return config('technical_schedule.streaming_enabled')
+            && $scheduleType !== self::SCHEDULE_TYPE_GHJ;
+    }
+
+    /**
      * @return array<string, array{id:string,name:string,avatar_url:?string,home_group:?string,can_be_tech_lead:bool,can_be_tech_sound:bool,can_be_tech_streaming:bool}>
      */
     private function eligibleTechnicians(?string $homeGroupFilter = null): array
@@ -242,6 +279,7 @@ class TechnicalScheduleController extends Controller
             ->with('user.roles:user_id,role')
             ->where('is_active', true)
             ->where('is_approved', true)
+            ->whereNull('paused_at')
             ->where(function ($query): void {
                 $query
                     ->where('can_be_tech_lead', true)

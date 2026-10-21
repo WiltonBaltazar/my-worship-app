@@ -8,6 +8,7 @@ use App\Models\Profile;
 use App\Models\ScheduleMember;
 use App\Models\SubstituteRequest;
 use App\Models\UserRole;
+use App\Support\MinistryAccess;
 use App\Support\NormalScheduleEligibility;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -84,6 +85,20 @@ class SubstituteRequestController extends Controller
             if ($adminCandidateCount > 0) {
                 throw ValidationException::withMessages([
                     'candidate_profile_ids' => ['Administradores não podem ser selecionados como substitutos.'],
+                ]);
+            }
+
+            $ministry = $scheduleMember->schedule?->ministry ?? MinistryAccess::DMS;
+            $outsideCandidate = Profile::query()
+                ->whereIn('id', $candidateProfileIds)
+                ->get()
+                ->first(fn (Profile $candidate): bool => ! MinistryAccess::inPool($candidate, $ministry));
+
+            if ($outsideCandidate) {
+                $ministryLabel = MinistryAccess::LABELS[$ministry];
+
+                throw ValidationException::withMessages([
+                    'candidate_profile_ids' => ["{$outsideCandidate->name} não pertence ao {$ministryLabel}."],
                 ]);
             }
         }
@@ -180,7 +195,7 @@ class SubstituteRequestController extends Controller
             ->with(['profile', 'schedule'])
             ->findOrFail($scheduleMemberId);
 
-        if (! $user->isAdmin() && ! $user->isLeader()) {
+        if (! MinistryAccess::canManage($user, $scheduleMember->schedule?->ministry)) {
             abort(403, 'Forbidden.');
         }
 
@@ -221,7 +236,7 @@ class SubstituteRequestController extends Controller
 
         $scheduleMember = $substituteRequest->scheduleMember;
 
-        $isLeaderInTeam = $user->isAdmin() || $user->isLeader();
+        $isLeaderInTeam = MinistryAccess::canManage($user, $scheduleMember?->schedule?->ministry);
 
         if ($substituteRequest->candidate_profile_id !== $profile->id && ! $isLeaderInTeam) {
             abort(403, 'Forbidden.');

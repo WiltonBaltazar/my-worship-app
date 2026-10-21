@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AppNotification;
+use App\Models\Profile;
 use App\Models\Song;
 use App\Models\SubstituteRequest;
 use App\Models\User;
@@ -13,6 +14,16 @@ use Tests\TestCase;
 class ScheduleEligibilityTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // These scenarios exercise DMS schedules, so every new profile starts on the DMS roster.
+        Profile::creating(function (Profile $profile): void {
+            $profile->in_dms ??= true;
+        });
+    }
 
     public function test_admin_profile_cannot_be_added_to_schedule(): void
     {
@@ -56,6 +67,7 @@ class ScheduleEligibilityTest extends TestCase
             'user_id' => $leader->id,
             'role' => 'leader',
         ]);
+        $leader->profile()->update(['leads_dms' => true]);
 
         $scheduleId = $this->createSchedule($admin);
 
@@ -82,7 +94,7 @@ class ScheduleEligibilityTest extends TestCase
     public function test_ghj_leader_cannot_add_member_from_other_home_group(): void
     {
         $admin = User::factory()->create();
-        $leader = $this->createLeaderWithHomeGroup('GHJ');
+        $leader = $this->createLeaderWithHomeGroup('GHJ', 'ghj');
 
         $member = User::factory()->create();
         $memberProfile = $member->profile()->firstOrFail();
@@ -93,7 +105,7 @@ class ScheduleEligibilityTest extends TestCase
         ]);
         $memberProfile->instruments()->create(['instrument' => 'guitar']);
 
-        $scheduleId = $this->createSchedule($admin);
+        $scheduleId = $this->createSchedule($leader);
 
         $this->postJson(
             "/api/schedules/{$scheduleId}/members",
@@ -103,7 +115,9 @@ class ScheduleEligibilityTest extends TestCase
                 'function_detail' => 'Guitarra',
             ],
             $this->authHeadersFor($leader),
-        )->assertForbidden();
+        )
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['profile_id']);
 
         $this->assertDatabaseMissing('schedule_members', [
             'schedule_id' => $scheduleId,
@@ -114,7 +128,7 @@ class ScheduleEligibilityTest extends TestCase
     public function test_ghj_leader_can_add_member_from_ghj(): void
     {
         $admin = User::factory()->create();
-        $leader = $this->createLeaderWithHomeGroup('GHJ');
+        $leader = $this->createLeaderWithHomeGroup('GHJ', 'ghj');
 
         $member = User::factory()->create();
         $memberProfile = $member->profile()->firstOrFail();
@@ -125,7 +139,7 @@ class ScheduleEligibilityTest extends TestCase
         ]);
         $memberProfile->instruments()->create(['instrument' => 'guitar']);
 
-        $scheduleId = $this->createSchedule($admin);
+        $scheduleId = $this->createSchedule($leader);
 
         $this->postJson(
             "/api/schedules/{$scheduleId}/members",
@@ -140,10 +154,10 @@ class ScheduleEligibilityTest extends TestCase
             ->assertJsonPath('profile_id', $memberProfile->id);
     }
 
-    public function test_ghs_leader_can_add_member_from_any_home_group(): void
+    public function test_dms_leader_can_add_roster_member_from_any_home_group(): void
     {
         $admin = User::factory()->create();
-        $leader = $this->createLeaderWithHomeGroup('GHS');
+        $leader = $this->createLeaderWithHomeGroup('GHS', 'dms');
 
         $member = User::factory()->create();
         $memberProfile = $member->profile()->firstOrFail();
@@ -484,6 +498,7 @@ class ScheduleEligibilityTest extends TestCase
             'user_id' => $leader->id,
             'role' => 'leader',
         ]);
+        $leader->profile()->update(['leads_dms' => true]);
 
         $scheduleId = $this->createSchedule($admin);
 
@@ -713,6 +728,7 @@ class ScheduleEligibilityTest extends TestCase
             'user_id' => $leader->id,
             'role' => 'leader',
         ]);
+        $leader->profile()->update(['leads_dms' => true]);
 
         $scheduleId = $this->createSchedule($admin);
 
@@ -1026,13 +1042,14 @@ class ScheduleEligibilityTest extends TestCase
         ];
     }
 
-    private function createLeaderWithHomeGroup(string $homeGroup): User
+    private function createLeaderWithHomeGroup(string $homeGroup, string $ledMinistry): User
     {
         $leader = User::factory()->create();
         $leader->profile()->update([
             'is_approved' => true,
             'is_active' => true,
             'home_group' => $homeGroup,
+            "leads_{$ledMinistry}" => true,
         ]);
 
         UserRole::query()->create([

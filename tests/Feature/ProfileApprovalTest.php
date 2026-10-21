@@ -77,6 +77,7 @@ class ProfileApprovalTest extends TestCase
         $leader->profile()->update([
             'is_approved' => true,
             'is_active' => true,
+            'leads_dms' => true,
         ]);
 
         UserRole::query()->create([
@@ -107,6 +108,7 @@ class ProfileApprovalTest extends TestCase
         $leader->profile()->update([
             'is_approved' => true,
             'is_active' => true,
+            'leads_dms' => true,
         ]);
 
         UserRole::query()->create([
@@ -134,6 +136,7 @@ class ProfileApprovalTest extends TestCase
         $leader->profile()->update([
             'is_approved' => true,
             'is_active' => true,
+            'leads_dms' => true,
         ]);
 
         UserRole::query()->create([
@@ -158,10 +161,10 @@ class ProfileApprovalTest extends TestCase
         $this->assertTrue((bool) Profile::query()->findOrFail($pendingProfile->id)->is_approved);
     }
 
-    public function test_ghj_leader_lists_only_pending_profiles_from_ghj(): void
+    public function test_ghj_only_leader_lists_only_pending_profiles_from_ghj(): void
     {
         User::factory()->create(); // First user becomes admin.
-        $leader = $this->createLeaderWithHomeGroup('GHJ');
+        $leader = $this->createLeaderWithHomeGroup('GHJ', 'ghj');
 
         $ghjPending = User::factory()->create();
         $ghjPendingProfile = $ghjPending->profile()->firstOrFail();
@@ -192,10 +195,10 @@ class ProfileApprovalTest extends TestCase
         $this->assertNotContains($ghhPendingProfile->id, $profileIds);
     }
 
-    public function test_ghj_leader_pending_count_is_scoped_to_ghj_profiles(): void
+    public function test_ghj_only_leader_pending_count_is_scoped_to_ghj_profiles(): void
     {
         User::factory()->create(); // First user becomes admin.
-        $leader = $this->createLeaderWithHomeGroup('GHJ');
+        $leader = $this->createLeaderWithHomeGroup('GHJ', 'ghj');
 
         $ghjPending = User::factory()->create();
         $ghjPending->profile()->update([
@@ -219,10 +222,10 @@ class ProfileApprovalTest extends TestCase
             ->assertJsonPath('count', 1);
     }
 
-    public function test_ghj_leader_cannot_approve_pending_profile_from_other_home_group(): void
+    public function test_ghj_only_leader_cannot_approve_pending_profile_from_other_home_group(): void
     {
         User::factory()->create(); // First user becomes admin.
-        $leader = $this->createLeaderWithHomeGroup('GHJ');
+        $leader = $this->createLeaderWithHomeGroup('GHJ', 'ghj');
 
         $pendingUser = User::factory()->create();
         $pendingProfile = $pendingUser->profile()->firstOrFail();
@@ -241,10 +244,10 @@ class ProfileApprovalTest extends TestCase
         $this->assertFalse((bool) Profile::query()->findOrFail($pendingProfile->id)->is_approved);
     }
 
-    public function test_ghh_leader_can_approve_pending_profile_from_other_home_group(): void
+    public function test_dms_leader_can_approve_pending_profile_from_ghj(): void
     {
         User::factory()->create(); // First user becomes admin.
-        $leader = $this->createLeaderWithHomeGroup('GHH');
+        $leader = $this->createLeaderWithHomeGroup('GHH', 'dms');
 
         $pendingUser = User::factory()->create();
         $pendingProfile = $pendingUser->profile()->firstOrFail();
@@ -334,7 +337,7 @@ class ProfileApprovalTest extends TestCase
     public function test_non_admin_cannot_set_temporary_password_for_user(): void
     {
         User::factory()->create(); // First user becomes admin.
-        $leader = $this->createLeaderWithHomeGroup('GHJ');
+        $leader = $this->createLeaderWithHomeGroup('GHJ', 'ghj');
 
         $member = User::factory()->create();
         $memberProfile = $member->profile()->firstOrFail();
@@ -357,13 +360,14 @@ class ProfileApprovalTest extends TestCase
         ];
     }
 
-    private function createLeaderWithHomeGroup(string $homeGroup): User
+    private function createLeaderWithHomeGroup(string $homeGroup, string $ledMinistry): User
     {
         $leader = User::factory()->create();
         $leader->profile()->update([
             'is_approved' => true,
             'is_active' => true,
             'home_group' => $homeGroup,
+            "leads_{$ledMinistry}" => true,
         ]);
 
         UserRole::query()->create([

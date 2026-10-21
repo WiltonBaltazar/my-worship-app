@@ -12,6 +12,14 @@ class TechnicalScheduleOptimizationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // These scenarios cover the three-role rota; streaming is switched off by default.
+        config(['technical_schedule.streaming_enabled' => true]);
+    }
+
     public function test_generates_valid_schedule_with_distinct_roles_per_week(): void
     {
         $manager = User::factory()->create();

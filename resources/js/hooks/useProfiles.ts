@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
+import type { UnavailablePeriod } from '@/lib/availability';
 import { useToast } from '@/hooks/use-toast';
+import type { Ministry } from '@/lib/ministry';
 
 export type HomeGroup = 'GHH' | 'GHS' | 'GHJ' | 'GHC';
 
@@ -12,6 +14,9 @@ export interface Profile {
   avatar_url: string | null;
   phone: string | null;
   home_group: HomeGroup | null;
+  in_dms: boolean;
+  leads_dms: boolean;
+  leads_ghj: boolean;
   can_lead: boolean;
   can_be_tech_lead: boolean;
   can_be_tech_sound: boolean;
@@ -24,26 +29,32 @@ export interface Profile {
   instruments?: string[];
   voices?: string[];
   unavailable_dates?: string[];
+  unavailable_periods?: UnavailablePeriod[];
+  is_paused?: boolean;
+  paused_at?: string | null;
 }
 
 interface ProfileFilters {
   status?: 'approved' | 'pending' | 'all';
   activity?: 'active' | 'inactive' | 'all';
+  ministry?: Ministry;
   enabled?: boolean;
 }
 
 export function useProfilesByFilters({
   status = 'approved',
   activity = 'active',
+  ministry,
   enabled = true,
 }: ProfileFilters = {}) {
   return useQuery({
-    queryKey: ['profiles', status, activity],
+    queryKey: ['profiles', status, activity, ministry ?? 'all'],
     enabled,
     queryFn: async () => {
       const params = new URLSearchParams({
         status,
         activity,
+        ...(ministry ? { ministry } : {}),
       });
 
       return apiRequest<Profile[]>(`/api/profiles?${params.toString()}`);
@@ -51,10 +62,12 @@ export function useProfilesByFilters({
   });
 }
 
-export function useProfiles() {
+export function useProfiles({ ministry, enabled }: { ministry?: Ministry; enabled?: boolean } = {}) {
   return useProfilesByFilters({
     status: 'approved',
     activity: 'active',
+    ministry,
+    enabled,
   });
 }
 
@@ -91,13 +104,19 @@ export function useUpdateProfile() {
       updates, 
       instruments, 
       voices,
-      unavailableDates, 
-    }: { 
+      unavailableDates,
+      unavailablePeriods,
+      isPaused,
+    }: {
       profileId: string; 
       updates: Partial<Profile>; 
       instruments?: string[];
       voices?: string[];
       unavailableDates?: string[];
+      unavailablePeriods?: UnavailablePeriod[];
+      isPaused?: boolean;
+      /** Toast title on success; defaults to "Perfil atualizado!". */
+      successTitle?: string;
     }) => {
       return apiRequest<Profile>(`/api/profiles/${profileId}`, {
         method: 'PATCH',
@@ -106,13 +125,15 @@ export function useUpdateProfile() {
           ...(instruments !== undefined ? { instruments } : {}),
           ...(voices !== undefined ? { voices } : {}),
           ...(unavailableDates !== undefined ? { unavailable_dates: unavailableDates } : {}),
+          ...(unavailablePeriods !== undefined ? { unavailable_periods: unavailablePeriods } : {}),
+          ...(isPaused !== undefined ? { is_paused: isPaused } : {}),
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
       queryClient.invalidateQueries({ queryKey: ['profiles', 'pending-count'] });
-      toast({ title: 'Perfil atualizado!' });
+      toast({ title: variables.successTitle ?? 'Perfil atualizado!' });
     },
     onError: (error: any) => {
       toast({ title: 'Erro ao atualizar perfil', description: error.message, variant: 'destructive' });

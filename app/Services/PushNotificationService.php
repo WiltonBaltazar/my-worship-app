@@ -110,8 +110,16 @@ class PushNotificationService
             return '/admin-app/schedules/' . $notification->schedule_id;
         }
 
+        if ($notification->type === 'availability_call') {
+            return '/dashboard';
+        }
+
+        if ($notification->type === 'substitute_request' && $notification->schedule_id) {
+            return '/schedules/' . $notification->schedule_id;
+        }
+
         if (
-            $notification->type === 'schedule'
+            in_array($notification->type, ['schedule', 'confirmation'], true)
             && $notification->schedule_id
             && $notification->title !== 'Removido da escala'
         ) {

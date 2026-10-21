@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { type Profile, useProfiles } from '@/hooks/useProfiles';
+import type { UnavailablePeriod } from '@/lib/availability';
 import { toLocalDateInputValue } from '@/lib/date-time';
 import { cn } from '@/lib/utils';
 
@@ -20,7 +21,11 @@ interface UnavailableMembersListProps {
 
 interface UnavailableEntry {
   profile: Profile;
+  isPaused: boolean;
+  periods: UnavailablePeriod[];
   dates: string[];
+  /** Sort key: paused members first, then by the earliest absence. */
+  firstDate: string;
 }
 
 function formatUnavailableDate(date: string): string {
@@ -47,8 +52,8 @@ export function UnavailableMembersList({
   variant = 'card',
   className,
   title = 'Indisponibilidades',
-  description = 'Membros com datas marcadas como indisponíveis.',
-  emptyMessage = 'Nenhum membro com datas indisponíveis futuras.',
+  description = 'Membros com escalas pausadas ou datas marcadas como indisponíveis.',
+  emptyMessage = 'Nenhum membro pausado ou com datas indisponíveis futuras.',
   maxMembers,
 }: UnavailableMembersListProps) {
   const { data: profiles, isLoading } = useProfiles();
@@ -65,11 +70,16 @@ export function UnavailableMembersList({
         const dates = (profile.unavailable_dates ?? [])
           .filter((date) => date >= today)
           .sort();
+        const periods = (profile.unavailable_periods ?? [])
+          .filter((period) => period.end_date >= today)
+          .sort((a, b) => a.start_date.localeCompare(b.start_date));
+        const isPaused = Boolean(profile.is_paused);
+        const firstDate = isPaused ? '' : [dates[0], periods[0]?.start_date].filter(Boolean).sort()[0] ?? '';
 
-        return { profile, dates };
+        return { profile, isPaused, periods, dates, firstDate };
       })
-      .filter((entry) => entry.dates.length > 0)
-      .sort((a, b) => a.dates[0].localeCompare(b.dates[0]));
+      .filter((entry) => entry.isPaused || entry.dates.length > 0 || entry.periods.length > 0)
+      .sort((a, b) => a.firstDate.localeCompare(b.firstDate));
   }, [profiles]);
 
   const visibleEntries = maxMembers ? entries.slice(0, maxMembers) : entries;
@@ -86,7 +96,7 @@ export function UnavailableMembersList({
         <p className="text-sm text-muted-foreground">{emptyMessage}</p>
       ) : (
         <div className="space-y-3">
-          {visibleEntries.map(({ profile, dates }) => (
+          {visibleEntries.map(({ profile, isPaused, periods, dates }) => (
             <div
               key={profile.id}
               className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 sm:flex-row sm:items-start sm:justify-between"
@@ -104,6 +114,20 @@ export function UnavailableMembersList({
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5 sm:justify-end">
+                {isPaused && (
+                  <Badge variant="secondary" className="whitespace-nowrap bg-amber-100 text-amber-800 hover:bg-amber-100">
+                    Escalas pausadas
+                  </Badge>
+                )}
+                {periods.map((period) => (
+                  <Badge
+                    key={`${period.start_date}-${period.end_date}`}
+                    variant="secondary"
+                    className="whitespace-nowrap bg-orange-50 text-orange-700 hover:bg-orange-50"
+                  >
+                    {formatUnavailableDate(period.start_date)} → {formatUnavailableDate(period.end_date)}
+                  </Badge>
+                ))}
                 {dates.map((date) => (
                   <Badge
                     key={date}

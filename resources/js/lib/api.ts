@@ -108,6 +108,7 @@ export interface AuthCache {
   user: { id: string; name: string; email: string };
   profile: Record<string, unknown> | null;
   roles: string[];
+  led_ministries?: string[];
 }
 
 export function saveAuthCache(data: AuthCache): void {

@@ -3,6 +3,7 @@ import { format, isFuture, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Header } from '@/components/layout/Header';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { AvailabilityCallsCard } from '@/components/schedule/AvailabilityCallsCard';
 import { NextScheduleCard } from '@/components/schedule/NextScheduleCard';
 import { RepertoireCard } from '@/components/schedule/RepertoireCard';
 import { UpcomingSchedules } from '@/components/schedule/UpcomingSchedules';
@@ -48,10 +49,12 @@ export default function MemberDashboard() {
   const formatUpcomingSchedules = () => {
     return upcomingSchedules.slice(1, 6).map((schedule) => {
       const myRole = schedule.members?.find((member) => member.profile_id === profile?.id);
+      const myPresentation = schedule.guests?.find((guest) => guest.profile_id === profile?.id);
       return {
         id: schedule.id,
         date: new Date(schedule.schedule_date),
         role:
+          (!myRole && myPresentation ? `Participação: ${myPresentation.role}` : null) ||
           myRole?.function_detail ||
           (myRole?.function_type === 'lead_vocal'
             ? 'Vocal Principal'
@@ -60,7 +63,7 @@ export default function MemberDashboard() {
               : myRole?.function_type === 'sound_tech'
                 ? 'Técnico de Som'
                 : 'Instrumentista'),
-        isScheduled: !!myRole,
+        isScheduled: !!myRole || !!myPresentation,
         schedule,
       };
     });
@@ -123,6 +126,8 @@ export default function MemberDashboard() {
             )}
           </section>
         )}
+
+        <AvailabilityCallsCard />
 
         {nextSchedule ? (
           <>

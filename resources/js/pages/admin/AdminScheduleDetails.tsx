@@ -10,6 +10,7 @@ import {
   Clock,
   Loader2,
   Music2,
+  Send,
   Trash2,
   User,
   UserCheck,
@@ -29,8 +30,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { AvailabilityCallPanel } from '@/components/admin/AvailabilityCallPanel';
 import { EditScheduleDialog } from '@/components/admin/EditScheduleDialog';
-import { useDeleteSchedule, useSchedules } from '@/hooks/useSchedules';
+import { MinistryBadge } from '@/components/schedule/MinistryBadge';
+import { ScheduleGuests } from '@/components/schedule/ScheduleGuests';
+import { useAuth } from '@/contexts/AuthContext';
+import { useDeleteSchedule, usePublishSchedule, useSchedules } from '@/hooks/useSchedules';
 import { useLeaderDenyChangeRequest, useAcceptSubstituteRequest } from '@/hooks/useSubstituteRequests';
 
 const functionLabelMap: Record<string, string> = {
@@ -51,7 +56,9 @@ export default function AdminScheduleDetails() {
   const { id } = useParams<{ id: string }>();
 
   const { data: schedules, isLoading } = useSchedules();
+  const { canManageMinistry } = useAuth();
   const deleteScheduleMutation = useDeleteSchedule();
+  const { publish, isPending: isPublishing } = usePublishSchedule();
   const leaderDenyMutation = useLeaderDenyChangeRequest();
   const acceptSubstituteRequestMutation = useAcceptSubstituteRequest();
 
@@ -98,6 +105,7 @@ export default function AdminScheduleDetails() {
     locale: ptBR,
   });
   const readableDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+  const canManage = canManageMinistry(schedule.ministry);
 
   return (
     <div className="space-y-6">
@@ -107,15 +115,23 @@ export default function AdminScheduleDetails() {
           Voltar
         </Button>
 
-        <div className="flex w-full gap-2 sm:w-auto">
-          <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setIsEditDialogOpen(true)}>
-            Editar
-          </Button>
-          <Button variant="destructive" className="flex-1 sm:flex-none" onClick={() => setIsDeleteDialogOpen(true)}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            Excluir
-          </Button>
-        </div>
+        {canManage && (
+          <div className="flex w-full gap-2 sm:w-auto">
+            {schedule.status === 'draft' && (
+              <Button className="flex-1 sm:flex-none" onClick={() => publish(schedule)} disabled={isPublishing}>
+                {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                Publicar
+              </Button>
+            )}
+            <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setIsEditDialogOpen(true)}>
+              Editar
+            </Button>
+            <Button variant="destructive" className="flex-1 sm:flex-none" onClick={() => setIsDeleteDialogOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Excluir
+            </Button>
+          </div>
+        )}
       </div>
 
       <header className="space-y-1">
@@ -134,13 +150,16 @@ export default function AdminScheduleDetails() {
             <Clock className="h-4 w-4" />
             <span>{schedule.start_time?.slice(0, 5) ?? '11:00'}</span>
           </div>
-          <div className="mt-3">
+          <div className="mt-3 flex items-center gap-2">
+            <MinistryBadge ministry={schedule.ministry} />
             <Badge className={schedule.status === 'published' ? 'bg-success text-success-foreground' : ''}>
               {statusLabelMap[schedule.status]}
             </Badge>
           </div>
           {schedule.notes && <p className="mt-3 text-muted-foreground">{schedule.notes}</p>}
         </div>
+
+        {canManage && <AvailabilityCallPanel schedule={schedule} />}
 
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -237,6 +256,10 @@ export default function AdminScheduleDetails() {
             )}
           </div>
         </div>
+
+        <Separator />
+
+        <ScheduleGuests scheduleId={schedule.id} ministry={schedule.ministry} guests={schedule.guests ?? []} canManage={canManage} />
 
         <Separator />
 

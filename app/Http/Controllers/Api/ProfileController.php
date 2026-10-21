@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Profile;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Support\MinistryAccess;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,8 +41,6 @@ class ProfileController extends Controller
         'GHC',
     ];
 
-    private const RESTRICTED_LEADER_HOME_GROUP = 'GHJ';
-
     public function index(Request $request): JsonResponse
     {
         $user = $request->user()->loadMissing('profile');
@@ -52,12 +52,10 @@ class ProfileController extends Controller
         $activity = in_array($activity, ['active', 'inactive', 'all'], true) ? $activity : 'active';
 
         $profilesQuery = Profile::query()
-            ->with(['instruments', 'voices', 'unavailableDates', 'user.roles'])
+            ->with(['instruments', 'voices', 'unavailableDates', 'unavailablePeriods', 'user.roles'])
             ->orderBy('name');
 
-        if ($this->isRestrictedHomeGroupLeader($user)) {
-            $profilesQuery->where('home_group', self::RESTRICTED_LEADER_HOME_GROUP);
-        }
+        $this->applyMinistryScope($request, $user, $profilesQuery);
 
         if ($status === 'approved') {
             $profilesQuery->where('is_approved', true);
@@ -103,9 +101,7 @@ class ProfileController extends Controller
             ->where('is_approved', false)
             ->where('is_active', true);
 
-        if ($this->isRestrictedHomeGroupLeader($user)) {
-            $countQuery->where('home_group', self::RESTRICTED_LEADER_HOME_GROUP);
-        }
+        $this->scopeToVisibleProfiles($user, $countQuery);
 
         $count = $countQuery->count();
 
@@ -125,12 +121,9 @@ class ProfileController extends Controller
             abort(403, 'Forbidden.');
         }
 
-        if (
-            ! $isAdmin
-            && ! $isOwnProfile
-            && $this->isRestrictedHomeGroupLeader($user)
-            && $profile->home_group !== self::RESTRICTED_LEADER_HOME_GROUP
-        ) {
+        $ledMinistries = MinistryAccess::ledMinistries($user);
+
+        if (! $isAdmin && ! $isOwnProfile && ! $this->canSeeProfile($ledMinistries, $profile)) {
             abort(403, 'Forbidden.');
         }
 
@@ -146,6 +139,9 @@ class ProfileController extends Controller
             ],
             'phone' => ['nullable', 'string', 'max:50'],
             'home_group' => ['nullable', 'string', Rule::in(self::HOME_GROUPS)],
+            'in_dms' => ['sometimes', 'boolean'],
+            'leads_dms' => ['sometimes', 'boolean'],
+            'leads_ghj' => ['sometimes', 'boolean'],
             'avatar_url' => ['nullable', 'string', 'max:2048'],
             'can_lead' => ['sometimes', 'boolean'],
             'can_be_tech_lead' => ['sometimes', 'boolean'],
@@ -160,6 +156,10 @@ class ProfileController extends Controller
             'voices.*' => ['string', Rule::in(self::VOICES)],
             'unavailable_dates' => ['sometimes', 'array'],
             'unavailable_dates.*' => ['date_format:Y-m-d', 'distinct'],
+            'unavailable_periods' => ['sometimes', 'array', 'max:50'],
+            'unavailable_periods.*.start_date' => ['required', 'date_format:Y-m-d'],
+            'unavailable_periods.*.end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:unavailable_periods.*.start_date'],
+            'is_paused' => ['sometimes', 'boolean'],
         ]);
 
         if (isset($validated['email'])) {
@@ -169,10 +169,25 @@ class ProfileController extends Controller
         if (! $isAdmin) {
             unset($validated['role']);
 
+            unset($validated['leads_dms'], $validated['leads_ghj']);
+
+            if (! in_array(MinistryAccess::DMS, $ledMinistries, true)) {
+                unset($validated['in_dms']);
+            }
+
+            $isDmsRosterUpdate = array_key_exists('in_dms', $validated)
+                && collect($validated)->except('in_dms')->isEmpty();
+
+            // Leaders may pause or resume members of the ministries they lead.
+            $isLeaderPauseUpdate = ! $isOwnProfile
+                && array_key_exists('is_paused', $validated)
+                && collect($validated)->except('is_paused')->isEmpty()
+                && MinistryAccess::inAnyPool($profile, $ledMinistries);
+
             if ($isOwnProfile) {
                 unset($validated['home_group'], $validated['can_lead'], $validated['is_active'], $validated['is_approved']);
                 unset($validated['can_be_tech_lead'], $validated['can_be_tech_sound'], $validated['can_be_tech_streaming']);
-            } else {
+            } elseif (! $isDmsRosterUpdate && ! $isLeaderPauseUpdate) {
                 $validated = collect($validated)
                     ->only(['is_active', 'is_approved'])
                     ->all();
@@ -201,6 +216,9 @@ class ProfileController extends Controller
                     'email',
                     'phone',
                     'home_group',
+                    'in_dms',
+                    'leads_dms',
+                    'leads_ghj',
                     'avatar_url',
                     'can_lead',
                     'can_be_tech_lead',
@@ -210,6 +228,11 @@ class ProfileController extends Controller
                     'is_approved',
                 ])
                 ->all();
+
+            if (array_key_exists('is_paused', $validated)) {
+                // Keep the original pause date when the flag is re-sent unchanged.
+                $profileUpdates['paused_at'] = $validated['is_paused'] ? ($profile->paused_at ?? now()) : null;
+            }
 
             if ($profileUpdates !== []) {
                 $profile->update($profileUpdates);
@@ -230,6 +253,8 @@ class ProfileController extends Controller
             }
 
             if (array_key_exists('role', $validated)) {
+                $this->assignDefaultLeadership($profile, $validated);
+
                 UserRole::query()->where('user_id', $profile->user_id)->delete();
                 UserRole::query()->create([
                     'user_id' => $profile->user_id,
@@ -287,9 +312,26 @@ class ProfileController extends Controller
                     );
                 }
             }
+
+            if (array_key_exists('unavailable_periods', $validated)) {
+                $profile->unavailablePeriods()->delete();
+
+                $periods = collect($validated['unavailable_periods'] ?? [])
+                    ->map(fn (array $period): array => [
+                        'start_date' => $period['start_date'],
+                        'end_date' => $period['end_date'],
+                    ])
+                    ->unique(fn (array $period): string => $period['start_date'].'|'.$period['end_date'])
+                    ->values()
+                    ->all();
+
+                if ($periods !== []) {
+                    $profile->unavailablePeriods()->createMany($periods);
+                }
+            }
         });
 
-        $profile->refresh()->load(['instruments', 'voices', 'unavailableDates', 'user.roles']);
+        $profile->refresh()->load(['instruments', 'voices', 'unavailableDates', 'unavailablePeriods', 'user.roles']);
 
         return response()->json($this->formatProfile($profile));
     }
@@ -350,6 +392,9 @@ class ProfileController extends Controller
             'avatar_url' => $profile->avatar_url,
             'phone' => $profile->phone,
             'home_group' => $profile->home_group,
+            'in_dms' => (bool) $profile->in_dms,
+            'leads_dms' => (bool) $profile->leads_dms,
+            'leads_ghj' => (bool) $profile->leads_ghj,
             'can_lead' => $profile->can_lead,
             'can_be_tech_lead' => (bool) $profile->can_be_tech_lead,
             'can_be_tech_sound' => (bool) $profile->can_be_tech_sound,
@@ -370,7 +415,35 @@ class ProfileController extends Controller
                 ->filter()
                 ->values()
                 ->all(),
+            'unavailable_periods' => $profile->unavailablePeriods
+                ->map(fn ($period) => [
+                    'start_date' => $period->start_date?->format('Y-m-d'),
+                    'end_date' => $period->end_date?->format('Y-m-d'),
+                ])
+                ->values()
+                ->all(),
+            'is_paused' => $profile->isPaused(),
+            'paused_at' => $profile->paused_at?->toISOString(),
         ];
+    }
+
+    /**
+     * A newly promoted leader with no ministry yet leads the one matching their home group,
+     * unless the request sets the leadership flags explicitly.
+     */
+    private function assignDefaultLeadership(Profile $profile, array $validated): void
+    {
+        if (
+            $validated['role'] !== 'leader'
+            || array_key_exists('leads_dms', $validated)
+            || array_key_exists('leads_ghj', $validated)
+            || $profile->leads_dms
+            || $profile->leads_ghj
+        ) {
+            return;
+        }
+
+        $profile->update($profile->home_group === 'GHJ' ? ['leads_ghj' => true] : ['leads_dms' => true]);
     }
 
     private function canManagePendingApprovals(Request $request): bool
@@ -378,14 +451,47 @@ class ProfileController extends Controller
         return $request->user()->isAdmin() || $request->user()->isLeader();
     }
 
-    private function isRestrictedHomeGroupLeader(User $user): bool
+    private function applyMinistryScope(Request $request, User $user, Builder $profilesQuery): void
     {
-        if ($user->isAdmin() || ! $user->isLeader()) {
-            return false;
+        $ministry = $request->query('ministry');
+
+        if ($ministry !== null && ! in_array($ministry, MinistryAccess::ALL, true)) {
+            abort(422, 'Invalid ministry.');
         }
 
-        $user->loadMissing('profile');
+        if ($ministry === null) {
+            $this->scopeToVisibleProfiles($user, $profilesQuery);
 
-        return $user->profile?->home_group === self::RESTRICTED_LEADER_HOME_GROUP;
+            return;
+        }
+
+        // Pools are public to everyone who can list profiles: members pick substitutes from them too.
+        MinistryAccess::scopePool($profilesQuery, $ministry);
+    }
+
+    /**
+     * DMS draws from the whole church, so DMS leaders see everyone (and can grow the
+     * roster); leaders of GHJ only are limited to the GHJ pool.
+     */
+    private function scopeToVisibleProfiles(User $user, Builder $profilesQuery): void
+    {
+        if ($user->isAdmin() || ! $user->isLeader()) {
+            return;
+        }
+
+        $ledMinistries = MinistryAccess::ledMinistries($user);
+
+        if (! in_array(MinistryAccess::DMS, $ledMinistries, true)) {
+            MinistryAccess::scopePools($profilesQuery, $ledMinistries);
+        }
+    }
+
+    /**
+     * @param  list<string>  $ledMinistries
+     */
+    private function canSeeProfile(array $ledMinistries, Profile $profile): bool
+    {
+        return in_array(MinistryAccess::DMS, $ledMinistries, true)
+            || MinistryAccess::inAnyPool($profile, $ledMinistries);
     }
 }

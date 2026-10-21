@@ -13,10 +13,10 @@ import {
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { BottomNav } from '@/components/layout/BottomNav';
+import { MinistryBadge } from '@/components/schedule/MinistryBadge';
 import { Button } from '@/components/ui/button';
+import { downloadMonthSchedulePdf } from '@/lib/schedule-pdf';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMySchedules, useSchedules } from '@/hooks/useSchedules';
@@ -27,75 +27,6 @@ function functionLabel(type: string, detail: string | null): string {
   if (type === 'backing_vocal') return 'Backing Vocal';
   if (type === 'sound_tech') return 'Técnico de Som';
   return detail || 'Instrumentista';
-}
-
-function downloadMonthPDF(month: Date, schedules: Schedule[]) {
-  const monthSchedules = schedules
-    .filter((s) => isSameMonth(new Date(s.schedule_date), month))
-    .sort((a, b) => a.schedule_date.localeCompare(b.schedule_date));
-
-  const doc = new jsPDF();
-  const monthLabel = format(month, 'MMMM yyyy', { locale: ptBR });
-  const titleText = `Escalas — ${monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)}`;
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
-  doc.text(titleText, 14, 20);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(120);
-  doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}`, 14, 28);
-  doc.setTextColor(0);
-
-  if (monthSchedules.length === 0) {
-    doc.setFontSize(12);
-    doc.text('Nenhuma escala encontrada para este mês.', 14, 42);
-    doc.save(`escalas-${format(month, 'yyyy-MM')}.pdf`);
-    return;
-  }
-
-  let startY = 36;
-
-  for (const schedule of monthSchedules) {
-    const dateLabel = format(new Date(schedule.schedule_date), "EEEE, dd 'de' MMMM", { locale: ptBR });
-    const sectionTitle = `${dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}${schedule.title ? ` — ${schedule.title}` : ''}`;
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text(sectionTitle, 14, startY);
-    startY += 2;
-
-    const rows = (schedule.members ?? []).map((m) => [
-      m.profile?.name ?? '—',
-      functionLabel(m.function_type, m.function_detail),
-      m.confirmed ? 'Confirmado' : 'Pendente',
-    ]);
-
-    autoTable(doc, {
-      startY,
-      head: [['Nome', 'Função', 'Status']],
-      body: rows.length > 0 ? rows : [['—', '—', '—']],
-      theme: 'striped',
-      headStyles: { fillColor: [234, 88, 12], textColor: 255, fontStyle: 'bold' },
-      styles: { fontSize: 10, cellPadding: 3 },
-      margin: { left: 14, right: 14 },
-    });
-
-    startY = (doc as any).lastAutoTable.finalY + 10;
-
-    if (schedule.songs && schedule.songs.length > 0) {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(9);
-      doc.setTextColor(80);
-      const songList = schedule.songs.map((s, i) => `${i + 1}. ${s.song?.title ?? '—'}`).join('   ');
-      doc.text(`Repertório: ${songList}`, 14, startY);
-      doc.setTextColor(0);
-      startY += 10;
-    }
-  }
-
-  doc.save(`escalas-${format(month, 'yyyy-MM')}.pdf`);
 }
 
 export default function Schedules() {
@@ -132,6 +63,7 @@ export default function Schedules() {
 
   const selectedMySchedule = selectedDate ? getMyScheduleForDate(selectedDate) : null;
   const selectedAnySchedule = selectedDate ? getAnyScheduleForDate(selectedDate) : null;
+  const selectedDaySchedule = selectedMySchedule ?? selectedAnySchedule;
   const myRole = selectedMySchedule?.members?.find((member) => member.profile_id === profile?.id);
 
   return (
@@ -160,7 +92,7 @@ export default function Schedules() {
               variant="ghost"
               size="icon"
               title="Baixar escala do mês"
-              onClick={() => downloadMonthPDF(currentMonth, allSchedules ?? [])}
+              onClick={() => downloadMonthSchedulePdf(currentMonth, allSchedules ?? [])}
             >
               <Download className="h-4 w-4" />
             </Button>
@@ -239,6 +171,7 @@ export default function Schedules() {
             <h3 className="font-semibold capitalize text-foreground">
               {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
             </h3>
+            {selectedDaySchedule && <MinistryBadge ministry={selectedDaySchedule.ministry} />}
           </div>
 
           {selectedMySchedule ? (

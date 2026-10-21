@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
@@ -155,6 +155,13 @@ export default function Auth() {
 
   const { signIn, signUp, user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Set by ProtectedRoute so a deep link (e.g. from a push notification)
+  // survives the login screen.
+  const fromLocation = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
+  const redirectTo = fromLocation?.pathname && !['/', '/auth'].includes(fromLocation.pathname)
+    ? `${fromLocation.pathname}${fromLocation.search ?? ''}`
+    : '/dashboard';
   const { toast } = useToast();
 
   const toggleInstrument = (value: string) => {
@@ -208,8 +215,8 @@ export default function Auth() {
       return;
     }
 
-    navigate('/dashboard', { replace: true });
-  }, [isLoading, navigate, user]);
+    navigate(redirectTo, { replace: true });
+  }, [isLoading, navigate, redirectTo, user]);
 
   const switchToLogin = () => {
     setMode('login');
@@ -319,7 +326,7 @@ export default function Auth() {
         const { error } = await signIn(email, password);
         if (error) throw error;
         toast({ title: 'Bem-vindo de volta!' });
-        navigate('/dashboard');
+        navigate(redirectTo, { replace: true });
       }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Credenciais inválidas. Tente novamente.';
