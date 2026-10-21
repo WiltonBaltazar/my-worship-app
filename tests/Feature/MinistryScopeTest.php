@@ -131,36 +131,61 @@ class MinistryScopeTest extends TestCase
         $this->assertDatabaseHas('schedules', ['id' => $dmsDraft->id]);
     }
 
-    public function test_non_ghj_leaders_only_see_published_ghj_schedules_they_serve_on(): void
+    public function test_members_see_published_schedules_of_the_ministries_they_belong_to(): void
     {
-        $dmsLeader = $this->createLeader('Adultos', leadsDms: true);
-        $member = $this->createMember('GHJ', inDms: true);
-        $memberUser = User::query()->findOrFail($member->user_id);
-
         $dmsPublished = $this->createSchedule('dms', 'published');
         $ghjPublished = $this->createSchedule('ghj', 'published');
+        $dmsDraft = $this->createSchedule('dms');
+        $ghjDraft = $this->createSchedule('ghj');
+
+        $dmsOnly = $this->userFor($this->createMember('Adultos', inDms: true));
+        $ghjOnly = $this->userFor($this->createMember('GHJ'));
+        $both = $this->userFor($this->createMember('GHJ', inDms: true));
+        $dmsLeader = $this->createLeader('Adultos', leadsDms: true);
+        $dmsLeader->profile->update(['in_dms' => true]);
+
+        $this->assertSame([$dmsPublished->id], $this->visibleScheduleIds($dmsOnly));
+        $this->assertSame([$ghjPublished->id], $this->visibleScheduleIds($ghjOnly));
+        $this->assertEqualsCanonicalizing([$dmsPublished->id, $ghjPublished->id], $this->visibleScheduleIds($both));
+
+        // Leaders also see their own ministry's drafts, but nothing of a ministry they're not in.
+        $this->assertEqualsCanonicalizing([$dmsPublished->id, $dmsDraft->id], $this->visibleScheduleIds($dmsLeader));
+        $this->assertNotContains($ghjDraft->id, $this->visibleScheduleIds($both));
+    }
+
+    public function test_members_still_see_schedules_they_are_personally_on(): void
+    {
+        $member = $this->createMember('Adultos', inDms: true);
         $ghjServing = $this->createSchedule('ghj', 'published');
         $ghjServing->members()->create(['profile_id' => $member->id, 'function_type' => 'instrumentalist']);
 
-        $leaderIds = collect($this->getJson('/api/schedules', $this->authHeadersFor($dmsLeader))->assertOk()->json())
-            ->pluck('id')->all();
+        $this->assertContains($ghjServing->id, $this->visibleScheduleIds($this->userFor($member)));
+    }
 
-        $this->assertContains($dmsPublished->id, $leaderIds);
-        $this->assertNotContains($ghjPublished->id, $leaderIds);
-        $this->assertNotContains($ghjServing->id, $leaderIds);
+    public function test_auth_payload_exposes_viewable_ministries(): void
+    {
+        $both = $this->userFor($this->createMember('GHJ', inDms: true));
+        $ghjOnly = $this->userFor($this->createMember('GHJ'));
 
-        $memberIds = collect($this->getJson('/api/schedules', $this->authHeadersFor($memberUser))->assertOk()->json())
-            ->pluck('id')->all();
+        $this->getJson('/api/auth/me', $this->authHeadersFor($both))
+            ->assertJsonPath('viewable_ministries', ['dms', 'ghj']);
+        $this->getJson('/api/auth/me', $this->authHeadersFor($ghjOnly))
+            ->assertJsonPath('viewable_ministries', ['ghj']);
+    }
 
-        $this->assertContains($dmsPublished->id, $memberIds);
-        $this->assertContains($ghjServing->id, $memberIds);
-        $this->assertNotContains($ghjPublished->id, $memberIds);
+    private function userFor(Profile $profile): User
+    {
+        return User::query()->findOrFail($profile->user_id);
+    }
 
-        $ghjLeader = $this->createLeader('GHJ', leadsGhj: true);
-        $ghjLeaderIds = collect($this->getJson('/api/schedules', $this->authHeadersFor($ghjLeader))->assertOk()->json())
-            ->pluck('id')->all();
-
-        $this->assertContains($ghjPublished->id, $ghjLeaderIds);
+    /**
+     * @return list<string>
+     */
+    private function visibleScheduleIds(User $user): array
+    {
+        return collect($this->getJson('/api/schedules', $this->authHeadersFor($user))->assertOk()->json())
+            ->pluck('id')
+            ->all();
     }
 
     public function test_create_requires_leading_the_ministry(): void

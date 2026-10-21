@@ -166,10 +166,10 @@ function drawPage(doc: jsPDF, heading: string, monthTitle: string, schedules: Sc
 }
 
 /**
- * Monthly rota in the church's paper format: one column per service, one row per team.
- * Each ministry gets its own page(s); drafts and rehearsals are left out.
+ * Monthly rota of one ministry in the church's paper format: one column per service,
+ * one row per team. Drafts and rehearsals are left out.
  */
-export function downloadMonthSchedulePdf(month: Date, schedules: Schedule[]) {
+export function downloadMonthSchedulePdf(month: Date, schedules: Schedule[], ministry: Ministry) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const monthName = format(month, 'MMMM yyyy', { locale: ptBR }).toUpperCase();
   const monthTitle = `ESCALA DE ${monthName}`;
@@ -183,24 +183,22 @@ export function downloadMonthSchedulePdf(month: Date, schedules: Schedule[]) {
       a.schedule_date.localeCompare(b.schedule_date)
       || (a.start_time ?? '').localeCompare(b.start_time ?? ''));
 
-  const pages = (['dms', 'ghj'] as Ministry[]).flatMap((ministry) =>
-    chunk(printable.filter((schedule) => schedule.ministry === ministry), MAX_COLUMNS_PER_PAGE)
-      .map((pageSchedules) => ({ ministry, pageSchedules })));
+  const pages = chunk(printable.filter((schedule) => schedule.ministry === ministry), MAX_COLUMNS_PER_PAGE);
 
   if (pages.length === 0) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     const pageWidth = doc.internal.pageSize.getWidth();
-    doc.text(ORGANIZATION, pageWidth / 2, 18, { align: 'center' });
+    doc.text(MINISTRY_HEADINGS[ministry], pageWidth / 2, 18, { align: 'center' });
     doc.text(monthTitle, pageWidth / 2, 27, { align: 'center' });
     doc.setFont('helvetica', 'normal');
     doc.text('Nenhuma escala publicada para este mês.', pageWidth / 2, 45, { align: 'center' });
   }
 
-  pages.forEach(({ ministry, pageSchedules }, index) => {
+  pages.forEach((pageSchedules, index) => {
     if (index > 0) doc.addPage();
     drawPage(doc, MINISTRY_HEADINGS[ministry], monthTitle, pageSchedules);
   });
 
-  doc.save(`ESCALA ${monthName}.pdf`);
+  doc.save(`ESCALA ${ministry === 'ghj' ? 'GHJ ' : ''}${monthName}.pdf`);
 }

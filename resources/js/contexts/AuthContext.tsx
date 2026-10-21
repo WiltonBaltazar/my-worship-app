@@ -40,6 +40,8 @@ interface AuthPayload {
   profile: Profile | null;
   roles: AppRole[];
   led_ministries: Ministry[];
+  /** Ministries whose schedules this user can see: the ones they belong to or lead. */
+  viewable_ministries: Ministry[];
 }
 
 interface SignUpResponse extends Partial<AuthPayload> {
@@ -66,6 +68,7 @@ interface AuthContextType {
   profile: Profile | null;
   roles: AppRole[];
   ledMinistries: Ministry[];
+  viewableMinistries: Ministry[];
   canManageMinistry: (ministry: Ministry) => boolean;
   isLoading: boolean;
   isAdmin: boolean;
@@ -90,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [ledMinistries, setLedMinistries] = useState<Ministry[]>([]);
+  const [viewableMinistries, setViewableMinistries] = useState<Ministry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const clearState = () => {
@@ -99,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
     setRoles([]);
     setLedMinistries([]);
+    setViewableMinistries([]);
   };
 
   const applyAuthPayload = (payload: Partial<AuthPayload>, tokenOverride?: string | null) => {
@@ -108,15 +113,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const profile = payload.profile ?? null;
     const roles = payload.roles ?? [];
     const ledMinistries = payload.led_ministries ?? [];
+    const viewableMinistries = payload.viewable_ministries ?? [];
 
     setUser(user);
     setProfile(profile);
     setRoles(roles);
     setLedMinistries(ledMinistries);
+    setViewableMinistries(viewableMinistries);
     setSession(token ? { token } : null);
 
     if (user) {
-      saveAuthCache({ user, profile: profile as Record<string, unknown> | null, roles, led_ministries: ledMinistries });
+      saveAuthCache({
+        user,
+        profile: profile as Record<string, unknown> | null,
+        roles,
+        led_ministries: ledMinistries,
+        viewable_ministries: viewableMinistries,
+      });
     }
   };
 
@@ -148,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(cache.profile as Profile | null);
         setRoles(cache.roles as AppRole[]);
         setLedMinistries((cache.led_ministries ?? []) as Ministry[]);
+        setViewableMinistries((cache.viewable_ministries ?? []) as Ministry[]);
         setSession({ token });
       }
 
@@ -253,6 +267,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         roles,
         ledMinistries,
+        viewableMinistries,
         canManageMinistry,
         isLoading,
         isAdmin,

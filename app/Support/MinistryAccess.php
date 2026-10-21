@@ -47,6 +47,36 @@ class MinistryAccess
         ]));
     }
 
+    /**
+     * Ministries whose pool the user belongs to (DMS roster, GHJ home group).
+     *
+     * @return list<string>
+     */
+    public static function memberMinistries(User $user): array
+    {
+        $user->loadMissing('profile');
+
+        return array_values(array_filter(
+            self::ALL,
+            fn (string $ministry): bool => self::inPool($user->profile, $ministry),
+        ));
+    }
+
+    /**
+     * Ministries whose published schedules the user can see: the ones they belong
+     * to plus the ones they lead (admins see all).
+     *
+     * @return list<string>
+     */
+    public static function viewableMinistries(User $user): array
+    {
+        if ($user->isAdmin()) {
+            return self::ALL;
+        }
+
+        return array_values(array_unique([...self::memberMinistries($user), ...self::ledMinistries($user)]));
+    }
+
     public static function canManage(User $user, ?string $ministry): bool
     {
         return $ministry !== null && in_array($ministry, self::ledMinistries($user), true);

@@ -318,6 +318,7 @@ class AuthController extends Controller
             'profile' => $user->profile,
             'roles' => $user->roles->pluck('role')->values()->all(),
             'led_ministries' => MinistryAccess::ledMinistries($user),
+            'viewable_ministries' => MinistryAccess::viewableMinistries($user),
         ];
     }
 
