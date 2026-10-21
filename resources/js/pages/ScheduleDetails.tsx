@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { ActionButtons } from '@/components/schedule/ActionButtons';
 import { RequestSubstituteDialog } from '@/components/schedule/RequestSubstituteDialog';
+import { ScheduleGuests } from '@/components/schedule/ScheduleGuests';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMySchedules, useSchedules, useSetScheduleMemberEditPermission, useSyncScheduleSongs, useUpdateScheduleNotes } from '@/hooks/useSchedules';
 import { useSongs } from '@/hooks/useSongs';
@@ -28,7 +29,7 @@ const functionTypeLabels: Record<string, string> = {
 export default function ScheduleDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { profile, isAdmin, isLeader } = useAuth();
+  const { profile, isAdmin, isLeader, canManageMinistry } = useAuth();
   const { data: mySchedules, isLoading: myLoading } = useMySchedules(profile?.id);
   const { data: allSchedules, isLoading: allLoading } = useSchedules();
   const isLoading = myLoading || allLoading;
@@ -451,6 +452,14 @@ export default function ScheduleDetails() {
             ))}
           </div>
         </div>
+
+        <ScheduleGuests
+          scheduleId={schedule.id}
+          ministry={schedule.ministry}
+          guests={schedule.guests ?? []}
+          canManage={canManageMinistry(schedule.ministry)}
+          titleClassName="text-lg text-foreground"
+        />
 
         {/* Songs */}
         {(canManageSongs || (schedule.songs?.length ?? 0) > 0) && (

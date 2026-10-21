@@ -1,24 +1,20 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  AlertTriangle,
-  Calendar,
-  Check,
-  Clock,
-  Eye,
-  Loader2,
-  Plus,
-  Trash2,
-  Users,
-} from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Badge } from '@/components/ui/badge';
+import { CalendarDays, LayoutGrid, List, Loader2, Plus, Rows3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CreateScheduleDialog } from '@/components/admin/CreateScheduleDialog';
 import { EditScheduleDialog } from '@/components/admin/EditScheduleDialog';
+import {
+  ScheduleCalendarView,
+  ScheduleCardsView,
+  ScheduleGridView,
+  ScheduleListView,
+  type ScheduleViewMode,
+  type ScheduleViewProps,
+} from '@/components/admin/ScheduleViews';
 import { UnavailableMembersList } from '@/components/admin/UnavailableMembersList';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,61 +25,64 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { type Schedule, useDeleteSchedule, useSchedules, useUpdateSchedule } from '@/hooks/useSchedules';
+import { type Schedule, useDeleteSchedule, usePublishSchedule, useSchedules } from '@/hooks/useSchedules';
+import { MINISTRY_LABELS, type Ministry } from '@/lib/ministry';
 
-const statusLabelMap: Record<Schedule['status'], string> = {
-  draft: 'Rascunho',
-  published: 'Publicado',
-  confirmed: 'Confirmado',
-};
+const VIEW_MODE_STORAGE_KEY = 'wora:admin-schedules-view';
 
-const functionLabelMap: Record<string, string> = {
-  lead_vocal: 'Vocal Principal',
-  backing_vocal: 'Backing Vocal',
-  instrumentalist: 'Instrumentista',
-  sound_tech: 'Técnico de Som',
-};
+const viewModeOptions: Array<{ value: ScheduleViewMode; label: string; icon: typeof List }> = [
+  { value: 'list', label: 'Lista', icon: List },
+  { value: 'cards', label: 'Cartões', icon: Rows3 },
+  { value: 'grid', label: 'Grade', icon: LayoutGrid },
+  { value: 'calendar', label: 'Calendário', icon: CalendarDays },
+];
 
-function formatScheduleDate(date: string): string {
-  const parsed = new Date(`${date}T00:00:00`);
-  const formatted = format(parsed, "EEEE, d 'de' MMMM", { locale: ptBR });
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-}
-
-function statusBadgeClass(status: Schedule['status']) {
-  if (status === 'published') {
-    return 'bg-success text-success-foreground';
+function readStoredViewMode(): ScheduleViewMode {
+  try {
+    const stored = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+    if (viewModeOptions.some((option) => option.value === stored)) {
+      return stored as ScheduleViewMode;
+    }
+  } catch {
+    // Storage can be unavailable (private mode); fall back to the default view.
   }
 
-  if (status === 'confirmed') {
-    return '';
-  }
-
-  return 'bg-secondary text-secondary-foreground';
+  return 'list';
 }
 
 export default function AdminSchedules() {
   const navigate = useNavigate();
+  const { ledMinistries, canManageMinistry } = useAuth();
+  const [ministryFilter, setMinistryFilter] = useState<'all' | Ministry>('all');
 
   const { data: schedules, isLoading } = useSchedules();
-  const updateScheduleMutation = useUpdateSchedule();
+  const { publish: handlePublish } = usePublishSchedule();
   const deleteScheduleMutation = useDeleteSchedule();
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
   const [deletingSchedule, setDeletingSchedule] = useState<Schedule | null>(null);
+  const [viewMode, setViewMode] = useState<ScheduleViewMode>(readStoredViewMode);
 
-  const worshipSchedules = useMemo(() => {
-    return (schedules ?? []).filter((schedule) => schedule.schedule_type !== 'rehearsal');
-  }, [schedules]);
-
-  const handlePublish = async (schedule: Schedule) => {
+  const changeViewMode = (mode: ScheduleViewMode) => {
+    setViewMode(mode);
     try {
-      await updateScheduleMutation.mutateAsync({ id: schedule.id, status: 'published' });
+      window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
     } catch {
-      // Toast is handled by hook.
+      // Not persisting the preference is fine.
     }
   };
+
+  const worshipSchedules = useMemo(() => {
+    return (schedules ?? [])
+      .filter(
+        (schedule) => schedule.schedule_type !== 'rehearsal'
+          && (ministryFilter === 'all' || schedule.ministry === ministryFilter),
+      )
+      .sort((a, b) =>
+        b.schedule_date.localeCompare(a.schedule_date)
+        || (b.start_time ?? '').localeCompare(a.start_time ?? ''));
+  }, [schedules, ministryFilter]);
 
   const handleDelete = async () => {
     if (!deletingSchedule) {
@@ -96,6 +95,15 @@ export default function AdminSchedules() {
     } catch {
       // Toast is handled by hook.
     }
+  };
+
+  const viewProps: ScheduleViewProps = {
+    schedules: worshipSchedules,
+    canManage: (schedule) => canManageMinistry(schedule.ministry),
+    onView: (schedule) => navigate(`/admin-app/schedules/${schedule.id}`),
+    onEdit: (schedule) => setEditingScheduleId(schedule.id),
+    onDelete: setDeletingSchedule,
+    onPublish: handlePublish,
   };
 
   if (isLoading) {
@@ -124,113 +132,53 @@ export default function AdminSchedules() {
         description="Verifique antes de escalar — datas em que membros não podem servir."
       />
 
-      <div className="space-y-4">
-        {worshipSchedules.map((schedule) => {
-          const members = schedule.members ?? [];
-          const songs = schedule.songs ?? [];
-          const confirmedCount = members.filter((member) => member.confirmed).length;
-          const requestCount = members.filter((member) => member.requested_change).length;
-
-          return (
-            <Card key={schedule.id} className="admin-surface">
-              <CardHeader className="pb-2">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-primary">
-                      <Calendar className="h-6 w-6" />
-                    </div>
-                    <div className="min-w-0">
-                      <CardTitle className="text-xl text-slate-900 lg:text-2xl">{formatScheduleDate(schedule.schedule_date)}</CardTitle>
-                      {schedule.title && <p className="mt-1 text-sm text-slate-500 lg:text-base">{schedule.title}</p>}
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <Badge className={statusBadgeClass(schedule.status)}>
-                          {statusLabelMap[schedule.status]}
-                        </Badge>
-                        {requestCount > 0 && (
-                          <Badge variant="outline" className="border-orange-400 text-orange-700">
-                            <AlertTriangle className="mr-1 h-3 w-3" />
-                            {requestCount} solicitação(ões)
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => navigate(`/admin-app/schedules/${schedule.id}`)}>
-                      <Eye className="mr-1 h-4 w-4" />
-                      Ver
-                    </Button>
-                    {schedule.status === 'draft' && members.length > 0 && (
-                      <Button variant="outline" size="sm" onClick={() => handlePublish(schedule)}>
-                        Publicar
-                      </Button>
-                    )}
-                    <Button variant="outline" size="sm" onClick={() => setEditingScheduleId(schedule.id)}>
-                      Editar
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => setDeletingSchedule(schedule)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                <div className="flex flex-wrap gap-6 text-slate-500">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    <span>{members.length} membros escalados</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-success" />
-                    <span>{confirmedCount} confirmados</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    <span>{songs.length} músicas</span>
-                  </div>
-                </div>
-
-                <div className="border-t border-slate-200 pt-4">
-                  <p className="mb-2 font-medium text-slate-900">Equipe:</p>
-                  {members.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {members.map((member) => (
-                        <Badge
-                          key={member.id}
-                          variant={member.confirmed ? 'default' : 'secondary'}
-                          className={member.confirmed ? 'whitespace-normal break-words bg-orange-50 text-orange-700' : 'whitespace-normal break-words'}
-                        >
-                          {member.profile?.name} - {functionLabelMap[member.function_type] || member.function_type}
-                          {member.function_detail ? ` - ${member.function_detail}` : ''}
-                          {member.confirmed && <Check className="ml-1 h-3 w-3" />}
-                          {member.requested_change && <AlertTriangle className="ml-1 h-3 w-3" />}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Nenhum membro escalado ainda. Clique em "Editar" para adicionar.
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-
-        {worshipSchedules.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
-            Nenhuma escala criada ainda.
-          </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {ledMinistries.length > 1 && (
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            value={ministryFilter}
+            onValueChange={(value) => value && setMinistryFilter(value as 'all' | Ministry)}
+            className="justify-start"
+          >
+            <ToggleGroupItem value="all" className="rounded-xl bg-white px-4">Todas</ToggleGroupItem>
+            {ledMinistries.map((ministry) => (
+              <ToggleGroupItem key={ministry} value={ministry} className="rounded-xl bg-white px-4">
+                {MINISTRY_LABELS[ministry]}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
         )}
+
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          value={viewMode}
+          onValueChange={(value) => value && changeViewMode(value as ScheduleViewMode)}
+          className="justify-start sm:ml-auto"
+          aria-label="Modo de visualização"
+        >
+          {viewModeOptions.map(({ value, label, icon: Icon }) => (
+            <ToggleGroupItem key={value} value={value} className="gap-1.5 rounded-xl bg-white px-3" aria-label={label}>
+              <Icon className="h-4 w-4" />
+              <span className="hidden sm:inline">{label}</span>
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
       </div>
+
+      {worshipSchedules.length > 0 ? (
+        <>
+          {viewMode === 'cards' && <ScheduleCardsView {...viewProps} />}
+          {viewMode === 'list' && <ScheduleListView {...viewProps} />}
+          {viewMode === 'grid' && <ScheduleGridView {...viewProps} />}
+          {viewMode === 'calendar' && <ScheduleCalendarView {...viewProps} />}
+        </>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+          Nenhuma escala criada ainda.
+        </div>
+      )}
 
       <CreateScheduleDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
 

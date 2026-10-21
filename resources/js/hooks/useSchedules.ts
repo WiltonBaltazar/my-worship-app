@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import type { Ministry } from '@/lib/ministry';
 
 export interface ScheduleMember {
   id: string;
@@ -40,17 +41,33 @@ export interface ScheduleSong {
   };
 }
 
+export interface ScheduleGuest {
+  id: string;
+  /** Set when the presenter is a registered member. */
+  profile_id: string | null;
+  name: string;
+  avatar_url: string | null;
+  role: string;
+  song_title: string | null;
+  song_url: string | null;
+  notes: string | null;
+  order_position: number;
+}
+
 export interface Schedule {
   id: string;
   schedule_date: string;
   start_time: string;
   status: 'draft' | 'published' | 'confirmed';
   schedule_type: 'worship' | 'rehearsal';
+  ministry: Ministry;
   title: string | null;
   notes: string | null;
+  availability_call: { is_open: boolean; deadline: string | null } | null;
   created_at: string;
   updated_at: string;
   members?: ScheduleMember[];
+  guests?: ScheduleGuest[];
   songs?: ScheduleSong[];
 }
 
@@ -137,6 +154,7 @@ export function useCreateSchedule() {
       start_time?: string;
       notes?: string;
       schedule_type?: 'worship' | 'rehearsal';
+      ministry?: Ministry;
       title?: string;
       status?: 'draft' | 'published' | 'confirmed';
     }) => {
@@ -176,6 +194,34 @@ export function useUpdateSchedule() {
       toast({ title: 'Erro ao atualizar escala', description: error.message, variant: 'destructive' });
     },
   });
+}
+
+/**
+ * Publishes a draft, refusing (with an explanation) when nobody is on the team yet —
+ * a published schedule with no members would notify no one.
+ */
+export function usePublishSchedule() {
+  const updateScheduleMutation = useUpdateSchedule();
+  const { toast } = useToast();
+
+  const publish = async (schedule: Schedule) => {
+    if ((schedule.members ?? []).length === 0) {
+      toast({
+        title: 'Adicione membros antes de publicar',
+        description: 'Use "Editar" para escalar a equipe ou abra uma convocatória.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await updateScheduleMutation.mutateAsync({ id: schedule.id, status: 'published' });
+    } catch {
+      // Toast is handled by useUpdateSchedule.
+    }
+  };
+
+  return { publish, isPending: updateScheduleMutation.isPending };
 }
 
 export function useUpdateScheduleNotes() {
@@ -224,9 +270,10 @@ export function useAddScheduleMember() {
         },
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['schedules'] });
       queryClient.invalidateQueries({ queryKey: ['my-schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['availability-responses', variables.schedule_id] });
       toast({ title: 'Membro adicionado à escala!' });
     },
     onError: (error: any) => {

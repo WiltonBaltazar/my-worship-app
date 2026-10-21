@@ -24,23 +24,31 @@ class Profile extends Model
         'avatar_url',
         'phone',
         'home_group',
+        'in_dms',
+        'leads_dms',
+        'leads_ghj',
         'can_lead',
         'can_be_tech_lead',
         'can_be_tech_sound',
         'can_be_tech_streaming',
         'is_active',
         'is_approved',
+        'paused_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'in_dms' => 'boolean',
+            'leads_dms' => 'boolean',
+            'leads_ghj' => 'boolean',
             'can_lead' => 'boolean',
             'can_be_tech_lead' => 'boolean',
             'can_be_tech_sound' => 'boolean',
             'can_be_tech_streaming' => 'boolean',
             'is_active' => 'boolean',
             'is_approved' => 'boolean',
+            'paused_at' => 'datetime',
         ];
     }
 
@@ -69,12 +77,33 @@ class Profile extends Model
         return $this->hasMany(ProfileUnavailableDate::class);
     }
 
+    public function unavailablePeriods(): HasMany
+    {
+        return $this->hasMany(ProfileUnavailablePeriod::class)->orderBy('start_date');
+    }
+
+    public function isPaused(): bool
+    {
+        return $this->paused_at !== null;
+    }
+
+    /**
+     * Paused, or the date is marked unavailable on its own or inside a period.
+     */
     public function isUnavailableOnDate(string|\DateTimeInterface $date): bool
     {
+        if ($this->isPaused()) {
+            return true;
+        }
+
         $dateString = Carbon::parse($date)->format('Y-m-d');
 
         return $this->unavailableDates()
             ->whereDate('unavailable_date', $dateString)
-            ->exists();
+            ->exists()
+            || $this->unavailablePeriods()
+                ->whereDate('start_date', '<=', $dateString)
+                ->whereDate('end_date', '>=', $dateString)
+                ->exists();
     }
 }

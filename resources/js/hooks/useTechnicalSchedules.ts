@@ -135,3 +135,28 @@ export function useDeleteTechnicalScheduleWeek() {
     },
   });
 }
+
+export function useDeleteTechnicalScheduleWeeks() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      return apiRequest<{ message: string; deleted: number }>('/api/technical-schedules/delete-many', {
+        method: 'POST',
+        body: { ids },
+      });
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['technical-schedules'] });
+      toast({ title: `${result.deleted} semana(s) técnica(s) removida(s)` });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro ao remover semanas',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}

@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
 use App\Models\Profile;
 use App\Models\Schedule;
+use App\Models\ScheduleGuest;
 use App\Models\ScheduleMember;
 use App\Models\ScheduleSong;
 use App\Models\SubstituteRequest;
-use App\Models\User;
+use App\Support\MinistryAccess;
 use App\Support\NormalScheduleEligibility;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,8 +26,6 @@ class ScheduleController extends Controller
         'sound_tech' => 3,
     ];
 
-    private const RESTRICTED_LEADER_HOME_GROUP = 'GHJ';
-
     public function index(Request $request): JsonResponse
     {
         $query = Schedule::query()
@@ -37,10 +36,34 @@ class ScheduleController extends Controller
                 'members.substituteRequests' => fn ($q) => $q->where('status', 'pending')
                     ->with('candidateProfile:id,name,avatar_url'),
                 'songs.song:id,title,artist',
+                'guests.profile:id,name,avatar_url',
             ]);
 
-        if (! $request->user()->isAdmin() && ! $request->user()->isLeader()) {
-            $query->where('status', '!=', 'draft');
+        $user = $request->user();
+
+        if (! $user->isAdmin()) {
+            $ledMinistries = MinistryAccess::ledMinistries($user);
+            $profileId = $user->profile?->id;
+
+            // Outside the ministries they lead, users see published DMS schedules
+            // plus any published schedule they are personally on.
+            $query->where(function ($visibility) use ($ledMinistries, $profileId): void {
+                $visibility->where(function ($published) use ($profileId): void {
+                    $published->where('status', '!=', 'draft')
+                        ->where(function ($scope) use ($profileId): void {
+                            $scope->where('ministry', MinistryAccess::DMS);
+
+                            if ($profileId) {
+                                $scope->orWhereHas('members', fn ($members) => $members->where('profile_id', $profileId))
+                                    ->orWhereHas('guests', fn ($guests) => $guests->where('profile_id', $profileId));
+                            }
+                        });
+                });
+
+                if ($ledMinistries !== []) {
+                    $visibility->orWhereIn('ministry', $ledMinistries);
+                }
+            });
         }
 
         $schedules = $query->get()->map(fn (Schedule $schedule) => $this->formatSchedule($schedule));
@@ -58,7 +81,10 @@ class ScheduleController extends Controller
 
         $scheduleIds = ScheduleMember::query()
             ->where('profile_id', $profileId)
-            ->pluck('schedule_id');
+            ->pluck('schedule_id')
+            ->merge(ScheduleGuest::query()->where('profile_id', $profileId)->pluck('schedule_id'))
+            ->unique()
+            ->values();
 
         if ($scheduleIds->isEmpty()) {
             return response()->json([]);
@@ -74,6 +100,7 @@ class ScheduleController extends Controller
                 'members.substituteRequests' => fn ($q) => $q->where('status', 'pending')
                     ->with('candidateProfile:id,name,avatar_url'),
                 'songs.song:id,title,artist',
+                'guests.profile:id,name,avatar_url',
             ])
             ->get()
             ->map(fn (Schedule $schedule) => $this->formatSchedule($schedule));
@@ -90,12 +117,22 @@ class ScheduleController extends Controller
             'start_time' => ['nullable', 'date_format:H:i:s'],
             'status' => ['nullable', 'in:draft,published,confirmed'],
             'schedule_type' => ['nullable', 'in:worship,rehearsal'],
+            'ministry' => ['nullable', 'in:'.implode(',', MinistryAccess::ALL)],
             'title' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ]);
 
+        $ledMinistries = MinistryAccess::ledMinistries($request->user());
+        $ministry = $validated['ministry']
+            ?? (count($ledMinistries) === 1 ? $ledMinistries[0] : MinistryAccess::DMS);
+
+        if (! MinistryAccess::canManage($request->user(), $ministry)) {
+            abort(403, 'Forbidden.');
+        }
+
         $schedule = Schedule::query()->create([
             ...$validated,
+            'ministry' => $ministry,
             'start_time' => $validated['start_time'] ?? '11:00:00',
             'status' => $validated['status'] ?? 'draft',
             'schedule_type' => $validated['schedule_type'] ?? 'worship',
@@ -108,6 +145,7 @@ class ScheduleController extends Controller
             'members.substituteRequests' => fn ($q) => $q->where('status', 'pending')
                 ->with('candidateProfile:id,name,avatar_url'),
             'songs.song:id,title,artist',
+            'guests.profile:id,name,avatar_url',
         ]);
 
         return response()->json($this->formatSchedule($schedule), 201);
@@ -115,7 +153,7 @@ class ScheduleController extends Controller
 
     public function update(Request $request, Schedule $schedule): JsonResponse
     {
-        $this->ensureLeaderAccess($request);
+        $this->ensureCanManageSchedule($request, $schedule);
 
         $validated = $request->validate([
             'schedule_date' => ['sometimes', 'date', 'after_or_equal:today'],
@@ -134,6 +172,7 @@ class ScheduleController extends Controller
             'members.substituteRequests' => fn ($q) => $q->where('status', 'pending')
                 ->with('candidateProfile:id,name,avatar_url'),
             'songs.song:id,title,artist',
+            'guests.profile:id,name,avatar_url',
         ]);
 
         return response()->json($this->formatSchedule($schedule));
@@ -155,6 +194,7 @@ class ScheduleController extends Controller
             'members.substituteRequests' => fn ($q) => $q->where('status', 'pending')
                 ->with('candidateProfile:id,name,avatar_url'),
             'songs.song:id,title,artist',
+            'guests.profile:id,name,avatar_url',
         ]);
 
         return response()->json($this->formatSchedule($schedule));
@@ -162,7 +202,7 @@ class ScheduleController extends Controller
 
     public function destroy(Request $request, Schedule $schedule): JsonResponse
     {
-        $this->ensureLeaderAccess($request);
+        $this->ensureCanManageSchedule($request, $schedule);
 
         $schedule->delete();
 
@@ -171,7 +211,7 @@ class ScheduleController extends Controller
 
     public function addMember(Request $request, Schedule $schedule): JsonResponse
     {
-        $this->ensureLeaderAccess($request);
+        $this->ensureCanManageSchedule($request, $schedule);
 
         $validated = $request->validate([
             'profile_id' => ['required', 'exists:profiles,id'],
@@ -185,7 +225,7 @@ class ScheduleController extends Controller
             ->with(['user.roles:user_id,role', 'unavailableDates', 'instruments', 'voices'])
             ->findOrFail($validated['profile_id']);
 
-        $this->ensureLeaderCanManageProfile($request, $profile);
+        $this->ensureProfileInSchedulePool($profile, $schedule, 'profile_id');
 
         if ($this->profileIsAdmin($profile)) {
             throw ValidationException::withMessages([
@@ -226,6 +266,21 @@ class ScheduleController extends Controller
                     'type' => 'schedule',
                 ]);
             }
+        } elseif ($member->profile?->user_id && $this->volunteeredForCall($schedule, $member->profile_id)) {
+            // Volunteers from a convocatória are waiting for an answer, so tell them
+            // right away instead of only when the draft gets published.
+            $scheduleDate = optional($schedule->schedule_date)->format('d/m/Y');
+            $label = $schedule->title ?: 'Culto';
+
+            AppNotification::query()->create([
+                'user_id' => $member->profile->user_id,
+                'schedule_id' => $schedule->id,
+                'title' => 'Você foi escalado(a)!',
+                'message' => $scheduleDate
+                    ? "{$label} em {$scheduleDate}: você foi adicionado(a) à escala."
+                    : "{$label}: você foi adicionado(a) à escala.",
+                'type' => 'schedule',
+            ]);
         }
 
         return response()->json($this->formatMember($member), 201);
@@ -233,11 +288,12 @@ class ScheduleController extends Controller
 
     public function updateMember(Request $request, ScheduleMember $member): JsonResponse
     {
-        $member->loadMissing('profile');
+        $member->loadMissing(['profile', 'schedule']);
 
         $user = $request->user();
 
-        $isAdminOrLeader = $user->isAdmin() || $user->isLeader();
+        // Leaders act as such only on schedules of a ministry they lead; elsewhere they are plain members.
+        $isAdminOrLeader = MinistryAccess::canManage($user, $member->schedule?->ministry);
         $isOwner = $member->profile?->user_id === $user->id;
         $requestProfileId = $user->profile?->id;
         $isScheduleLead = $requestProfileId
@@ -246,10 +302,6 @@ class ScheduleController extends Controller
 
         if (! $isOwner && ! $isAdminOrLeader && ! $isScheduleLead) {
             abort(403, 'Forbidden.');
-        }
-
-        if ($isAdminOrLeader) {
-            $this->ensureLeaderCanManageProfile($request, $member->profile);
         }
 
         $validated = $request->validate([
@@ -293,6 +345,10 @@ class ScheduleController extends Controller
                     'suggested_substitute_id' => ['Administradores não podem ser selecionados como substitutos.'],
                 ]);
             }
+
+            if ($member->schedule) {
+                $this->ensureProfileInSchedulePool($suggestedSubstitute, $member->schedule, 'suggested_substitute_id');
+            }
         }
 
         if (array_key_exists('function_type', $validated)) {
@@ -313,18 +369,14 @@ class ScheduleController extends Controller
 
     public function removeMember(Request $request, ScheduleMember $member): JsonResponse
     {
-        $user = $request->user();
-
-        if (! $user->isAdmin() && ! $user->isLeader()) {
-            abort(403, 'Forbidden.');
-        }
-
         $member->loadMissing([
             'profile:id,name,user_id,home_group',
-            'schedule:id,schedule_date,status',
+            'schedule:id,schedule_date,status,ministry',
         ]);
 
-        $this->ensureLeaderCanManageProfile($request, $member->profile);
+        if (! MinistryAccess::canManage($request->user(), $member->schedule?->ministry)) {
+            abort(403, 'Forbidden.');
+        }
 
         $removedProfile = $member->profile;
         $schedule = $member->schedule;
@@ -408,6 +460,7 @@ class ScheduleController extends Controller
             'members.substituteRequests' => fn ($q) => $q->where('status', 'pending')
                 ->with('candidateProfile:id,name,avatar_url'),
             'songs.song:id,title,artist',
+            'guests.profile:id,name,avatar_url',
         ]);
 
         return response()->json($this->formatSchedule($schedule));
@@ -425,12 +478,21 @@ class ScheduleController extends Controller
             'start_time' => $schedule->start_time,
             'status' => $schedule->status,
             'schedule_type' => $schedule->schedule_type,
+            'ministry' => $schedule->ministry,
             'title' => $schedule->title,
             'notes' => $schedule->notes,
+            'availability_call' => $schedule->call_opened_at ? [
+                'is_open' => $schedule->isCallOpen(),
+                'deadline' => $schedule->call_deadline?->toISOString(),
+            ] : null,
             'created_at' => optional($schedule->created_at)?->toISOString(),
             'updated_at' => optional($schedule->updated_at)?->toISOString(),
             'members' => $this->sortScheduleMembers($eligibleMembers)
                 ->map(fn (ScheduleMember $member) => $this->formatMember($member))
+                ->values()
+                ->all(),
+            'guests' => $schedule->guests
+                ->map(fn (ScheduleGuest $guest) => ScheduleGuestController::format($guest))
                 ->values()
                 ->all(),
             'songs' => $schedule->songs
@@ -511,6 +573,14 @@ class ScheduleController extends Controller
         return false;
     }
 
+    private function volunteeredForCall(Schedule $schedule, string $profileId): bool
+    {
+        return $schedule->availabilityResponses()
+            ->where('profile_id', $profileId)
+            ->where('available', true)
+            ->exists();
+    }
+
     private function isScheduleLead(string $profileId, string $scheduleId): bool
     {
         return ScheduleMember::query()
@@ -524,7 +594,7 @@ class ScheduleController extends Controller
     {
         $user = $request->user();
 
-        if ($user->isAdmin() || $user->isLeader()) {
+        if (MinistryAccess::canManage($user, $schedule->ministry)) {
             return true;
         }
 
@@ -561,6 +631,13 @@ class ScheduleController extends Controller
         }
     }
 
+    private function ensureCanManageSchedule(Request $request, Schedule $schedule): void
+    {
+        if (! MinistryAccess::canManage($request->user(), $schedule->ministry)) {
+            abort(403, 'Forbidden.');
+        }
+    }
+
     private function ensureScheduleSongManagementAccess(Request $request, Schedule $schedule): void
     {
         if (! $this->hasScheduleSongEditPermission($request, $schedule)) {
@@ -577,7 +654,9 @@ class ScheduleController extends Controller
         $formattedDate = $schedule->schedule_date->format('d/m/Y');
 
         throw ValidationException::withMessages([
-            $field => ["{$profile->name} está indisponível em {$formattedDate}."],
+            $field => [$profile->isPaused()
+                ? "{$profile->name} pausou as escalas."
+                : "{$profile->name} está indisponível em {$formattedDate}."],
         ]);
     }
 
@@ -592,27 +671,16 @@ class ScheduleController extends Controller
         ]);
     }
 
-    private function ensureLeaderCanManageProfile(Request $request, ?Profile $profile): void
+    private function ensureProfileInSchedulePool(Profile $profile, Schedule $schedule, string $field): void
     {
-        $user = $request->user()->loadMissing('profile');
-
-        if (! $this->isRestrictedHomeGroupLeader($user)) {
+        if (MinistryAccess::inPool($profile, $schedule->ministry)) {
             return;
         }
 
-        if (($profile?->home_group) !== self::RESTRICTED_LEADER_HOME_GROUP) {
-            abort(403, 'Forbidden.');
-        }
-    }
+        $ministryLabel = MinistryAccess::LABELS[$schedule->ministry] ?? strtoupper($schedule->ministry);
 
-    private function isRestrictedHomeGroupLeader(User $user): bool
-    {
-        if ($user->isAdmin() || ! $user->isLeader()) {
-            return false;
-        }
-
-        $user->loadMissing('profile');
-
-        return $user->profile?->home_group === self::RESTRICTED_LEADER_HOME_GROUP;
+        throw ValidationException::withMessages([
+            $field => ["{$profile->name} não pertence ao {$ministryLabel}."],
+        ]);
     }
 }

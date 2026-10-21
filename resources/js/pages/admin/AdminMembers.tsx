@@ -23,10 +23,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { AddMemberDialog } from '@/components/admin/AddMemberDialog';
 import { EditMemberDialog } from '@/components/admin/EditMemberDialog';
 import { UnavailableMembersList } from '@/components/admin/UnavailableMembersList';
 import { type Profile, useDeleteProfile, useProfiles } from '@/hooks/useProfiles';
+import { MINISTRY_LABELS, type Ministry } from '@/lib/ministry';
 
 const instrumentLabels: Record<string, string> = {
   guitar: 'Guitarra',
@@ -47,6 +49,14 @@ const voiceLabels: Record<string, string> = {
   bass_voice: 'Voz Grave (Baixo)',
 };
 
+type MinistryFilter = 'all' | Ministry;
+
+const ministryFilters: { value: MinistryFilter; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'dms', label: MINISTRY_LABELS.dms },
+  { value: 'ghj', label: MINISTRY_LABELS.ghj },
+];
+
 const homeGroupLabels: Record<string, string> = {
   GHH: 'Grupo Homegénio de Homens',
   GHS: 'Grupo Homegénio de Senhoras',
@@ -59,6 +69,7 @@ export default function AdminMembers() {
   const deleteProfileMutation = useDeleteProfile();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [ministryFilter, setMinistryFilter] = useState<MinistryFilter>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Profile | null>(null);
   const [deletingMember, setDeletingMember] = useState<Profile | null>(null);
@@ -95,7 +106,11 @@ export default function AdminMembers() {
       const matchesVoices =
         selectedVoices.length === 0 || (member.voices ?? []).some((voice) => selectedVoices.includes(voice));
 
-      return matchesSearch && matchesInstruments && matchesVoices;
+      const matchesMinistry =
+        ministryFilter === 'all'
+        || (ministryFilter === 'dms' ? member.in_dms : member.home_group === 'GHJ');
+
+      return matchesSearch && matchesInstruments && matchesVoices && matchesMinistry;
     }) ?? [];
 
   if (isLoading) {
@@ -120,6 +135,20 @@ export default function AdminMembers() {
       </div>
 
       <UnavailableMembersList />
+
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        value={ministryFilter}
+        onValueChange={(value) => value && setMinistryFilter(value as MinistryFilter)}
+        className="justify-start"
+      >
+        {ministryFilters.map((filter) => (
+          <ToggleGroupItem key={filter.value} value={filter.value} className="rounded-xl bg-white px-4">
+            {filter.label}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
@@ -229,6 +258,8 @@ export default function AdminMembers() {
                           {homeGroupLabels[member.home_group] ?? member.home_group}
                         </Badge>
                       )}
+                      {member.is_paused && <Badge className="bg-amber-100 text-amber-800 text-xs">Pausado</Badge>}
+                      {member.in_dms && <Badge className="bg-orange-50 text-orange-700 text-xs">DMS</Badge>}
                       {member.can_lead && <Badge className="bg-orange-50 text-orange-700 text-xs">Pode dirigir</Badge>}
                       {member.can_be_tech_lead && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Lead</Badge>}
                       {member.can_be_tech_sound && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Som</Badge>}
@@ -287,7 +318,7 @@ export default function AdminMembers() {
 
       {editingMember && (
         <EditMemberDialog
-          member={editingMember}
+          member={members?.find((member) => member.id === editingMember.id) ?? editingMember}
           open={editingMember !== null}
           onOpenChange={(open) => {
             if (!open) {

@@ -100,12 +100,12 @@ export function exportTechnicalAndGeneralSchedulesPdf(payload: ExportPayload): v
   autoTable(doc, {
     startY: 106,
     theme: 'grid',
-    head: [['Semana', 'Técnico Lead', 'Técnico Assistente', 'Técnico de Streaming']],
+    // Streaming technicians are hidden for now (see config/technical_schedule.php).
+    head: [['Semana', 'Técnico Lead', 'Técnico Assistente']],
     body: technicalWeeks.map((week) => [
       formatDate(week.week_start_date),
       week.lead_profile?.name ?? 'Nao definido',
       week.sound_profile?.name ?? 'Nao definido',
-      week.streaming_profile?.name ?? 'Nao definido',
     ]),
     styles: { fontSize: 9, cellPadding: 4, valign: 'top', lineColor: orangeLine, lineWidth: 0.2 },
     headStyles: { fillColor: orangeHeaderFill, textColor: orangeHeaderText, fontStyle: 'bold' },

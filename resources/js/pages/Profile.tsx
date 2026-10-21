@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 import {
   Mail,
   Music,
@@ -12,10 +13,10 @@ import {
   Bell,
   CalendarDays,
   Plus,
-  Save,
   Wrench,
   Trash2,
   Smartphone,
+  PauseCircle,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
 import { useApproveProfile, usePendingProfiles, useProfiles, useUpdateProfile } from '@/hooks/useProfiles';
+import type { UnavailablePeriod } from '@/lib/availability';
 import { toLocalDateInputValue } from '@/lib/date-time';
 
 const instrumentLabels: Record<string, string> = {
@@ -51,6 +53,14 @@ const voiceLabels: Record<string, string> = {
   bass_voice: 'Voz Grave (Baixo)'
 };
 
+function sortPeriods(periods: UnavailablePeriod[]): UnavailablePeriod[] {
+  return [...periods].sort((a, b) => a.start_date.localeCompare(b.start_date));
+}
+
+function formatShortDate(date: string): string {
+  return format(new Date(`${date}T00:00:00`), 'dd/MM/yyyy');
+}
+
 export default function Profile() {
   const { profile, signOut, isAdmin, isLeader, roles } = useAuth();
   const { isSubscribed, permission } = usePushNotifications();
@@ -66,6 +76,10 @@ export default function Profile() {
   const myProfile = profiles?.find(p => p.id === profile?.id);
   const [newUnavailableDate, setNewUnavailableDate] = useState('');
   const [unavailableDates, setUnavailableDates] = useState<string[]>([]);
+  const [unavailablePeriods, setUnavailablePeriods] = useState<UnavailablePeriod[]>([]);
+  const [newPeriodStart, setNewPeriodStart] = useState('');
+  const [newPeriodEnd, setNewPeriodEnd] = useState('');
+  const isPaused = Boolean(myProfile?.is_paused);
 
   const handleSignOut = async () => {
     await signOut();
@@ -82,43 +96,111 @@ export default function Profile() {
     }
 
     setUnavailableDates([...(myProfile.unavailable_dates ?? [])].sort());
+    setUnavailablePeriods(sortPeriods(myProfile.unavailable_periods ?? []));
   }, [myProfile]);
 
-  const handleAddUnavailableDate = () => {
-    if (!newUnavailableDate) {
-      return;
-    }
-
-    setUnavailableDates((previous) => {
-      if (previous.includes(newUnavailableDate)) {
-        return previous;
-      }
-
-      return [...previous, newUnavailableDate].sort();
-    });
-    setNewUnavailableDate('');
-  };
-
-  const handleRemoveUnavailableDate = (date: string) => {
-    setUnavailableDates((previous) => previous.filter((item) => item !== date));
-  };
-
-  const handleSaveUnavailableDates = async (event: React.FormEvent) => {
-    event.preventDefault();
-
+  const handleTogglePause = (paused: boolean) => {
     if (!profile?.id) {
       return;
     }
+
+    updateProfileMutation.mutate({
+      profileId: profile.id,
+      updates: {},
+      isPaused: paused,
+      successTitle: paused ? 'Escalas pausadas' : 'Escalas retomadas',
+    });
+  };
+
+  /**
+   * Saves absences as soon as they change. The list updates immediately and is
+   * rolled back if the save fails (the hook shows the error toast).
+   */
+  const saveAbsences = async (next: { dates?: string[]; periods?: UnavailablePeriod[] }, successTitle: string) => {
+    if (!profile?.id) {
+      return false;
+    }
+
+    const previousDates = unavailableDates;
+    const previousPeriods = unavailablePeriods;
+
+    if (next.dates) setUnavailableDates(next.dates);
+    if (next.periods) setUnavailablePeriods(next.periods);
 
     try {
       await updateProfileMutation.mutateAsync({
         profileId: profile.id,
         updates: {},
-        unavailableDates,
+        unavailableDates: next.dates,
+        unavailablePeriods: next.periods,
+        successTitle,
       });
+      return true;
     } catch {
-      // Toast is handled by hook.
+      setUnavailableDates(previousDates);
+      setUnavailablePeriods(previousPeriods);
+      return false;
     }
+  };
+
+  const handleAddPeriod = async () => {
+    if (!newPeriodStart || !newPeriodEnd || newPeriodEnd < newPeriodStart) {
+      return;
+    }
+
+    if (unavailablePeriods.some((period) => period.start_date === newPeriodStart && period.end_date === newPeriodEnd)) {
+      setNewPeriodStart('');
+      setNewPeriodEnd('');
+      return;
+    }
+
+    const saved = await saveAbsences(
+      { periods: sortPeriods([...unavailablePeriods, { start_date: newPeriodStart, end_date: newPeriodEnd }]) },
+      'Indisponibilidade salva',
+    );
+
+    if (saved) {
+      setNewPeriodStart('');
+      setNewPeriodEnd('');
+    }
+  };
+
+  const handleRemovePeriod = (target: UnavailablePeriod) => {
+    void saveAbsences(
+      {
+        periods: unavailablePeriods.filter(
+          (period) => period.start_date !== target.start_date || period.end_date !== target.end_date,
+        ),
+      },
+      'Indisponibilidade removida',
+    );
+  };
+
+  const handleAddUnavailableDate = async () => {
+    if (!newUnavailableDate) {
+      return;
+    }
+
+    if (unavailableDates.includes(newUnavailableDate)) {
+      setNewUnavailableDate('');
+      return;
+    }
+
+    const saved = await saveAbsences(
+      { dates: [...unavailableDates, newUnavailableDate].sort() },
+      'Indisponibilidade salva',
+    );
+
+    if (saved) {
+      setNewUnavailableDate('');
+    }
+  };
+
+  const handleRemoveUnavailableDate = (date: string) => {
+    void saveAbsences(
+      { dates: unavailableDates.filter((item) => item !== date) },
+      'Indisponibilidade removida',
+    );
   };
 
   const initials = profile?.name
@@ -190,10 +272,100 @@ export default function Profile() {
           <h3 className="font-semibold text-foreground">Indisponibilidade</h3>
         </div>
         <p className="mb-4 text-sm text-muted-foreground">
-          Marque datas em que você não pode ser escalado.
+          Pause as escalas ou marque períodos e datas em que você não pode ser escalado. As alterações são salvas automaticamente.
         </p>
 
-        <form onSubmit={handleSaveUnavailableDates} className="space-y-4">
+        <div
+          className={`mb-5 rounded-xl border p-3 ${isPaused ? 'border-amber-300 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10' : 'border-border bg-secondary/40'}`}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <PauseCircle className={`mt-0.5 h-5 w-5 shrink-0 ${isPaused ? 'text-amber-600' : 'text-muted-foreground'}`} />
+              <div>
+                <Label htmlFor="profile-pause" className="text-sm font-medium text-foreground">
+                  Pausar escalas
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {isPaused
+                    ? `Pausado${myProfile?.paused_at ? ` desde ${format(new Date(myProfile.paused_at), 'dd/MM/yyyy')}` : ''}. Você não será escalado nem convocado até retomar.`
+                    : 'Enquanto estiver pausado, você não será escalado nem convocado.'}
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="profile-pause"
+              checked={isPaused}
+              onCheckedChange={handleTogglePause}
+              disabled={updateProfileMutation.isPending || !myProfile}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Adicionar período indisponível</Label>
+            <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground">De</span>
+                <Input
+                  type="date"
+                  aria-label="Início do período"
+                  value={newPeriodStart}
+                  onChange={(event) => {
+                    setNewPeriodStart(event.target.value);
+                    if (newPeriodEnd && event.target.value > newPeriodEnd) setNewPeriodEnd('');
+                  }}
+                  min={minUnavailableDate}
+                />
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground">Até</span>
+                <Input
+                  type="date"
+                  aria-label="Fim do período"
+                  value={newPeriodEnd}
+                  onChange={(event) => setNewPeriodEnd(event.target.value)}
+                  min={newPeriodStart || minUnavailableDate}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void handleAddPeriod()}
+                disabled={!newPeriodStart || !newPeriodEnd || newPeriodEnd < newPeriodStart || updateProfileMutation.isPending}
+                aria-label="Adicionar período"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {unavailablePeriods.length > 0 && (
+            <div className="space-y-2">
+              <Label>Períodos marcados</Label>
+              {unavailablePeriods.map((period) => (
+                <div
+                  key={`${period.start_date}-${period.end_date}`}
+                  className="flex items-center justify-between rounded-lg border border-border bg-secondary/40 px-3 py-2"
+                >
+                  <span className="text-sm text-foreground">
+                    {formatShortDate(period.start_date)} até {formatShortDate(period.end_date)}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemovePeriod(period)}
+                    disabled={updateProfileMutation.isPending}
+                    aria-label="Remover período"
+                  >
+                    <Trash2 className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="profile-unavailable-date">Adicionar data indisponível</Label>
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -208,7 +380,7 @@ export default function Profile() {
                 type="button"
                 variant="outline"
                 className="w-full sm:w-auto"
-                onClick={handleAddUnavailableDate}
+                onClick={() => void handleAddUnavailableDate()}
                 disabled={!newUnavailableDate || updateProfileMutation.isPending}
               >
                 <Plus className="h-4 w-4" />
@@ -225,7 +397,7 @@ export default function Profile() {
                     key={date}
                     className="flex items-center justify-between rounded-lg border border-border bg-secondary/40 px-3 py-2"
                   >
-                    <span className="text-sm text-foreground">{date}</span>
+                    <span className="text-sm text-foreground">{formatShortDate(date)}</span>
                     <Button
                       type="button"
                       variant="ghost"
@@ -243,25 +415,13 @@ export default function Profile() {
             )}
           </div>
 
-          <Button
-            type="submit"
-            variant="outline"
-            className="w-full"
-            disabled={updateProfileMutation.isPending || !profile?.id}
-          >
-            {updateProfileMutation.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Salvando...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Salvar indisponibilidade
-              </>
-            )}
-          </Button>
-        </form>
+          {updateProfileMutation.isPending && (
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Salvando...
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="repertoire-card mb-6 animate-slide-up" style={{ animationDelay: '0.05s' }}>

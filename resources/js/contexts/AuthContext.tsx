@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { ApiError, apiRequest, clearAuthToken, getAuthToken, loadAuthCache, saveAuthCache, setAuthToken } from '@/lib/api';
+import type { Ministry } from '@/lib/ministry';
 
 type AppRole = 'admin' | 'leader' | 'member' | 'sound_tech';
 
@@ -21,6 +22,9 @@ interface Profile {
   avatar_url: string | null;
   phone: string | null;
   home_group: 'GHH' | 'GHS' | 'GHJ' | 'GHC' | null;
+  in_dms: boolean;
+  leads_dms: boolean;
+  leads_ghj: boolean;
   can_lead: boolean;
   can_be_tech_lead: boolean;
   can_be_tech_sound: boolean;
@@ -35,6 +39,7 @@ interface AuthPayload {
   user: AuthUser;
   profile: Profile | null;
   roles: AppRole[];
+  led_ministries: Ministry[];
 }
 
 interface SignUpResponse extends Partial<AuthPayload> {
@@ -60,6 +65,8 @@ interface AuthContextType {
   session: AuthSession | null;
   profile: Profile | null;
   roles: AppRole[];
+  ledMinistries: Ministry[];
+  canManageMinistry: (ministry: Ministry) => boolean;
   isLoading: boolean;
   isAdmin: boolean;
   isLeader: boolean;
@@ -82,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [ledMinistries, setLedMinistries] = useState<Ministry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const clearState = () => {
@@ -90,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setRoles([]);
+    setLedMinistries([]);
   };
 
   const applyAuthPayload = (payload: Partial<AuthPayload>, tokenOverride?: string | null) => {
@@ -98,14 +107,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const user = payload.user ?? null;
     const profile = payload.profile ?? null;
     const roles = payload.roles ?? [];
+    const ledMinistries = payload.led_ministries ?? [];
 
     setUser(user);
     setProfile(profile);
     setRoles(roles);
+    setLedMinistries(ledMinistries);
     setSession(token ? { token } : null);
 
     if (user) {
-      saveAuthCache({ user, profile: profile as Record<string, unknown> | null, roles });
+      saveAuthCache({ user, profile: profile as Record<string, unknown> | null, roles, led_ministries: ledMinistries });
     }
   };
 
@@ -136,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(cache.user as AuthUser);
         setProfile(cache.profile as Profile | null);
         setRoles(cache.roles as AppRole[]);
+        setLedMinistries((cache.led_ministries ?? []) as Ministry[]);
         setSession({ token });
       }
 
@@ -231,6 +243,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = roles.includes('admin');
   const isLeader = roles.includes('leader') || isAdmin;
   const isSoundTechManager = roles.includes('sound_tech') || isLeader;
+  const canManageMinistry = (ministry: Ministry) => ledMinistries.includes(ministry);
 
   return (
     <AuthContext.Provider
@@ -239,6 +252,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         profile,
         roles,
+        ledMinistries,
+        canManageMinistry,
         isLoading,
         isAdmin,
         isLeader,

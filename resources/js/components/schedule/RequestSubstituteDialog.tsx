@@ -33,7 +33,7 @@ export function RequestSubstituteDialog({
   const [substituteSearch, setSubstituteSearch] = useState('');
   const [selectedSubstitutes, setSelectedSubstitutes] = useState<string[]>([]);
   
-  const { data: profiles } = useProfiles();
+  const { data: profiles } = useProfiles({ ministry: schedule?.ministry, enabled: Boolean(schedule) });
 
   // Filter out members already scheduled for this date
   const availableProfiles = profiles?.filter(

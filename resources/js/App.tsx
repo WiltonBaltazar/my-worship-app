@@ -82,6 +82,37 @@ function PushNotificationReadSync() {
   return null;
 }
 
+function ServiceWorkerNavigationListener() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) {
+      return;
+    }
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type !== 'wora:navigate' || typeof event.data.url !== 'string') {
+        return;
+      }
+
+      const url = new URL(event.data.url, window.location.origin);
+      if (url.origin !== window.location.origin) {
+        return;
+      }
+
+      navigate(`${url.pathname}${url.search}${url.hash}`);
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', handleMessage);
+    };
+  }, [navigate]);
+
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -90,6 +121,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <PushNotificationReadSync />
+          <ServiceWorkerNavigationListener />
           <Routes>
             <Route path="/" element={<Auth />} />
             <Route path="/auth" element={<Auth />} />

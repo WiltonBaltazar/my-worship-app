@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AvailabilityCallController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\ScheduleController;
+use App\Http\Controllers\Api\ScheduleGuestController;
 use App\Http\Controllers\Api\SongController;
 use App\Http\Controllers\Api\SubstituteRequestController;
 use App\Http\Controllers\Api\TechnicalScheduleController;
@@ -55,8 +57,19 @@ Route::middleware('auth.token')->group(function (): void {
     Route::delete('/schedule-members/{member}', [ScheduleController::class, 'removeMember']);
     Route::post('/schedules/{schedule}/songs', [ScheduleController::class, 'syncSongs']);
 
+    Route::post('/schedules/{schedule}/guests', [ScheduleGuestController::class, 'store']);
+    Route::patch('/schedule-guests/{guest}', [ScheduleGuestController::class, 'update']);
+    Route::delete('/schedule-guests/{guest}', [ScheduleGuestController::class, 'destroy']);
+
+    Route::get('/availability-calls', [AvailabilityCallController::class, 'index']);
+    Route::post('/schedules/{schedule}/availability-call', [AvailabilityCallController::class, 'open']);
+    Route::delete('/schedules/{schedule}/availability-call', [AvailabilityCallController::class, 'close']);
+    Route::get('/schedules/{schedule}/availability-call', [AvailabilityCallController::class, 'responses']);
+    Route::put('/schedules/{schedule}/availability', [AvailabilityCallController::class, 'respond']);
+
     Route::get('/technical-schedules', [TechnicalScheduleController::class, 'index']);
     Route::post('/technical-schedules/generate', [TechnicalScheduleController::class, 'generate']);
+    Route::post('/technical-schedules/delete-many', [TechnicalScheduleController::class, 'destroyMany']);
     Route::patch('/technical-schedules/{technicalSchedule}', [TechnicalScheduleController::class, 'update']);
     Route::delete('/technical-schedules/{technicalSchedule}', [TechnicalScheduleController::class, 'destroy']);
 

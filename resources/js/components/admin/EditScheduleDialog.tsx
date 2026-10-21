@@ -11,6 +11,7 @@ import {
   Plus,
   Search,
   Settings,
+  Star,
   Trash2,
   User,
   Users,
@@ -30,6 +31,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScheduleGuests } from '@/components/schedule/ScheduleGuests';
+import { isProfileUnavailableOnDate } from '@/lib/availability';
 import { useProfiles } from '@/hooks/useProfiles';
 import {
   useAddScheduleMember,
@@ -42,6 +45,7 @@ import {
 } from '@/hooks/useSchedules';
 import { useSongs } from '@/hooks/useSongs';
 import { AddSongDialog } from '@/components/admin/AddSongDialog';
+import { MinistryBadge } from '@/components/schedule/MinistryBadge';
 import { HALF_HOUR_TIME_OPTIONS, toLocalDateInputValue } from '@/lib/date-time';
 
 interface EditScheduleDialogProps {
@@ -135,17 +139,6 @@ function timeToInput(time?: string | null): string {
   return time.slice(0, 5);
 }
 
-function isProfileUnavailableOnDate(
-  profile: { unavailable_dates?: string[] | null },
-  scheduleDate?: string | null,
-): boolean {
-  if (!scheduleDate) {
-    return false;
-  }
-
-  return (profile.unavailable_dates ?? []).includes(scheduleDate);
-}
-
 function isTechOnlyProfile(profile: {
   can_lead: boolean;
   can_be_tech_lead: boolean;
@@ -169,7 +162,6 @@ function isTechOnlyProfile(profile: {
 
 export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditScheduleDialogProps) {
   const { data: schedules } = useSchedules();
-  const { data: profiles } = useProfiles();
   const { data: songs } = useSongs();
   const minScheduleDate = toLocalDateInputValue();
 
@@ -184,6 +176,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
     () => schedules?.find((item) => item.id === scheduleId) ?? null,
     [schedules, scheduleId],
   );
+  const { data: profiles } = useProfiles({ ministry: schedule?.ministry, enabled: Boolean(schedule) });
 
   const [selectedProfileId, setSelectedProfileId] = useState('');
   const [memberSearch, setMemberSearch] = useState('');
@@ -699,7 +692,10 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] max-w-4xl overflow-x-hidden overflow-y-auto p-4 sm:w-full sm:p-6">
         <DialogHeader>
-          <DialogTitle className="text-2xl lg:text-4xl">Editar Escala</DialogTitle>
+          <DialogTitle className="flex items-center gap-3 text-2xl lg:text-4xl">
+            Editar Escala
+            {schedule && <MinistryBadge ministry={schedule.ministry} className="text-xs" />}
+          </DialogTitle>
         </DialogHeader>
 
         {!schedule ? (
@@ -708,7 +704,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
           </div>
         ) : (
           <Tabs defaultValue="settings" className="min-w-0 space-y-4">
-            <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-2xl p-1 sm:grid sm:grid-cols-3 sm:justify-center sm:gap-0 sm:overflow-visible">
+            <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-2xl p-1 sm:grid sm:grid-cols-4 sm:justify-center sm:gap-0 sm:overflow-visible">
               <TabsTrigger value="settings" className="shrink-0 gap-2 rounded-xl py-2 text-sm sm:w-full sm:justify-center md:text-base">
                 <Settings className="h-4 w-4" />
                 <span className="sm:hidden">Config.</span>
@@ -723,6 +719,11 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                 <Music2 className="h-4 w-4" />
                 <span className="sm:hidden">Músicas</span>
                 <span className="hidden sm:inline">Músicas ({schedule.songs?.length ?? 0})</span>
+              </TabsTrigger>
+              <TabsTrigger value="guests" className="shrink-0 gap-2 rounded-xl py-2 text-sm sm:w-full sm:justify-center md:text-base">
+                <Star className="h-4 w-4" />
+                <span className="sm:hidden">Participações</span>
+                <span className="hidden sm:inline">Participações ({schedule.guests?.length ?? 0})</span>
               </TabsTrigger>
             </TabsList>
 
@@ -916,7 +917,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
 
                   {unavailableProfileCount > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      {unavailableProfileCount} membro(s) não aparecem porque marcaram indisponibilidade para esta data.
+                      {unavailableProfileCount} membro(s) não aparecem porque estão indisponíveis nesta data ou pausaram as escalas.
                     </p>
                   )}
 
@@ -1286,6 +1287,17 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                   <p className="py-4 text-center text-muted-foreground">Nenhuma música adicionada ainda</p>
                 )}
               </div>
+            </TabsContent>
+
+            <TabsContent value="guests">
+              {/* This dialog is only opened by leaders of the schedule's ministry. */}
+              <ScheduleGuests
+                scheduleId={schedule.id}
+                ministry={schedule.ministry}
+                guests={schedule.guests ?? []}
+                canManage
+                titleClassName="text-base"
+              />
             </TabsContent>
           </Tabs>
         )}

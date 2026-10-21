@@ -55,18 +55,29 @@ self.addEventListener('notificationclick', function(event) {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async function(clientList) {
-      for (const client of clientList) {
-        if (!client.url.includes(self.location.origin) || !('focus' in client)) {
-          continue;
+      const client = clientList.find(function(c) {
+        return c.url.startsWith(self.location.origin) && 'focus' in c;
+      });
+
+      if (client) {
+        // Focus first: it must happen while the click still counts as a user gesture.
+        const focused = await client.focus().catch(function() { return client; });
+        const target = focused || client;
+
+        // client.navigate() rejects for clients this worker does not control
+        // (e.g. opened before the worker activated), so fall back to asking the
+        // app to route in place.
+        try {
+          if ('navigate' in target) {
+            const navigated = await target.navigate(urlToOpen);
+            if (navigated) return navigated;
+          }
+        } catch (error) {
+          // fall through to postMessage
         }
 
-        if ('navigate' in client) {
-          await client.navigate(urlToOpen);
-        }
-
-        if ('focus' in client) {
-          return client.focus();
-        }
+        target.postMessage({ type: 'wora:navigate', url: urlToOpen });
+        return target;
       }
 
       if (clients.openWindow) {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Profile;
 use App\Models\User;
+use App\Support\MinistryAccess;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -316,6 +317,7 @@ class AuthController extends Controller
             ],
             'profile' => $user->profile,
             'roles' => $user->roles->pluck('role')->values()->all(),
+            'led_ministries' => MinistryAccess::ledMinistries($user),
         ];
     }
 
@@ -332,8 +334,10 @@ class AuthController extends Controller
             }
 
             if (array_key_exists('home_group', $validated)) {
+                // Everyone outside GHJ starts on the DMS roster, matching the ministries backfill.
                 $profile->update([
                     'home_group' => $validated['home_group'],
+                    'in_dms' => $validated['home_group'] !== null && $validated['home_group'] !== 'GHJ',
                 ]);
             }
 

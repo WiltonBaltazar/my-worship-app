@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import {
   type TechnicalScheduleWeek,
   useDeleteTechnicalScheduleWeek,
+  useDeleteTechnicalScheduleWeeks,
   useGenerateTechnicalSchedules,
   useTechnicalSchedules,
   useUpdateTechnicalScheduleWeek,
@@ -36,10 +37,6 @@ type WeekDraft = {
 
 type TechnicalScheduleType = 'public_worship' | 'ghj';
 
-function isGhjSchedule(type?: string | null): boolean {
-  return type === 'ghj';
-}
-
 function formatWeekDate(value: string): string {
   return new Date(`${value}T00:00:00`).toLocaleDateString('pt-BR', {
     weekday: 'long',
@@ -55,6 +52,7 @@ export default function SoundTechSchedules() {
   const [scheduleType, setScheduleType] = useState<TechnicalScheduleType>('public_worship');
   const [draftByWeekKey, setDraftByWeekKey] = useState<Record<string, WeekDraft>>({});
   const [weekToDelete, setWeekToDelete] = useState<TechnicalScheduleWeek | null>(null);
+  const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
 
   const { data, isLoading } = useTechnicalSchedules(startDate, weeks);
   const { data: allGeneralSchedules } = useSchedules();
@@ -62,6 +60,7 @@ export default function SoundTechSchedules() {
   const generateMutation = useGenerateTechnicalSchedules();
   const updateWeekMutation = useUpdateTechnicalScheduleWeek();
   const deleteWeekMutation = useDeleteTechnicalScheduleWeek();
+  const deleteWeeksMutation = useDeleteTechnicalScheduleWeeks();
   const minStartDate = toLocalDateInputValue();
 
   const technicians = data?.technicians ?? [];
@@ -133,6 +132,23 @@ export default function SoundTechSchedules() {
         weeks,
         schedule_type: scheduleType,
       });
+    } catch {
+      // Toast is handled in hook.
+    }
+  };
+
+  const handleConfirmDeleteAll = async () => {
+    const ids = persistedWeeks.map((week) => week.id).filter((id): id is string => Boolean(id));
+
+    if (ids.length === 0) {
+      setIsDeleteAllOpen(false);
+      return;
+    }
+
+    try {
+      await deleteWeeksMutation.mutateAsync(ids);
+      setDraftByWeekKey({});
+      setIsDeleteAllOpen(false);
     } catch {
       // Toast is handled in hook.
     }
@@ -336,7 +352,7 @@ export default function SoundTechSchedules() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="public_worship">Culto Público</SelectItem>
-                <SelectItem value="ghj">GHJ (sem streaming obrigatório)</SelectItem>
+                <SelectItem value="ghj">GHJ</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -355,8 +371,19 @@ export default function SoundTechSchedules() {
       </Card>
 
       <Card className="admin-surface">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle className="text-xl">Semanas Salvas</CardTitle>
+          {persistedWeeks.some((week) => week.id) && (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => setIsDeleteAllOpen(true)}
+              disabled={deleteWeeksMutation.isPending}
+            >
+              <Trash2 className="mr-1 h-4 w-4" />
+              Apagar todas
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {persistedWeeks.length === 0 && (
@@ -364,34 +391,27 @@ export default function SoundTechSchedules() {
           )}
 
           {persistedWeeks.length > 0 && (
-            <Table className="min-w-[880px] overflow-hidden rounded-xl border border-slate-200">
+            <Table className="min-w-[680px] overflow-hidden rounded-xl border border-slate-200">
               <TableHeader>
                 <TableRow className="bg-slate-100 hover:bg-slate-100 [&>th]:text-slate-700">
                   <TableHead>Semana</TableHead>
                   <TableHead>Técnico Lead</TableHead>
                   <TableHead>Técnico Assistente</TableHead>
-                  <TableHead>Técnico de Streaming</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {persistedWeeks.map((week) => {
-                  const disabled = updateWeekMutation.isPending || deleteWeekMutation.isPending;
+                  const disabled = updateWeekMutation.isPending || deleteWeekMutation.isPending || deleteWeeksMutation.isPending;
                   const weekScheduleType = (week.schedule_type ?? scheduleType) as TechnicalScheduleType;
                   const leadOptions = filterTechniciansByScheduleType(techniciansByRole.lead, weekScheduleType);
                   const soundOptions = filterTechniciansByScheduleType(techniciansByRole.sound, weekScheduleType);
-                  const streamingOptions = filterTechniciansByScheduleType(techniciansByRole.streaming, weekScheduleType);
 
                   return (
                     <TableRow key={week.id ?? week.week_start_date} className="hover:bg-slate-50 data-[state=selected]:bg-slate-100">
                       <TableCell className="font-medium capitalize">{formatWeekDate(week.week_start_date)}</TableCell>
                       <TableCell>{renderTechnicianSelect(week, 'lead', leadOptions, disabled)}</TableCell>
                       <TableCell>{renderTechnicianSelect(week, 'sound', soundOptions, disabled)}</TableCell>
-                      <TableCell>
-                        {isGhjSchedule(weekScheduleType)
-                          ? <span className="text-sm text-slate-500">Não necessário (GHJ)</span>
-                          : renderTechnicianSelect(week, 'streaming', streamingOptions, disabled)}
-                      </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
                           <Button
@@ -421,6 +441,32 @@ export default function SoundTechSchedules() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={isDeleteAllOpen} onOpenChange={setIsDeleteAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar todas as semanas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Essa ação remove as <strong>{persistedWeeks.filter((week) => week.id).length}</strong> semana(s) técnica(s)
+              listadas neste período. Não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(event) => {
+                event.preventDefault();
+                void handleConfirmDeleteAll();
+              }}
+              disabled={deleteWeeksMutation.isPending}
+            >
+              {deleteWeeksMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Apagar todas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={weekToDelete !== null} onOpenChange={(open) => !open && setWeekToDelete(null)}>
         <AlertDialogContent>
