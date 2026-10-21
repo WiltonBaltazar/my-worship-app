@@ -648,14 +648,14 @@ class ScheduleController extends Controller
 
     private function ensureProfileAvailableForSchedule(Profile $profile, Schedule $schedule, string $field): void
     {
-        if (! $schedule->schedule_date || ! $profile->isUnavailableOnDate($schedule->schedule_date)) {
+        if (! $schedule->schedule_date || ! $profile->isUnavailableOnDate($schedule->schedule_date, $schedule->ministry)) {
             return;
         }
 
         $formattedDate = $schedule->schedule_date->format('d/m/Y');
 
         throw ValidationException::withMessages([
-            $field => [$profile->isPaused()
+            $field => [$profile->isPaused($schedule->ministry)
                 ? "{$profile->name} pausou as escalas."
                 : "{$profile->name} está indisponível em {$formattedDate}."],
         ]);

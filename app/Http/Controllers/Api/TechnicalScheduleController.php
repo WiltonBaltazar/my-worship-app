@@ -279,7 +279,8 @@ class TechnicalScheduleController extends Controller
             ->with('user.roles:user_id,role')
             ->where('is_active', true)
             ->where('is_approved', true)
-            ->whereNull('paused_at')
+            // Only a pause covering every ministry takes a technician off technical schedules.
+            ->notPausedFor()
             ->where(function ($query): void {
                 $query
                     ->where('can_be_tech_lead', true)

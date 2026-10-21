@@ -231,7 +231,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
       (profile) =>
         profile.role !== 'admin' &&
         !existingProfileIds.has(profile.id) &&
-        !isProfileUnavailableOnDate(profile, schedule.schedule_date),
+        !isProfileUnavailableOnDate(profile, schedule.schedule_date, schedule.ministry),
     );
   }, [profiles, schedule]);
 
@@ -246,7 +246,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
       (profile) =>
         profile.role !== 'admin' &&
         !existingProfileIds.has(profile.id) &&
-        isProfileUnavailableOnDate(profile, schedule.schedule_date),
+        isProfileUnavailableOnDate(profile, schedule.schedule_date, schedule.ministry),
     ).length;
   }, [profiles, schedule]);
 

@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import { type Profile, useUpdateProfile } from '@/hooks/useProfiles';
+import { MINISTRY_LABELS } from '@/lib/ministry';
 
 const instruments = [
   { value: 'guitar', label: 'Guitarra' },
@@ -146,7 +147,7 @@ export function EditMemberDialog({ member, open, onOpenChange }: EditMemberDialo
                 </Label>
                 <p className="text-xs text-muted-foreground">
                   {member.is_paused
-                    ? `Pausado${member.paused_at ? ` desde ${new Date(member.paused_at).toLocaleDateString('pt-BR')}` : ''}. Não será escalado nem convocado.`
+                    ? `Pausado${member.pause_ministry ? ` no ${MINISTRY_LABELS[member.pause_ministry]}` : ''}${member.paused_at ? ` desde ${new Date(member.paused_at).toLocaleDateString('pt-BR')}` : ''}. Não será escalado nem convocado.`
                     : 'Pausa o membro até ser retomado. Salva na hora.'}
                 </p>
               </div>

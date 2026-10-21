@@ -18,6 +18,7 @@ class ProfileUnavailableDate extends Model
     protected $fillable = [
         'profile_id',
         'unavailable_date',
+        'ministry',
     ];
 
     protected function casts(): array

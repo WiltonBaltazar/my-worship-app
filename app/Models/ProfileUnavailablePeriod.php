@@ -21,6 +21,7 @@ class ProfileUnavailablePeriod extends Model
         'profile_id',
         'start_date',
         'end_date',
+        'ministry',
     ];
 
     protected function casts(): array

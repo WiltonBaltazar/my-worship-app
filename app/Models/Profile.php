@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\MinistryAccess;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -34,6 +36,7 @@ class Profile extends Model
         'is_active',
         'is_approved',
         'paused_at',
+        'paused_ministry',
     ];
 
     protected function casts(): array
@@ -82,26 +85,79 @@ class Profile extends Model
         return $this->hasMany(ProfileUnavailablePeriod::class)->orderBy('start_date');
     }
 
-    public function isPaused(): bool
+    /**
+     * Paused for the given ministry. Without one, only a pause covering every ministry counts.
+     */
+    public function isPaused(?string $ministry = null): bool
     {
-        return $this->paused_at !== null;
+        if ($this->paused_at === null) {
+            return false;
+        }
+
+        return $this->paused_ministry === null || ($ministry !== null && $this->paused_ministry === $ministry);
     }
 
     /**
-     * Paused, or the date is marked unavailable on its own or inside a period.
+     * Ministries the member paused (every ministry when the pause has no ministry).
+     *
+     * @return list<string>
      */
-    public function isUnavailableOnDate(string|\DateTimeInterface $date): bool
+    public function pausedMinistries(): array
     {
-        if ($this->isPaused()) {
+        if ($this->paused_at === null) {
+            return [];
+        }
+
+        return $this->paused_ministry === null ? MinistryAccess::ALL : [$this->paused_ministry];
+    }
+
+    /**
+     * Profiles not paused for the given ministry (without one: not paused for every ministry).
+     */
+    public function scopeNotPausedFor(Builder $query, ?string $ministry = null): Builder
+    {
+        return $query->where(function (Builder $pauseQuery) use ($ministry): void {
+            $pauseQuery->whereNull('paused_at')
+                ->orWhere(function (Builder $scopedPause) use ($ministry): void {
+                    $scopedPause->whereNotNull('paused_ministry');
+
+                    if ($ministry !== null) {
+                        $scopedPause->where('paused_ministry', '!=', $ministry);
+                    }
+                });
+        });
+    }
+
+    /**
+     * Restricts absence rows to those that apply to the ministry (rows without one apply everywhere).
+     */
+    public static function scopeAbsencesTo(Builder|HasMany $absences, ?string $ministry): Builder|HasMany
+    {
+        return $absences->where(function (Builder $query) use ($ministry): void {
+            $query->whereNull('ministry');
+
+            if ($ministry !== null) {
+                $query->orWhere('ministry', $ministry);
+            }
+        });
+    }
+
+    /**
+     * Paused, or the date is marked unavailable on its own or inside a period, for the given
+     * ministry. Without a ministry, only absences covering every ministry count.
+     */
+    public function isUnavailableOnDate(string|\DateTimeInterface $date, ?string $ministry = null): bool
+    {
+        if ($this->isPaused($ministry)) {
             return true;
         }
 
         $dateString = Carbon::parse($date)->format('Y-m-d');
 
-        return $this->unavailableDates()
+        return self::scopeAbsencesTo($this->unavailableDates(), $ministry)
             ->whereDate('unavailable_date', $dateString)
             ->exists()
-            || $this->unavailablePeriods()
+            || self::scopeAbsencesTo($this->unavailablePeriods(), $ministry)
                 ->whereDate('start_date', '<=', $dateString)
                 ->whereDate('end_date', '>=', $dateString)
                 ->exists();
