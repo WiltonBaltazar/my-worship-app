@@ -37,10 +37,10 @@ import { useToast } from '@/hooks/use-toast';
 
 const typeConfig: Record<string, { label: string; className: string }> = {
   schedule: { label: 'Escala', className: 'bg-ministry-ghj/10 text-ministry-ghj-strong border-ministry-ghj/30' },
-  reminder: { label: 'Lembrete', className: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+  reminder: { label: 'Lembrete', className: 'bg-warning/15 text-warning-strong border-warning/40' },
   announcement: { label: 'Anúncio', className: 'bg-muted text-foreground border-border' },
   change_request: { label: 'Solicitação de Troca', className: 'bg-primary/10 text-primary-strong border-primary/30' },
-  approval_request: { label: 'Acesso', className: 'bg-purple-50 text-purple-700 border-purple-200' },
+  approval_request: { label: 'Acesso', className: 'bg-chart-4/15 text-foreground border-chart-4/40' },
   confirmation: { label: 'Confirmação', className: 'bg-success/10 text-success-strong border-success/30' },
   substitute_request: { label: 'Substituição', className: 'bg-destructive/10 text-destructive-strong border-destructive/30' },
 };

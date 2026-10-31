@@ -1,314 +1,141 @@
-import { format, isFuture, isToday } from 'date-fns';
+import { useMemo, useState } from 'react';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Eye, Guitar, Loader2, Mic2, Music, TrendingUp, Users } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CreateScheduleDialog } from '@/components/admin/CreateScheduleDialog';
+import { ActivityCard, RepertoireCard, RotationCard, TeamCoverageCard } from '@/components/admin/dashboard/InsightCards';
+import { SwapRequestsCard, UnavailableThisWeekCard, UpcomingSchedulesCard } from '@/components/admin/dashboard/ScheduleCards';
+import { AttentionTiles, KpiTiles } from '@/components/admin/dashboard/StatTiles';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminMinistry } from '@/hooks/useAdminMinistry';
 import { useMarkAsRead, useNotifications } from '@/hooks/useNotifications';
-import { useProfiles } from '@/hooks/useProfiles';
-import { UnavailableMembersList } from '@/components/admin/UnavailableMembersList';
+import { usePendingProfilesCount, useProfiles } from '@/hooks/useProfiles';
 import { useSchedules } from '@/hooks/useSchedules';
 import { useSongs } from '@/hooks/useSongs';
-import { cn } from '@/lib/utils';
+import { buildDashboardData, rotation, scopedProfiles, songUsage, unavailableThisWeek } from '@/lib/adminDashboard';
+import { MINISTRY_LABELS } from '@/lib/ministry';
 
-const instrumentLabels: Record<string, string> = {
-  guitar: 'Guitarra',
-  bass: 'Baixo',
-  drums: 'Bateria',
-  keyboard: 'Teclado',
-  acoustic_guitar: 'Violão',
-  violin: 'Violino',
-  percussion: 'Percussão',
-  sound_tech: 'Técnico de Som',
-  other: 'Outro',
-};
+function greeting(now: Date) {
+  const hour = now.getHours();
+  if (hour < 12) return 'Bom dia';
+  if (hour < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
 
-const voiceLabels: Record<string, string> = {
-  lead: 'Voz Principal (Dirigente)',
-  soprano: 'Primeira Voz (Soprano)',
-  alto: 'Segunda Voz (Alto/Contralto)',
-  tenor: 'Terceira Voz (Tenor)',
-  bass_voice: 'Voz Grave (Baixo)',
-};
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6" aria-busy="true" aria-label="Carregando dashboard">
+      <Skeleton className="h-14 w-72" />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {Array.from({ length: 4 }, (_, index) => (
+          <Skeleton key={index} className="h-20 rounded-xl" />
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, index) => (
+          <Skeleton key={index} className="h-32 rounded-xl" />
+        ))}
+      </div>
+      <div className="grid gap-4 xl:grid-cols-3">
+        <Skeleton className="h-80 rounded-xl xl:col-span-2" />
+        <Skeleton className="h-80 rounded-xl" />
+      </div>
+    </div>
+  );
+}
 
 export default function AdminHome() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isLeader } = useAuth();
+  const { ministry, withMinistry } = useAdminMinistry();
   const { data: profiles, isLoading: loadingProfiles } = useProfiles();
   const { data: schedules, isLoading: loadingSchedules } = useSchedules();
   const { data: songs, isLoading: loadingSongs } = useSongs();
   const { data: notifications } = useNotifications(user?.id);
+  const { data: pendingUsers = 0 } = usePendingProfilesCount(user?.id, isLeader);
   const markAsReadMutation = useMarkAsRead();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
-  const isLoading = loadingProfiles || loadingSchedules || loadingSongs;
+  const view = useMemo(() => {
+    if (!profiles || !schedules) {
+      return null;
+    }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return {
+      data: buildDashboardData(schedules, profiles, ministry),
+      members: scopedProfiles(profiles, ministry),
+      rotation: rotation(schedules, profiles, ministry),
+      songs: songUsage(schedules, songs?.length ?? 0, ministry),
+      unavailable: unavailableThisWeek(profiles, ministry),
+    };
+  }, [profiles, schedules, songs, ministry]);
+
+  if (loadingProfiles || loadingSchedules || loadingSongs || !view) {
+    return <DashboardSkeleton />;
   }
 
-  const instrumentStats: Record<string, number> = {};
-  profiles?.forEach((profile) => {
-    profile.instruments?.forEach((instrument) => {
-      instrumentStats[instrument] = (instrumentStats[instrument] || 0) + 1;
-    });
-  });
-
-  const voiceStats: Record<string, number> = {};
-  profiles?.forEach((profile) => {
-    profile.voices?.forEach((voice) => {
-      voiceStats[voice] = (voiceStats[voice] || 0) + 1;
-    });
-  });
-
-  const upcomingSchedules = (schedules ?? []).filter((schedule) => {
-    const date = new Date(schedule.schedule_date);
-    return isFuture(date) || isToday(date);
-  });
-
-  const thisMonthSchedules = upcomingSchedules.filter((schedule) => {
-    const date = new Date(schedule.schedule_date);
-    const now = new Date();
-    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-  });
-
-  const totalConfirmed = upcomingSchedules.reduce(
-    (accumulator, schedule) => {
-      const confirmed = schedule.members?.filter((member) => member.confirmed).length || 0;
-      const total = schedule.members?.length || 0;
-      return {
-        confirmed: accumulator.confirmed + confirmed,
-        total: accumulator.total + total,
-      };
-    },
-    { confirmed: 0, total: 0 },
-  );
-
-  const confirmationRate = totalConfirmed.total > 0 ? Math.round((totalConfirmed.confirmed / totalConfirmed.total) * 100) : 0;
-  const nextSchedule = upcomingSchedules[0];
-
-  const stats = [
-    {
-      title: 'Membros Ativos',
-      value: profiles?.length || 0,
-      icon: Users,
-      change: `${profiles?.filter((profile) => profile.can_lead).length || 0} podem liderar`,
-      color: 'text-primary',
-    },
-    {
-      title: 'Escalas do Mês',
-      value: thisMonthSchedules.length,
-      icon: Calendar,
-      change: nextSchedule ? `Próxima: ${format(new Date(nextSchedule.schedule_date), 'dd/MM', { locale: ptBR })}` : 'Nenhuma',
-      color: 'text-success',
-    },
-    {
-      title: 'Músicas no Repertório',
-      value: songs?.length || 0,
-      icon: Music,
-      change: 'Total cadastradas',
-      color: 'text-accent',
-    },
-    {
-      title: 'Confirmações',
-      value: `${confirmationRate}%`,
-      icon: TrendingUp,
-      change: `${totalConfirmed.confirmed}/${totalConfirmed.total} membros`,
-      color: 'text-primary',
-    },
-  ];
-
-  const changeRequests = upcomingSchedules.flatMap(
-    (schedule) =>
-      schedule.members
-        ?.filter((member) => member.requested_change)
-        .map((member) => ({
-          scheduleId: schedule.id,
-          scheduleDate: schedule.schedule_date,
-          memberName: member.profile?.name,
-          reason: member.change_reason,
-        })) || [],
-  );
+  const now = new Date();
+  const firstName = user?.name?.split(' ')[0];
+  const ministryLabel = ministry === 'all' ? '' : ` · ${MINISTRY_LABELS[ministry]}`;
 
   const handleOpenChangeRequest = (scheduleId: string) => {
-    const relatedUnreadNotifications = (notifications ?? []).filter(
-      (notification) => notification.type === 'change_request' && notification.schedule_id === scheduleId && !notification.read,
-    );
-
-    relatedUnreadNotifications.forEach((notification) => {
-      markAsReadMutation.mutate(notification.id);
-    });
+    (notifications ?? [])
+      .filter((notification) => notification.type === 'change_request' && notification.schedule_id === scheduleId && !notification.read)
+      .forEach((notification) => markAsReadMutation.mutate(notification.id));
 
     navigate(`/admin-app/schedules/${scheduleId}`);
   };
 
   return (
-    <div className="space-y-7">
-      <header className="admin-surface border-l-4 border-l-primary p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-strong">Painel administrativo</p>
-        <h1 className="mt-2 admin-page-title">Dashboard</h1>
-        <p className="mt-1 admin-page-description">Visão geral do ministério de louvor</p>
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="admin-page-title">
+            {greeting(now)}
+            {firstName ? `, ${firstName}` : ''}
+          </h1>
+          <p className="admin-page-description first-letter:uppercase">
+            {format(now, "EEEE, d 'de' MMMM", { locale: ptBR })}
+            {ministryLabel}
+          </p>
+        </div>
+        <Button className="h-10 rounded-lg px-4 font-semibold max-sm:w-full" onClick={() => setIsCreateDialogOpen(true)}>
+          <Plus className="mr-1.5 h-4 w-4" />
+          Nova escala
+        </Button>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title} className="admin-surface">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                  <Icon className={cn('h-5 w-5', stat.color)} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-semibold text-foreground">{stat.value}</div>
-                <p className="mt-1 text-sm text-muted-foreground">{stat.change}</p>
-              </CardContent>
-            </Card>
-          );
-        })}
+      <AttentionTiles attention={view.data.attention} pendingUsers={pendingUsers} withMinistry={withMinistry} />
+
+      <KpiTiles data={view.data} ministryLabel={ministryLabel} />
+
+      <div className="grid items-start gap-4 xl:grid-cols-3">
+        <UpcomingSchedulesCard
+          schedules={view.data.upcoming}
+          warnings={view.data.leaderlessSoon}
+          allLink={withMinistry('/admin-app/schedules')}
+          className="xl:col-span-2"
+        />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
+          <UnavailableThisWeekCard entries={view.unavailable} allLink={withMinistry('/admin-app/availability')} />
+          <SwapRequestsCard requests={view.data.swapRequests} onOpen={handleOpenChangeRequest} />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card className="admin-surface">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Guitar className="h-5 w-5 text-primary" />
-              Membros por Instrumento
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {Object.keys(instrumentStats).length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(instrumentStats)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([instrument, count]) => (
-                    <Badge key={instrument} variant="secondary" className="px-3 py-1 text-sm">
-                      {instrumentLabels[instrument] || instrument}: <span className="ml-1 font-bold">{count}</span>
-                    </Badge>
-                  ))}
-              </div>
-            ) : (
-              <p className="py-4 text-center text-muted-foreground">Nenhum instrumento cadastrado</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="admin-surface">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Mic2 className="h-5 w-5 text-primary" />
-              Membros por Voz
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {Object.keys(voiceStats).length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(voiceStats)
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([voice, count]) => (
-                    <Badge key={voice} variant="secondary" className="px-3 py-1 text-sm">
-                      {voiceLabels[voice] || voice}: <span className="ml-1 font-bold">{count}</span>
-                    </Badge>
-                  ))}
-              </div>
-            ) : (
-              <p className="py-4 text-center text-muted-foreground">Nenhuma voz cadastrada</p>
-            )}
-          </CardContent>
-        </Card>
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <TeamCoverageCard profiles={view.members} />
+        <RotationCard most={view.rotation.most} least={view.rotation.least} />
       </div>
 
-      <UnavailableMembersList maxMembers={5} />
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card className="admin-surface">
-          <CardHeader>
-            <CardTitle className="text-lg">Solicitações de Troca</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {changeRequests.length > 0 ? (
-              <ul className="space-y-4">
-                {changeRequests.slice(0, 5).map((request, index) => (
-                  <li
-                    key={`${request.memberName}-${index}`}
-                    className="admin-surface-muted flex flex-col gap-3 p-3 sm:flex-row sm:items-start sm:justify-between"
-                  >
-                    <div>
-                      <span className="font-medium text-foreground">{request.memberName}</span>
-                      <p className="text-sm text-muted-foreground">
-                        Escala: {format(new Date(request.scheduleDate), 'dd/MM/yyyy', { locale: ptBR })}
-                      </p>
-                      {request.reason && <p className="mt-1 text-sm text-accent">"{request.reason}"</p>}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="self-end sm:self-auto"
-                      onClick={() => handleOpenChangeRequest(request.scheduleId)}
-                    >
-                      <Eye className="mr-1 h-4 w-4" />
-                      Abrir
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="py-4 text-center text-muted-foreground">Nenhuma solicitação pendente</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="admin-surface">
-          <CardHeader>
-            <CardTitle className="text-lg">Próximas Escalas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {upcomingSchedules.length > 0 ? (
-              <div className="space-y-3">
-                {upcomingSchedules.slice(0, 4).map((schedule) => {
-                  const confirmed = schedule.members?.filter((member) => member.confirmed).length || 0;
-                  const total = schedule.members?.length || 0;
-
-                  return (
-                    <div
-                      key={schedule.id}
-                      className="admin-surface-muted flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="flex min-w-0 items-center gap-4">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
-                          <Calendar className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-medium text-foreground">
-                            {format(new Date(schedule.schedule_date), "dd 'de' MMM", { locale: ptBR })}
-                          </p>
-                          <p className="text-sm text-muted-foreground">{total} membros escalados</p>
-                        </div>
-                      </div>
-
-                      <div className="self-end text-right sm:self-auto">
-                        <p className="font-medium text-foreground">
-                          {confirmed}/{total}
-                        </p>
-                        <p className="text-sm text-muted-foreground">confirmados</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="py-4 text-center text-muted-foreground">Nenhuma escala próxima</p>
-            )}
-          </CardContent>
-        </Card>
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <RepertoireCard top={view.songs.top} unused={view.songs.unused} repertoireLink={withMinistry('/admin-app/repertoire')} />
+        <ActivityCard items={notifications ?? []} notificationsLink={withMinistry('/admin-app/notifications')} />
       </div>
+
+      <CreateScheduleDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
     </div>
   );
 }
