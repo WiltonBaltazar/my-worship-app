@@ -9,6 +9,8 @@ import { type Profile, useProfiles } from '@/hooks/useProfiles';
 import type { UnavailableDate, UnavailablePeriod } from '@/lib/availability';
 import { type Ministry, MINISTRY_LABELS } from '@/lib/ministry';
 import { toLocalDateInputValue } from '@/lib/date-time';
+import { belongsToMinistry } from '@/lib/adminDashboard';
+import type { MinistryFilterValue } from '@/hooks/useAdminMinistry';
 import { cn } from '@/lib/utils';
 
 interface UnavailableMembersListProps {
@@ -18,6 +20,8 @@ interface UnavailableMembersListProps {
   description?: string;
   emptyMessage?: string;
   maxMembers?: number;
+  /** Only members of this ministry, and only absences that apply to it. */
+  ministry?: MinistryFilterValue;
 }
 
 interface UnavailableEntry {
@@ -61,6 +65,7 @@ export function UnavailableMembersList({
   description = 'Membros com escalas pausadas ou datas marcadas como indisponíveis.',
   emptyMessage = 'Nenhum membro pausado ou com datas indisponíveis futuras.',
   maxMembers,
+  ministry = 'all',
 }: UnavailableMembersListProps) {
   const { data: profiles, isLoading } = useProfiles();
 
@@ -70,23 +75,25 @@ export function UnavailableMembersList({
     }
 
     const today = toLocalDateInputValue();
+    const applies = (absenceMinistry?: Ministry | null) => ministry === 'all' || !absenceMinistry || absenceMinistry === ministry;
 
     return profiles
+      .filter((profile) => ministry === 'all' || belongsToMinistry(profile, ministry))
       .map((profile) => {
         const dates = (profile.unavailable_dates ?? [])
-          .filter((entry) => entry.date >= today)
+          .filter((entry) => entry.date >= today && applies(entry.ministry))
           .sort((a, b) => a.date.localeCompare(b.date));
         const periods = (profile.unavailable_periods ?? [])
-          .filter((period) => period.end_date >= today)
+          .filter((period) => period.end_date >= today && applies(period.ministry))
           .sort((a, b) => a.start_date.localeCompare(b.start_date));
-        const isPaused = Boolean(profile.is_paused);
+        const isPaused = Boolean(profile.is_paused) && applies(profile.pause_ministry);
         const firstDate = isPaused ? '' : [dates[0]?.date, periods[0]?.start_date].filter(Boolean).sort()[0] ?? '';
 
         return { profile, isPaused, periods, dates, firstDate };
       })
       .filter((entry) => entry.isPaused || entry.dates.length > 0 || entry.periods.length > 0)
       .sort((a, b) => a.firstDate.localeCompare(b.firstDate));
-  }, [profiles]);
+  }, [profiles, ministry]);
 
   const visibleEntries = maxMembers ? entries.slice(0, maxMembers) : entries;
   const hiddenCount = maxMembers ? Math.max(0, entries.length - maxMembers) : 0;
@@ -105,7 +112,7 @@ export function UnavailableMembersList({
           {visibleEntries.map(({ profile, isPaused, periods, dates }) => (
             <div
               key={profile.id}
-              className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 sm:flex-row sm:items-start sm:justify-between"
+              className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3 sm:flex-row sm:items-start sm:justify-between"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <Avatar className="h-9 w-9 shrink-0">
@@ -115,13 +122,13 @@ export function UnavailableMembersList({
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-900">{profile.name}</p>
+                  <p className="truncate text-sm font-medium text-foreground">{profile.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{profile.email}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5 sm:justify-end">
                 {isPaused && (
-                  <Badge variant="secondary" className="whitespace-nowrap bg-amber-100 text-amber-800 hover:bg-amber-100">
+                  <Badge variant="secondary" className="whitespace-nowrap bg-warning/15 text-warning-strong hover:bg-warning/15">
                     Escalas pausadas{ministrySuffix(profile.pause_ministry)}
                   </Badge>
                 )}
@@ -129,7 +136,7 @@ export function UnavailableMembersList({
                   <Badge
                     key={`${period.start_date}-${period.end_date}-${period.ministry ?? 'all'}`}
                     variant="secondary"
-                    className="whitespace-nowrap bg-orange-50 text-orange-700 hover:bg-orange-50"
+                    className="whitespace-nowrap bg-primary/10 text-primary-strong hover:bg-primary/10"
                   >
                     {formatUnavailableDate(period.start_date)} → {formatUnavailableDate(period.end_date)}
                     {ministrySuffix(period.ministry)}
@@ -139,7 +146,7 @@ export function UnavailableMembersList({
                   <Badge
                     key={date}
                     variant="secondary"
-                    className="whitespace-nowrap bg-orange-50 text-orange-700 hover:bg-orange-50"
+                    className="whitespace-nowrap bg-primary/10 text-primary-strong hover:bg-primary/10"
                   >
                     {formatUnavailableDate(date)}
                     {ministrySuffix(ministry)}
@@ -166,7 +173,7 @@ export function UnavailableMembersList({
     <Card className={cn('admin-surface', className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <CalendarOff className="h-5 w-5 text-orange-500" />
+          <CalendarOff className="h-5 w-5 text-primary" />
           {title}
         </CardTitle>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}

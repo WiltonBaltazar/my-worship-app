@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -135,14 +136,14 @@ export default function AdminUsers() {
       <Card className="admin-surface">
         <CardContent className="p-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center">
-            <Avatar className="h-12 w-12 border-2 border-orange-200">
+            <Avatar className="h-12 w-12 border-2 border-primary/30">
               <AvatarImage src={user.avatar_url ?? undefined} />
-              <AvatarFallback className="bg-orange-50 text-primary font-semibold">{initials}</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold">{initials}</AvatarFallback>
             </Avatar>
 
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-semibold text-slate-900">{user.name}</h3>
+                <h3 className="font-semibold text-foreground">{user.name}</h3>
                 {!showApprovalActions && (
                   <Badge variant={role === 'admin' ? 'default' : 'secondary'} className="gap-1">
                     {roleIcons[role]}
@@ -150,8 +151,8 @@ export default function AdminUsers() {
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-slate-500">{user.email}</p>
-              <p className="text-xs text-slate-500">
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+              <p className="text-xs text-muted-foreground">
                 Cadastrado em {new Date(user.created_at).toLocaleDateString('pt-BR')}
               </p>
             </div>
@@ -184,7 +185,7 @@ export default function AdminUsers() {
                   value={role}
                   onValueChange={(value) => updateUser(user.id, { role: value as 'admin' | 'leader' | 'member' | 'sound_tech' })}
                 >
-                  <SelectTrigger className="w-full rounded-xl border-slate-200 bg-white md:w-36">
+                  <SelectTrigger className="w-full rounded-xl border-border bg-card md:w-36">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -198,8 +199,9 @@ export default function AdminUsers() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-slate-500 hover:text-slate-700"
+                  className="text-muted-foreground hover:text-foreground"
                   title="Definir senha temporária"
+                  aria-label="Definir senha temporária"
                   onClick={() => setResettingPasswordUser(user)}
                 >
                   <KeyRound className="h-4 w-4" />
@@ -210,6 +212,7 @@ export default function AdminUsers() {
                   size="icon"
                   className="text-destructive hover:text-destructive"
                   onClick={() => setDeletingUser(user)}
+                  aria-label={`Excluir ${user.name}`}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -223,14 +226,11 @@ export default function AdminUsers() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="admin-page-title">Gerenciar Usuários</h1>
-        <p className="admin-page-description">Aprove solicitações e gerencie funções dos usuários</p>
-      </header>
+      <AdminPageHeader title="Usuários" description="Aprove solicitações e gerencie funções dos usuários" />
 
       {isAdmin ? (
         <Tabs defaultValue="pending" className="min-w-0">
-          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-xl border-slate-200 bg-white shadow-sm">
+          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-xl border-border bg-card shadow-sm">
             <TabsTrigger value="pending" className="shrink-0 gap-2">
               Pendentes
               {pendingUsers.length > 0 && (
@@ -253,7 +253,7 @@ export default function AdminUsers() {
           <TabsContent value="pending" className="mt-4 space-y-4">
             {pendingUsers.length === 0 ? (
               <Card className="admin-surface">
-                <CardContent className="py-8 text-center text-slate-500">Nenhuma solicitação pendente</CardContent>
+                <CardContent className="py-8 text-center text-muted-foreground">Nenhuma solicitação pendente</CardContent>
               </Card>
             ) : (
               pendingUsers.map((user) => <UserCard key={user.id} user={user} showApprovalActions />)
@@ -267,13 +267,13 @@ export default function AdminUsers() {
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Buscar usuários..."
-                className="rounded-xl border-slate-200 bg-white pl-10"
+                className="rounded-xl border-border bg-card pl-10"
               />
             </div>
 
             {filteredApproved.length === 0 ? (
               <Card className="admin-surface">
-                <CardContent className="py-8 text-center text-slate-500">Nenhum usuário encontrado</CardContent>
+                <CardContent className="py-8 text-center text-muted-foreground">Nenhum usuário encontrado</CardContent>
               </Card>
             ) : (
               filteredApproved.map((user) => <UserCard key={user.id} user={user} />)
@@ -287,7 +287,7 @@ export default function AdminUsers() {
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Buscar usuários desativados..."
-                className="rounded-xl border-slate-200 bg-white pl-10"
+                className="rounded-xl border-border bg-card pl-10"
               />
             </div>
 
@@ -295,7 +295,7 @@ export default function AdminUsers() {
               <Card className="admin-surface">
                 <CardContent className="py-8 text-center">
                   <RefreshCw className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-                  <p className="text-slate-500">Nenhum usuário desativado</p>
+                  <p className="text-muted-foreground">Nenhum usuário desativado</p>
                 </CardContent>
               </Card>
             ) : (
@@ -318,13 +318,13 @@ export default function AdminUsers() {
 
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-semibold text-slate-900">{user.name}</h3>
+                            <h3 className="font-semibold text-foreground">{user.name}</h3>
                             <Badge variant="outline" className="text-muted-foreground">
                               Desativado
                             </Badge>
                           </div>
-                          <p className="text-sm text-slate-500">{user.email}</p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                          <p className="text-xs text-muted-foreground">
                             Cadastrado em {new Date(user.created_at).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
@@ -345,7 +345,7 @@ export default function AdminUsers() {
         <div className="space-y-4">
           {pendingUsers.length === 0 ? (
             <Card className="admin-surface">
-              <CardContent className="py-8 text-center text-slate-500">Nenhuma solicitação pendente</CardContent>
+              <CardContent className="py-8 text-center text-muted-foreground">Nenhuma solicitação pendente</CardContent>
             </Card>
           ) : (
             pendingUsers.map((user) => <UserCard key={user.id} user={user} showApprovalActions />)
@@ -412,8 +412,8 @@ export default function AdminUsers() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <code className="flex-1 select-all font-mono text-lg tracking-wide text-slate-900">
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/50 px-4 py-3">
+            <code className="flex-1 select-all font-mono text-lg tracking-wide text-foreground">
               {temporaryPasswordResult?.password}
             </code>
             <Button type="button" variant="outline" size="icon" onClick={copyTemporaryPassword}>

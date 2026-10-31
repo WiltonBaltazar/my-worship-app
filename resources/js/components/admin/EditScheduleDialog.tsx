@@ -835,7 +835,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                           <p className="truncate text-xs text-muted-foreground">{selectedProfile.email}</p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => setSelectedProfileId('')}>
+                      <Button variant="ghost" size="icon" onClick={() => setSelectedProfileId('')} aria-label="Desmarcar membro">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -848,7 +848,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                           key={item.key}
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
                             item.count === 0
-                              ? 'bg-orange-100 text-orange-700'
+                              ? 'bg-primary/15 text-primary-strong'
                               : 'bg-secondary text-muted-foreground'
                           }`}
                         >
@@ -1048,7 +1048,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                               </Badge>
                             )}
                             {member.requested_change && (
-                              <Badge variant="outline" className="border-orange-400 text-orange-700">
+                              <Badge variant="outline" className="border-primary/60 text-primary-strong">
                                 <AlertTriangle className="mr-1 h-3 w-3" />
                                 Solicitou troca
                               </Badge>
@@ -1061,6 +1061,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Editar função"
                           onClick={() => {
                             if (editingMemberId === member.id) {
                               setEditingMemberId(null);
@@ -1079,6 +1080,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                           className="text-destructive hover:text-destructive"
                           disabled={removeMemberMutation.isPending}
                           onClick={() => handleRemoveMember(member.id)}
+                          aria-label="Remover da escala"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1193,7 +1195,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                       <p className="truncate text-sm font-medium text-foreground">{selectedSong.title}</p>
                       {selectedSong.artist && <p className="truncate text-xs text-muted-foreground">{selectedSong.artist}</p>}
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedSongId('')}>
+                    <Button variant="ghost" size="icon" onClick={() => setSelectedSongId('')} aria-label="Desmarcar música">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -1277,6 +1279,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                       className="text-destructive hover:text-destructive"
                       disabled={syncSongsMutation.isPending}
                       onClick={() => handleRemoveSong(scheduleSong.id)}
+                      aria-label="Remover música"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

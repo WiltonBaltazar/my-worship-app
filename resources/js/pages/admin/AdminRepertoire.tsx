@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Edit2, ExternalLink, Loader2, Music2, Plus, Search, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { AddSongDialog } from '@/components/admin/AddSongDialog';
@@ -36,16 +37,16 @@ export default function AdminRepertoire() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="admin-page-title">Repertório</h1>
-          <p className="admin-page-description">Gerencie as músicas do ministério</p>
-        </div>
-        <Button className="w-full rounded-xl sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar Música
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Repertório"
+        description="Gerencie as músicas do ministério"
+        actions={
+          <Button className="h-10 rounded-lg px-4 font-semibold" onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Adicionar música
+          </Button>
+        }
+      />
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -53,26 +54,26 @@ export default function AdminRepertoire() {
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Buscar músicas por título, artista ou tag..."
-          className="rounded-xl border-slate-200 bg-white pl-10"
+          className="rounded-xl border-border bg-card pl-10"
         />
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {filteredSongs.map((song) => (
           <Card key={song.id} className="admin-surface">
             <CardContent className="p-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                 <div className="flex min-w-0 flex-1 items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                     <Music2 className="h-6 w-6 text-primary" />
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold text-slate-900">{song.title}</h3>
+                      <h3 className="font-semibold text-foreground">{song.title}</h3>
                     </div>
 
-                    {song.artist && <p className="text-sm text-slate-500">{song.artist}</p>}
+                    {song.artist && <p className="text-sm text-muted-foreground">{song.artist}</p>}
 
                     {(song.tags ?? []).length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
@@ -123,7 +124,7 @@ export default function AdminRepertoire() {
                 </div>
 
                 <div className="flex shrink-0 gap-2 self-end sm:self-start">
-                  <Button variant="ghost" size="icon" onClick={() => setEditingSong(song)}>
+                  <Button variant="ghost" size="icon" onClick={() => setEditingSong(song)} aria-label={`Editar ${song.title}`}>
                     <Edit2 className="h-4 w-4" />
                   </Button>
                   <Button
@@ -131,6 +132,7 @@ export default function AdminRepertoire() {
                     size="icon"
                     className="text-destructive hover:text-destructive"
                     onClick={() => deleteSongMutation.mutate(song.id)}
+                    aria-label={`Excluir ${song.title}`}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

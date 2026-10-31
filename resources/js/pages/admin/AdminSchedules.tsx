@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, LayoutGrid, List, Loader2, Plus, Rows3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { CreateScheduleDialog } from '@/components/admin/CreateScheduleDialog';
 import { EditScheduleDialog } from '@/components/admin/EditScheduleDialog';
 import {
@@ -26,7 +27,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { type Schedule, useDeleteSchedule, usePublishSchedule, useSchedules } from '@/hooks/useSchedules';
-import { MINISTRY_LABELS, type Ministry } from '@/lib/ministry';
+import { useAdminMinistry } from '@/hooks/useAdminMinistry';
 
 const VIEW_MODE_STORAGE_KEY = 'wora:admin-schedules-view';
 
@@ -52,8 +53,8 @@ function readStoredViewMode(): ScheduleViewMode {
 
 export default function AdminSchedules() {
   const navigate = useNavigate();
-  const { ledMinistries, canManageMinistry } = useAuth();
-  const [ministryFilter, setMinistryFilter] = useState<'all' | Ministry>('all');
+  const { canManageMinistry } = useAuth();
+  const { ministry: ministryFilter, withMinistry } = useAdminMinistry();
 
   const { data: schedules, isLoading } = useSchedules();
   const { publish: handlePublish } = usePublishSchedule();
@@ -100,7 +101,7 @@ export default function AdminSchedules() {
   const viewProps: ScheduleViewProps = {
     schedules: worshipSchedules,
     canManage: (schedule) => canManageMinistry(schedule.ministry),
-    onView: (schedule) => navigate(`/admin-app/schedules/${schedule.id}`),
+    onView: (schedule) => navigate(withMinistry(`/admin-app/schedules/${schedule.id}`)),
     onEdit: (schedule) => setEditingScheduleId(schedule.id),
     onDelete: setDeletingSchedule,
     onPublish: handlePublish,
@@ -116,40 +117,23 @@ export default function AdminSchedules() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="admin-page-title">Escalas</h1>
-          <p className="admin-page-description">Crie e gerencie escalas de culto</p>
-        </div>
-
-        <Button className="h-11 w-full rounded-xl px-5 sm:w-auto" onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="mr-2 h-5 w-5" />
-          Nova Escala
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Escalas"
+        description="Crie e gerencie escalas de culto"
+        actions={
+          <Button className="h-10 rounded-lg px-4 font-semibold" onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Nova escala
+          </Button>
+        }
+      />
 
       <UnavailableMembersList
+        ministry={ministryFilter}
         description="Verifique antes de escalar — datas em que membros não podem servir."
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {ledMinistries.length > 1 && (
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            value={ministryFilter}
-            onValueChange={(value) => value && setMinistryFilter(value as 'all' | Ministry)}
-            className="justify-start"
-          >
-            <ToggleGroupItem value="all" className="rounded-xl bg-white px-4">Todas</ToggleGroupItem>
-            {ledMinistries.map((ministry) => (
-              <ToggleGroupItem key={ministry} value={ministry} className="rounded-xl bg-white px-4">
-                {MINISTRY_LABELS[ministry]}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        )}
-
         <ToggleGroup
           type="single"
           variant="outline"
@@ -159,7 +143,7 @@ export default function AdminSchedules() {
           aria-label="Modo de visualização"
         >
           {viewModeOptions.map(({ value, label, icon: Icon }) => (
-            <ToggleGroupItem key={value} value={value} className="gap-1.5 rounded-xl bg-white px-3" aria-label={label}>
+            <ToggleGroupItem key={value} value={value} className="gap-1.5 rounded-xl bg-card px-3" aria-label={label}>
               <Icon className="h-4 w-4" />
               <span className="hidden sm:inline">{label}</span>
             </ToggleGroupItem>
@@ -175,7 +159,7 @@ export default function AdminSchedules() {
           {viewMode === 'calendar' && <ScheduleCalendarView {...viewProps} />}
         </>
       ) : (
-        <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+        <div className="rounded-2xl border border-dashed border-input p-10 text-center text-muted-foreground">
           Nenhuma escala criada ainda.
         </div>
       )}

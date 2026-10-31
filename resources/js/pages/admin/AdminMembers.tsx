@@ -23,12 +23,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { AddMemberDialog } from '@/components/admin/AddMemberDialog';
 import { EditMemberDialog } from '@/components/admin/EditMemberDialog';
 import { UnavailableMembersList } from '@/components/admin/UnavailableMembersList';
 import { type Profile, useDeleteProfile, useProfiles } from '@/hooks/useProfiles';
-import { MINISTRY_LABELS, type Ministry } from '@/lib/ministry';
+import { MINISTRY_LABELS } from '@/lib/ministry';
+import { belongsToMinistry } from '@/lib/adminDashboard';
+import { useAdminMinistry } from '@/hooks/useAdminMinistry';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 
 const instrumentLabels: Record<string, string> = {
   guitar: 'Guitarra',
@@ -49,14 +51,6 @@ const voiceLabels: Record<string, string> = {
   bass_voice: 'Voz Grave (Baixo)',
 };
 
-type MinistryFilter = 'all' | Ministry;
-
-const ministryFilters: { value: MinistryFilter; label: string }[] = [
-  { value: 'all', label: 'Todos' },
-  { value: 'dms', label: MINISTRY_LABELS.dms },
-  { value: 'ghj', label: MINISTRY_LABELS.ghj },
-];
-
 const homeGroupLabels: Record<string, string> = {
   GHH: 'Grupo Homegénio de Homens',
   GHS: 'Grupo Homegénio de Senhoras',
@@ -69,7 +63,7 @@ export default function AdminMembers() {
   const deleteProfileMutation = useDeleteProfile();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [ministryFilter, setMinistryFilter] = useState<MinistryFilter>('all');
+  const { ministry: ministryFilter } = useAdminMinistry();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Profile | null>(null);
   const [deletingMember, setDeletingMember] = useState<Profile | null>(null);
@@ -106,9 +100,7 @@ export default function AdminMembers() {
       const matchesVoices =
         selectedVoices.length === 0 || (member.voices ?? []).some((voice) => selectedVoices.includes(voice));
 
-      const matchesMinistry =
-        ministryFilter === 'all'
-        || (ministryFilter === 'dms' ? member.in_dms : member.home_group === 'GHJ');
+      const matchesMinistry = ministryFilter === 'all' || belongsToMinistry(member, ministryFilter);
 
       return matchesSearch && matchesInstruments && matchesVoices && matchesMinistry;
     }) ?? [];
@@ -123,32 +115,18 @@ export default function AdminMembers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="admin-page-title">Membros</h1>
-          <p className="admin-page-description">Gerencie os membros do ministério</p>
-        </div>
-        <Button className="w-full rounded-xl sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar Membro
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Membros"
+        description="Gerencie os membros do ministério"
+        actions={
+          <Button className="h-10 rounded-lg px-4 font-semibold" onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Adicionar membro
+          </Button>
+        }
+      />
 
-      <UnavailableMembersList />
-
-      <ToggleGroup
-        type="single"
-        variant="outline"
-        value={ministryFilter}
-        onValueChange={(value) => value && setMinistryFilter(value as MinistryFilter)}
-        className="justify-start"
-      >
-        {ministryFilters.map((filter) => (
-          <ToggleGroupItem key={filter.value} value={filter.value} className="rounded-xl bg-white px-4">
-            {filter.label}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
+      <UnavailableMembersList ministry={ministryFilter} />
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
@@ -157,13 +135,13 @@ export default function AdminMembers() {
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Buscar membros..."
-            className="rounded-xl border-slate-200 bg-white pl-10"
+            className="rounded-xl border-border bg-card pl-10"
           />
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="relative w-full rounded-xl border-slate-200 bg-white sm:w-auto">
+            <Button variant="outline" className="relative w-full rounded-xl border-border bg-card sm:w-auto">
               <Filter className="mr-2 h-4 w-4" />
               Filtrar
               {hasActiveFilters && (
@@ -207,6 +185,7 @@ export default function AdminMembers() {
                 size="icon"
                 className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                 onClick={() => toggleInstrument(instrument)}
+                aria-label={`Remover filtro ${instrumentLabels[instrument]}`}
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -221,6 +200,7 @@ export default function AdminMembers() {
                 size="icon"
                 className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                 onClick={() => toggleVoice(voice)}
+                aria-label={`Remover filtro ${voiceLabels[voice]}`}
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -232,7 +212,7 @@ export default function AdminMembers() {
         </div>
       )}
 
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {filteredMembers.map((member) => {
           const initials = member.name
             .split(' ')
@@ -244,33 +224,33 @@ export default function AdminMembers() {
           return (
             <Card key={member.id} className="admin-surface">
               <CardContent className="p-4">
-                <div className="flex items-start gap-4">
-                  <Avatar className="h-12 w-12 border-2 border-orange-200">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <Avatar className="h-12 w-12 shrink-0 border-2 border-primary/30">
                     <AvatarImage src={member.avatar_url ?? undefined} />
-                    <AvatarFallback className="bg-orange-50 font-semibold text-primary">{initials}</AvatarFallback>
+                    <AvatarFallback className="bg-primary/10 font-semibold text-primary">{initials}</AvatarFallback>
                   </Avatar>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold text-slate-900">{member.name}</h3>
+                      <h3 className="min-w-0 break-words font-semibold text-foreground">{member.name}</h3>
                       {member.home_group && (
-                        <Badge className="bg-slate-200 text-slate-700 text-xs">
+                        <Badge className="bg-muted text-foreground text-xs">
                           {homeGroupLabels[member.home_group] ?? member.home_group}
                         </Badge>
                       )}
-                      {member.is_paused && <Badge className="bg-amber-100 text-amber-800 text-xs">Pausado{member.pause_ministry ? ` · ${MINISTRY_LABELS[member.pause_ministry]}` : ''}</Badge>}
-                      {member.in_dms && <Badge className="bg-orange-50 text-orange-700 text-xs">DMS</Badge>}
-                      {member.can_lead && <Badge className="bg-orange-50 text-orange-700 text-xs">Pode dirigir</Badge>}
-                      {member.can_be_tech_lead && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Lead</Badge>}
-                      {member.can_be_tech_sound && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Som</Badge>}
-                      {member.can_be_tech_streaming && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Streaming</Badge>}
+                      {member.is_paused && <Badge className="bg-warning/15 text-warning-strong text-xs">Pausado{member.pause_ministry ? ` · ${MINISTRY_LABELS[member.pause_ministry]}` : ''}</Badge>}
+                      {member.in_dms && <Badge className="bg-primary/10 text-primary-strong text-xs">DMS</Badge>}
+                      {member.can_lead && <Badge className="bg-primary/10 text-primary-strong text-xs">Pode dirigir</Badge>}
+                      {member.can_be_tech_lead && <Badge className="bg-muted text-foreground text-xs">Tech Lead</Badge>}
+                      {member.can_be_tech_sound && <Badge className="bg-muted text-foreground text-xs">Tech Som</Badge>}
+                      {member.can_be_tech_streaming && <Badge className="bg-muted text-foreground text-xs">Tech Streaming</Badge>}
                     </div>
-                    <p className="text-sm text-slate-500">{member.email}</p>
+                    <p className="truncate text-sm text-muted-foreground">{member.email}</p>
 
                     <div className="mt-3 flex flex-wrap gap-4">
                       {(member.instruments ?? []).length > 0 && (
                         <div className="flex flex-wrap items-center gap-2">
-                          <Music className="h-4 w-4 text-slate-500" />
+                          <Music className="h-4 w-4 text-muted-foreground" />
                           {(member.instruments ?? []).map((instrument) => (
                             <Badge key={instrument} variant="secondary" className="text-xs">
                               {instrumentLabels[instrument] || instrument}
@@ -281,7 +261,7 @@ export default function AdminMembers() {
 
                       {(member.voices ?? []).length > 0 && (
                         <div className="flex flex-wrap items-center gap-2">
-                          <Mic2 className="h-4 w-4 text-slate-500" />
+                          <Mic2 className="h-4 w-4 text-muted-foreground" />
                           {(member.voices ?? []).map((voice) => (
                             <Badge key={voice} variant="secondary" className="text-xs">
                               {voiceLabels[voice] || voice}
@@ -293,7 +273,7 @@ export default function AdminMembers() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => setEditingMember(member)}>
+                    <Button variant="ghost" size="icon" onClick={() => setEditingMember(member)} aria-label={`Editar ${member.name}`}>
                       <Edit2 className="h-4 w-4" />
                     </Button>
                     <Button
@@ -301,6 +281,7 @@ export default function AdminMembers() {
                       size="icon"
                       className="text-destructive hover:text-destructive"
                       onClick={() => setDeletingMember(member)}
+                      aria-label={`Excluir ${member.name}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

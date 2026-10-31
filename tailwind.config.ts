@@ -16,6 +16,10 @@ export default {
       },
     },
     extend: {
+      screens: {
+        // Laptop screens with little height (the admin sidebar tightens up).
+        short: { raw: "(max-height: 800px)" },
+      },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         display: ['"Outfit"', '"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
@@ -29,6 +33,7 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          strong: "hsl(var(--primary-strong))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -37,10 +42,35 @@ export default {
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
+          strong: "hsl(var(--destructive-strong))",
         },
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
+          strong: "hsl(var(--success-strong))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          strong: "hsl(var(--warning-strong))",
+        },
+        surface: {
+          sunken: "hsl(var(--surface-sunken))",
+        },
+        ministry: {
+          dms: {
+            DEFAULT: "hsl(var(--ministry-dms))",
+            strong: "hsl(var(--ministry-dms-strong))",
+          },
+          ghj: {
+            DEFAULT: "hsl(var(--ministry-ghj))",
+            strong: "hsl(var(--ministry-ghj-strong))",
+          },
+        },
+        chart: {
+          1: "hsl(var(--chart-1))",
+          2: "hsl(var(--chart-2))",
+          3: "hsl(var(--chart-3))",
+          4: "hsl(var(--chart-4))",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",

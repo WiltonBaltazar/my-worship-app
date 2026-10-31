@@ -30,12 +30,12 @@
     --destructive: 3 75% 47%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 156 57% 34%;
+    --success: 156 57% 32%;
     --success-foreground: 0 0% 100%;
 
     --border: 28 26% 83%;
     --input: 28 28% 85%;
-    --ring: 28 92% 56%;
+    --ring: 24 88% 40%; /* darker than primary so focus outlines reach 3:1 */
 
     --radius: 1.15rem;
 
@@ -60,6 +60,25 @@
     --sidebar-accent-foreground: 24 32% 24%;
     --sidebar-border: 28 24% 82%;
     --sidebar-ring: 28 92% 56%;
+
+    /* Text-safe shades (≥4.5:1 on card/background) and admin surfaces */
+    --primary-strong: 24 88% 37%;
+    --success-strong: 156 58% 26%;
+    --destructive-strong: 3 75% 40%;
+    --warning: 38 92% 50%;
+    --warning-strong: 26 83% 31%;
+    --surface-sunken: 33 50% 97%;
+
+    /* Ministry identity: DMS orange, GHJ blue */
+    --ministry-dms: 28 92% 56%;
+    --ministry-dms-strong: 24 88% 37%;
+    --ministry-ghj: 203 78% 42%;
+    --ministry-ghj-strong: 203 77% 35%;
+
+    --chart-1: 28 92% 56%;
+    --chart-2: 203 78% 42%;
+    --chart-3: 156 57% 34%;
+    --chart-4: 24 14% 60%;
   }
 
   .dark {
@@ -84,11 +103,11 @@
     --accent: 28 92% 62%;
     --accent-foreground: 22 65% 11%;
 
-    --destructive: 3 72% 55%;
+    --destructive: 3 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
     --success: 156 48% 46%;
-    --success-foreground: 0 0% 100%;
+    --success-foreground: 156 60% 8%;
 
     --border: 210 20% 30%;
     --input: 210 20% 30%;
@@ -108,6 +127,23 @@
     --sidebar-accent-foreground: 199 38% 91%;
     --sidebar-border: 210 18% 30%;
     --sidebar-ring: 28 92% 62%;
+
+    --primary-strong: 28 92% 66%;
+    --success-strong: 156 50% 58%;
+    --destructive-strong: 3 80% 70%;
+    --warning: 38 92% 56%;
+    --warning-strong: 38 92% 66%;
+    --surface-sunken: 210 32% 7%;
+
+    --ministry-dms: 28 92% 62%;
+    --ministry-dms-strong: 28 92% 66%;
+    --ministry-ghj: 203 70% 58%;
+    --ministry-ghj-strong: 203 70% 66%;
+
+    --chart-1: 28 92% 62%;
+    --chart-2: 203 70% 58%;
+    --chart-3: 156 48% 46%;
+    --chart-4: 205 14% 55%;
   }
 }
 
@@ -189,19 +225,19 @@
   }
 
   .admin-surface {
-    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+    @apply rounded-xl border border-border bg-card text-card-foreground shadow-soft dark:shadow-none;
   }
 
   .admin-surface-muted {
-    @apply rounded-xl border border-slate-200 bg-slate-50/70;
+    @apply rounded-lg border border-border bg-muted/50;
   }
 
   .admin-page-title {
-    @apply text-2xl font-semibold text-slate-900 sm:text-3xl;
+    @apply text-xl font-semibold text-foreground sm:text-2xl;
   }
 
   .admin-page-description {
-    @apply text-sm text-slate-500 sm:text-base;
+    @apply text-sm text-muted-foreground;
   }
 }
 
