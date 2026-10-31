@@ -105,7 +105,7 @@ export function UnavailableMembersList({
           {visibleEntries.map(({ profile, isPaused, periods, dates }) => (
             <div
               key={profile.id}
-              className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 sm:flex-row sm:items-start sm:justify-between"
+              className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3 sm:flex-row sm:items-start sm:justify-between"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <Avatar className="h-9 w-9 shrink-0">
@@ -115,13 +115,13 @@ export function UnavailableMembersList({
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-900">{profile.name}</p>
+                  <p className="truncate text-sm font-medium text-foreground">{profile.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{profile.email}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5 sm:justify-end">
                 {isPaused && (
-                  <Badge variant="secondary" className="whitespace-nowrap bg-amber-100 text-amber-800 hover:bg-amber-100">
+                  <Badge variant="secondary" className="whitespace-nowrap bg-warning/15 text-warning-strong hover:bg-warning/15">
                     Escalas pausadas{ministrySuffix(profile.pause_ministry)}
                   </Badge>
                 )}
@@ -129,7 +129,7 @@ export function UnavailableMembersList({
                   <Badge
                     key={`${period.start_date}-${period.end_date}-${period.ministry ?? 'all'}`}
                     variant="secondary"
-                    className="whitespace-nowrap bg-orange-50 text-orange-700 hover:bg-orange-50"
+                    className="whitespace-nowrap bg-primary/10 text-primary-strong hover:bg-primary/10"
                   >
                     {formatUnavailableDate(period.start_date)} → {formatUnavailableDate(period.end_date)}
                     {ministrySuffix(period.ministry)}
@@ -139,7 +139,7 @@ export function UnavailableMembersList({
                   <Badge
                     key={date}
                     variant="secondary"
-                    className="whitespace-nowrap bg-orange-50 text-orange-700 hover:bg-orange-50"
+                    className="whitespace-nowrap bg-primary/10 text-primary-strong hover:bg-primary/10"
                   >
                     {formatUnavailableDate(date)}
                     {ministrySuffix(ministry)}
@@ -166,7 +166,7 @@ export function UnavailableMembersList({
     <Card className={cn('admin-surface', className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
-          <CalendarOff className="h-5 w-5 text-orange-500" />
+          <CalendarOff className="h-5 w-5 text-primary" />
           {title}
         </CardTitle>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}

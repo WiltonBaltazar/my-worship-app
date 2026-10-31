@@ -139,7 +139,7 @@ export function EditMemberDialog({ member, open, onOpenChange }: EditMemberDialo
         <form onSubmit={handleSubmit} className="space-y-4">
           {canPause && (
             <div
-              className={`flex items-center justify-between gap-3 rounded-xl border p-3 ${member.is_paused ? 'border-amber-300 bg-amber-50' : 'border-border'}`}
+              className={`flex items-center justify-between gap-3 rounded-xl border p-3 ${member.is_paused ? 'border-warning/50 bg-warning/10' : 'border-border'}`}
             >
               <div>
                 <Label htmlFor="edit-member-paused" className="cursor-pointer text-sm font-medium">

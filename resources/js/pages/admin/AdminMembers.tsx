@@ -144,7 +144,7 @@ export default function AdminMembers() {
         className="justify-start"
       >
         {ministryFilters.map((filter) => (
-          <ToggleGroupItem key={filter.value} value={filter.value} className="rounded-xl bg-white px-4">
+          <ToggleGroupItem key={filter.value} value={filter.value} className="rounded-xl bg-card px-4">
             {filter.label}
           </ToggleGroupItem>
         ))}
@@ -157,13 +157,13 @@ export default function AdminMembers() {
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Buscar membros..."
-            className="rounded-xl border-slate-200 bg-white pl-10"
+            className="rounded-xl border-border bg-card pl-10"
           />
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="relative w-full rounded-xl border-slate-200 bg-white sm:w-auto">
+            <Button variant="outline" className="relative w-full rounded-xl border-border bg-card sm:w-auto">
               <Filter className="mr-2 h-4 w-4" />
               Filtrar
               {hasActiveFilters && (
@@ -245,32 +245,32 @@ export default function AdminMembers() {
             <Card key={member.id} className="admin-surface">
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
-                  <Avatar className="h-12 w-12 border-2 border-orange-200">
+                  <Avatar className="h-12 w-12 border-2 border-primary/30">
                     <AvatarImage src={member.avatar_url ?? undefined} />
-                    <AvatarFallback className="bg-orange-50 font-semibold text-primary">{initials}</AvatarFallback>
+                    <AvatarFallback className="bg-primary/10 font-semibold text-primary">{initials}</AvatarFallback>
                   </Avatar>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold text-slate-900">{member.name}</h3>
+                      <h3 className="font-semibold text-foreground">{member.name}</h3>
                       {member.home_group && (
-                        <Badge className="bg-slate-200 text-slate-700 text-xs">
+                        <Badge className="bg-muted text-foreground text-xs">
                           {homeGroupLabels[member.home_group] ?? member.home_group}
                         </Badge>
                       )}
-                      {member.is_paused && <Badge className="bg-amber-100 text-amber-800 text-xs">Pausado{member.pause_ministry ? ` · ${MINISTRY_LABELS[member.pause_ministry]}` : ''}</Badge>}
-                      {member.in_dms && <Badge className="bg-orange-50 text-orange-700 text-xs">DMS</Badge>}
-                      {member.can_lead && <Badge className="bg-orange-50 text-orange-700 text-xs">Pode dirigir</Badge>}
-                      {member.can_be_tech_lead && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Lead</Badge>}
-                      {member.can_be_tech_sound && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Som</Badge>}
-                      {member.can_be_tech_streaming && <Badge className="bg-slate-200 text-slate-700 text-xs">Tech Streaming</Badge>}
+                      {member.is_paused && <Badge className="bg-warning/15 text-warning-strong text-xs">Pausado{member.pause_ministry ? ` · ${MINISTRY_LABELS[member.pause_ministry]}` : ''}</Badge>}
+                      {member.in_dms && <Badge className="bg-primary/10 text-primary-strong text-xs">DMS</Badge>}
+                      {member.can_lead && <Badge className="bg-primary/10 text-primary-strong text-xs">Pode dirigir</Badge>}
+                      {member.can_be_tech_lead && <Badge className="bg-muted text-foreground text-xs">Tech Lead</Badge>}
+                      {member.can_be_tech_sound && <Badge className="bg-muted text-foreground text-xs">Tech Som</Badge>}
+                      {member.can_be_tech_streaming && <Badge className="bg-muted text-foreground text-xs">Tech Streaming</Badge>}
                     </div>
-                    <p className="text-sm text-slate-500">{member.email}</p>
+                    <p className="text-sm text-muted-foreground">{member.email}</p>
 
                     <div className="mt-3 flex flex-wrap gap-4">
                       {(member.instruments ?? []).length > 0 && (
                         <div className="flex flex-wrap items-center gap-2">
-                          <Music className="h-4 w-4 text-slate-500" />
+                          <Music className="h-4 w-4 text-muted-foreground" />
                           {(member.instruments ?? []).map((instrument) => (
                             <Badge key={instrument} variant="secondary" className="text-xs">
                               {instrumentLabels[instrument] || instrument}
@@ -281,7 +281,7 @@ export default function AdminMembers() {
 
                       {(member.voices ?? []).length > 0 && (
                         <div className="flex flex-wrap items-center gap-2">
-                          <Mic2 className="h-4 w-4 text-slate-500" />
+                          <Mic2 className="h-4 w-4 text-muted-foreground" />
                           {(member.voices ?? []).map((voice) => (
                             <Badge key={voice} variant="secondary" className="text-xs">
                               {voiceLabels[voice] || voice}

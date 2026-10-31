@@ -141,9 +141,9 @@ export default function AdminSchedules() {
             onValueChange={(value) => value && setMinistryFilter(value as 'all' | Ministry)}
             className="justify-start"
           >
-            <ToggleGroupItem value="all" className="rounded-xl bg-white px-4">Todas</ToggleGroupItem>
+            <ToggleGroupItem value="all" className="rounded-xl bg-card px-4">Todas</ToggleGroupItem>
             {ledMinistries.map((ministry) => (
-              <ToggleGroupItem key={ministry} value={ministry} className="rounded-xl bg-white px-4">
+              <ToggleGroupItem key={ministry} value={ministry} className="rounded-xl bg-card px-4">
                 {MINISTRY_LABELS[ministry]}
               </ToggleGroupItem>
             ))}
@@ -159,7 +159,7 @@ export default function AdminSchedules() {
           aria-label="Modo de visualização"
         >
           {viewModeOptions.map(({ value, label, icon: Icon }) => (
-            <ToggleGroupItem key={value} value={value} className="gap-1.5 rounded-xl bg-white px-3" aria-label={label}>
+            <ToggleGroupItem key={value} value={value} className="gap-1.5 rounded-xl bg-card px-3" aria-label={label}>
               <Icon className="h-4 w-4" />
               <span className="hidden sm:inline">{label}</span>
             </ToggleGroupItem>
@@ -175,7 +175,7 @@ export default function AdminSchedules() {
           {viewMode === 'calendar' && <ScheduleCalendarView {...viewProps} />}
         </>
       ) : (
-        <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+        <div className="rounded-2xl border border-dashed border-input p-10 text-center text-muted-foreground">
           Nenhuma escala criada ainda.
         </div>
       )}

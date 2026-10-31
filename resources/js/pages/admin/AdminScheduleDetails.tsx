@@ -143,10 +143,10 @@ export default function AdminScheduleDetails() {
         <div className="admin-surface p-5">
           <div className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
-            <p className="text-xl font-semibold text-slate-900">{readableDate}</p>
+            <p className="text-xl font-semibold text-foreground">{readableDate}</p>
           </div>
-          {schedule.title && <p className="mt-1 font-medium text-slate-900">{schedule.title}</p>}
-          <div className="mt-2 flex items-center gap-2 text-slate-500">
+          {schedule.title && <p className="mt-1 font-medium text-foreground">{schedule.title}</p>}
+          <div className="mt-2 flex items-center gap-2 text-muted-foreground">
             <Clock className="h-4 w-4" />
             <span>{schedule.start_time?.slice(0, 5) ?? '11:00'}</span>
           </div>
@@ -171,7 +171,7 @@ export default function AdminScheduleDetails() {
               <div key={member.id} className="admin-surface-muted p-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-50">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                       {member.profile?.avatar_url ? (
                         <img src={member.profile.avatar_url} alt={member.profile.name} className="h-10 w-10 rounded-full object-cover" />
                       ) : (
@@ -179,8 +179,8 @@ export default function AdminScheduleDetails() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-900">{member.profile?.name}</p>
-                      <p className="truncate text-sm text-slate-500">
+                      <p className="truncate font-medium text-foreground">{member.profile?.name}</p>
+                      <p className="truncate text-sm text-muted-foreground">
                         {functionLabelMap[member.function_type] || member.function_type}
                         {member.function_detail ? ` - ${member.function_detail}` : ''}
                       </p>
@@ -194,7 +194,7 @@ export default function AdminScheduleDetails() {
                       </Badge>
                     )}
                     {member.requested_change && (
-                      <Badge variant="outline" className="border-orange-400 text-orange-700">
+                      <Badge variant="outline" className="border-primary/60 text-primary-strong">
                         <AlertTriangle className="mr-1 h-3 w-3" />
                         Troca solicitada
                       </Badge>
@@ -203,19 +203,19 @@ export default function AdminScheduleDetails() {
                 </div>
 
                 {member.requested_change && (
-                  <div className="mt-3 space-y-2 rounded-xl border border-orange-200 bg-orange-50 p-3">
-                    <p className="text-xs font-medium text-orange-700">Gerenciar solicitação de troca</p>
+                  <div className="mt-3 space-y-2 rounded-xl border border-primary/30 bg-primary/10 p-3">
+                    <p className="text-xs font-medium text-primary-strong">Gerenciar solicitação de troca</p>
                     {(member.pending_substitute_requests ?? []).length > 0 ? (
                       <div className="space-y-1">
                         {(member.pending_substitute_requests ?? []).map((req) => (
                           <div key={req.id} className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
-                              <UserCheck className="h-3.5 w-3.5 text-orange-600 shrink-0" />
-                              <span className="text-xs text-orange-800">{req.candidate_profile?.name ?? 'Candidato'}</span>
+                              <UserCheck className="h-3.5 w-3.5 text-primary-strong shrink-0" />
+                              <span className="text-xs text-primary-strong">{req.candidate_profile?.name ?? 'Candidato'}</span>
                             </div>
                             <button
                               type="button"
-                              className="inline-flex h-6 items-center gap-1 rounded-md border border-green-300 bg-white px-2 text-xs font-medium text-green-700 hover:bg-green-50 disabled:opacity-50"
+                              className="inline-flex h-6 items-center gap-1 rounded-md border border-success/40 bg-card px-2 text-xs font-medium text-success-strong hover:bg-success/10 disabled:opacity-50"
                               onClick={() => acceptSubstituteRequestMutation.mutate({
                                 requestId: req.id,
                                 scheduleMemberId: member.id,
@@ -233,11 +233,11 @@ export default function AdminScheduleDetails() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-orange-600">Nenhum candidato indicado — edite a escala para adicionar um substituto.</p>
+                      <p className="text-xs text-primary-strong">Nenhum candidato indicado — edite a escala para adicionar um substituto.</p>
                     )}
                     <button
                       type="button"
-                      className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-orange-300 bg-white px-2 py-1 text-xs font-medium text-orange-700 hover:bg-orange-100 disabled:opacity-50"
+                      className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-primary/40 bg-card px-2 py-1 text-xs font-medium text-primary-strong hover:bg-primary/15 disabled:opacity-50"
                       onClick={() => leaderDenyMutation.mutate(member.id)}
                       disabled={leaderDenyMutation.isPending}
                     >
@@ -250,7 +250,7 @@ export default function AdminScheduleDetails() {
             ))}
 
             {(schedule.members ?? []).length === 0 && (
-              <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-center text-slate-500">
+              <p className="rounded-2xl border border-dashed border-input p-4 text-center text-muted-foreground">
                 Nenhum membro escalado ainda.
               </p>
             )}
@@ -271,17 +271,17 @@ export default function AdminScheduleDetails() {
           <div className="space-y-2">
             {(schedule.songs ?? []).map((scheduleSong, index) => (
               <div key={scheduleSong.id} className="admin-surface-muted flex items-center gap-3 p-3">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-orange-50 text-xs font-semibold text-primary">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                   {index + 1}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-slate-900">{scheduleSong.song?.title ?? 'Música sem título'}</p>
-                  {scheduleSong.song?.artist && <p className="truncate text-sm text-slate-500">{scheduleSong.song.artist}</p>}
+                  <p className="truncate font-medium text-foreground">{scheduleSong.song?.title ?? 'Música sem título'}</p>
+                  {scheduleSong.song?.artist && <p className="truncate text-sm text-muted-foreground">{scheduleSong.song.artist}</p>}
                 </div>
               </div>
             ))}
             {(schedule.songs ?? []).length === 0 && (
-              <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-center text-slate-500">
+              <p className="rounded-2xl border border-dashed border-input p-4 text-center text-muted-foreground">
                 Nenhuma música adicionada ainda.
               </p>
             )}

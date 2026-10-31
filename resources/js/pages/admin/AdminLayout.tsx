@@ -62,15 +62,15 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="relative min-h-screen bg-white">
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
+    <div className="relative min-h-screen bg-surface-sunken">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3 lg:hidden">
         <Button variant="outline" size="icon" onClick={() => setIsSidebarOpen((prev) => !prev)}>
           {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
 
         <div className="text-center">
-          <p className="text-base font-semibold text-slate-900">WORA Admin</p>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">Control Center</p>
+          <p className="text-base font-semibold text-foreground">WORA Admin</p>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Control Center</p>
         </div>
 
         <div className="w-10" />
@@ -79,14 +79,14 @@ export default function AdminLayout() {
       <div className="flex min-h-screen">
         <aside
           className={cn(
-            'fixed inset-y-0 left-0 z-40 flex w-[18rem] flex-col border-r border-slate-200 bg-white transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
+            'fixed inset-y-0 left-0 z-40 flex w-[18rem] flex-col border-r border-border bg-card transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0',
             isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
           )}
         >
-          <div className="border-b border-slate-200 px-5 py-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">WORA PLATFORM</p>
-            <h1 className="mt-1 text-2xl font-semibold text-slate-900">Admin</h1>
-            <p className="mt-1 text-sm text-slate-500">Painel administrativo</p>
+          <div className="border-b border-border px-5 py-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">WORA PLATFORM</p>
+            <h1 className="mt-1 text-2xl font-semibold text-foreground">Admin</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Painel administrativo</p>
           </div>
 
           <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
@@ -108,8 +108,8 @@ export default function AdminLayout() {
                   className={cn(
                     'group relative flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors',
                     isActive
-                      ? 'border-orange-200 bg-orange-50 text-orange-700'
-                      : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900',
+                      ? 'border-primary/30 bg-primary/10 text-primary-strong'
+                      : 'border-transparent text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground',
                   )}
                 >
                   <div className="flex items-center gap-2.5">
@@ -118,12 +118,7 @@ export default function AdminLayout() {
                   </div>
 
                   {badgeCount > 0 && (
-                    <span
-                      className={cn(
-                        'inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold',
-                        isActive ? 'bg-orange-600 text-white' : 'bg-orange-500 text-white',
-                      )}
-                    >
+                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
                       {badgeCount}
                     </span>
                   )}
@@ -132,10 +127,10 @@ export default function AdminLayout() {
             })}
           </nav>
 
-          <div className="border-t border-slate-200 p-4">
+          <div className="border-t border-border p-4">
             <Button
               variant="ghost"
-              className="w-full justify-start rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700"
+              className="w-full justify-start rounded-xl text-destructive-strong hover:bg-destructive/10 hover:text-destructive-strong"
               onClick={handleSignOut}
               disabled={isSigningOut}
             >
@@ -155,14 +150,14 @@ export default function AdminLayout() {
         )}
 
         <main className="min-w-0 flex-1">
-          <div className="sticky top-0 z-20 hidden items-center justify-between border-b border-slate-200 bg-white/95 px-6 py-4 backdrop-blur lg:flex">
+          <div className="sticky top-0 z-20 hidden items-center justify-between border-b border-border bg-background/95 px-6 py-4 backdrop-blur lg:flex">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.12em] text-slate-400">Admin Area</p>
-              <p className="text-lg font-semibold text-slate-900">Painel de Gestão</p>
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Admin Area</p>
+              <p className="text-lg font-semibold text-foreground">Painel de Gestão</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-right shadow-sm">
-              <p className="text-sm font-semibold text-slate-900">{user?.name ?? 'Administrador'}</p>
-              <p className="text-xs text-slate-500">Sessão ativa</p>
+            <div className="rounded-xl border border-border bg-card px-4 py-2 text-right shadow-sm">
+              <p className="text-sm font-semibold text-foreground">{user?.name ?? 'Administrador'}</p>
+              <p className="text-xs text-muted-foreground">Sessão ativa</p>
             </div>
           </div>
 

@@ -848,7 +848,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                           key={item.key}
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
                             item.count === 0
-                              ? 'bg-orange-100 text-orange-700'
+                              ? 'bg-primary/15 text-primary-strong'
                               : 'bg-secondary text-muted-foreground'
                           }`}
                         >
@@ -1048,7 +1048,7 @@ export function EditScheduleDialog({ scheduleId, open, onOpenChange }: EditSched
                               </Badge>
                             )}
                             {member.requested_change && (
-                              <Badge variant="outline" className="border-orange-400 text-orange-700">
+                              <Badge variant="outline" className="border-primary/60 text-primary-strong">
                                 <AlertTriangle className="mr-1 h-3 w-3" />
                                 Solicitou troca
                               </Badge>

@@ -272,7 +272,7 @@ export default function SoundTechSchedules() {
         }}
         disabled={disabled}
       >
-        <SelectTrigger className="min-w-[150px] rounded-xl border-slate-200 bg-white sm:min-w-[190px]">
+        <SelectTrigger className="min-w-[150px] rounded-xl border-border bg-card sm:min-w-[190px]">
           <SelectValue placeholder="Selecione um técnico" />
         </SelectTrigger>
         <SelectContent>
@@ -304,7 +304,7 @@ export default function SoundTechSchedules() {
             Escala Técnica de Som
           </h1>
 
-          <Button variant="outline" className="rounded-xl border-slate-200 bg-white" onClick={handleExportPdf}>
+          <Button variant="outline" className="rounded-xl border-border bg-card" onClick={handleExportPdf}>
             <Download className="mr-2 h-4 w-4" />
             Exportar PDF
           </Button>
@@ -324,7 +324,7 @@ export default function SoundTechSchedules() {
               value={startDate}
               onChange={(event) => setStartDate(event.target.value)}
               min={minStartDate}
-              className="rounded-xl border-slate-200 bg-white"
+              className="rounded-xl border-border bg-card"
             />
           </div>
 
@@ -337,7 +337,7 @@ export default function SoundTechSchedules() {
               max={24}
               value={weeks}
               onChange={(event) => setWeeks(Math.max(1, Math.min(24, Number(event.target.value) || 1)))}
-              className="rounded-xl border-slate-200 bg-white"
+              className="rounded-xl border-border bg-card"
             />
           </div>
 
@@ -347,7 +347,7 @@ export default function SoundTechSchedules() {
               value={scheduleType}
               onValueChange={(value) => setScheduleType(value as TechnicalScheduleType)}
             >
-              <SelectTrigger id="tech-schedule-type" className="rounded-xl border-slate-200 bg-white">
+              <SelectTrigger id="tech-schedule-type" className="rounded-xl border-border bg-card">
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -387,13 +387,13 @@ export default function SoundTechSchedules() {
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {persistedWeeks.length === 0 && (
-            <p className="text-sm text-slate-500">Nenhuma semana técnica cadastrada neste período.</p>
+            <p className="text-sm text-muted-foreground">Nenhuma semana técnica cadastrada neste período.</p>
           )}
 
           {persistedWeeks.length > 0 && (
-            <Table className="min-w-[680px] overflow-hidden rounded-xl border border-slate-200">
+            <Table className="min-w-[680px] overflow-hidden rounded-xl border border-border">
               <TableHeader>
-                <TableRow className="bg-slate-100 hover:bg-slate-100 [&>th]:text-slate-700">
+                <TableRow className="bg-muted hover:bg-muted [&>th]:text-foreground">
                   <TableHead>Semana</TableHead>
                   <TableHead>Técnico Lead</TableHead>
                   <TableHead>Técnico Assistente</TableHead>
@@ -408,7 +408,7 @@ export default function SoundTechSchedules() {
                   const soundOptions = filterTechniciansByScheduleType(techniciansByRole.sound, weekScheduleType);
 
                   return (
-                    <TableRow key={week.id ?? week.week_start_date} className="hover:bg-slate-50 data-[state=selected]:bg-slate-100">
+                    <TableRow key={week.id ?? week.week_start_date} className="hover:bg-muted data-[state=selected]:bg-muted">
                       <TableCell className="font-medium capitalize">{formatWeekDate(week.week_start_date)}</TableCell>
                       <TableCell>{renderTechnicianSelect(week, 'lead', leadOptions, disabled)}</TableCell>
                       <TableCell>{renderTechnicianSelect(week, 'sound', soundOptions, disabled)}</TableCell>

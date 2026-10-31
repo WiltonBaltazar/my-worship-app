@@ -104,18 +104,18 @@ function ScheduleBadges({ schedule, compact = false }: { schedule: Schedule; com
       <MinistryBadge ministry={schedule.ministry} />
       <Badge className={statusBadgeClass(schedule.status)}>{statusLabelMap[schedule.status]}</Badge>
       {schedule.availability_call?.is_open && (
-        <Badge variant="outline" className="border-green-300 text-green-700">
+        <Badge variant="outline" className="border-success/40 text-success-strong">
           {compact ? 'Convocatória' : 'Convocatória aberta'}
         </Badge>
       )}
       {(schedule.guests?.length ?? 0) > 0 && (
-        <Badge variant="outline" className="border-amber-400/60 text-amber-800">
+        <Badge variant="outline" className="border-warning/60 text-warning-strong">
           <Star className="mr-1 h-3 w-3" />
           {compact ? schedule.guests?.length : `${schedule.guests?.length} participação(ões)`}
         </Badge>
       )}
       {requestCount > 0 && (
-        <Badge variant="outline" className="border-orange-400 text-orange-700">
+        <Badge variant="outline" className="border-primary/60 text-primary-strong">
           <AlertTriangle className="mr-1 h-3 w-3" />
           {compact ? requestCount : `${requestCount} solicitação(ões)`}
         </Badge>
@@ -175,12 +175,12 @@ export function ScheduleCardsView({ schedules, canManage, ...actions }: Schedule
             <CardHeader className="pb-2">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="flex min-w-0 items-start gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 text-primary">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <Calendar className="h-6 w-6" />
                   </div>
                   <div className="min-w-0">
-                    <CardTitle className="text-xl text-slate-900 lg:text-2xl">{formatScheduleDate(schedule.schedule_date)}</CardTitle>
-                    {schedule.title && <p className="mt-1 text-sm text-slate-500 lg:text-base">{schedule.title}</p>}
+                    <CardTitle className="text-xl text-foreground lg:text-2xl">{formatScheduleDate(schedule.schedule_date)}</CardTitle>
+                    {schedule.title && <p className="mt-1 text-sm text-muted-foreground lg:text-base">{schedule.title}</p>}
                     <div className="mt-2">
                       <ScheduleBadges schedule={schedule} />
                     </div>
@@ -192,7 +192,7 @@ export function ScheduleCardsView({ schedules, canManage, ...actions }: Schedule
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <div className="flex flex-wrap gap-6 text-slate-500">
+              <div className="flex flex-wrap gap-6 text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   <span>{members.length} membros escalados</span>
@@ -207,15 +207,15 @@ export function ScheduleCardsView({ schedules, canManage, ...actions }: Schedule
                 </div>
               </div>
 
-              <div className="border-t border-slate-200 pt-4">
-                <p className="mb-2 font-medium text-slate-900">Equipe:</p>
+              <div className="border-t border-border pt-4">
+                <p className="mb-2 font-medium text-foreground">Equipe:</p>
                 {members.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {members.map((member) => (
                       <Badge
                         key={member.id}
                         variant={member.confirmed ? 'default' : 'secondary'}
-                        className={member.confirmed ? 'whitespace-normal break-words bg-orange-50 text-orange-700' : 'whitespace-normal break-words'}
+                        className={member.confirmed ? 'whitespace-normal break-words bg-primary/10 text-primary-strong' : 'whitespace-normal break-words'}
                       >
                         {member.profile?.name} - {functionLabelMap[member.function_type] || member.function_type}
                         {member.function_detail ? ` - ${member.function_detail}` : ''}
@@ -259,8 +259,8 @@ export function ScheduleListView({ schedules, canManage, ...actions }: ScheduleV
             return (
               <TableRow key={schedule.id} className="cursor-pointer" onClick={() => actions.onView(schedule)}>
                 <TableCell className="whitespace-nowrap">
-                  <p className="font-medium text-slate-900">{formatScheduleDate(schedule.schedule_date, "EEE, dd/MM/yyyy")}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="font-medium text-foreground">{formatScheduleDate(schedule.schedule_date, "EEE, dd/MM/yyyy")}</p>
+                  <p className="text-xs text-muted-foreground">
                     {formatTime(schedule)}
                     {schedule.title && <span className="md:hidden"> · {schedule.title}</span>}
                   </p>
@@ -302,13 +302,13 @@ export function ScheduleGridView({ schedules, canManage, ...actions }: ScheduleV
           >
             <CardHeader className="pb-3">
               <div className="flex items-start gap-3">
-                <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-orange-50 text-primary">
+                <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <span className="text-[10px] font-semibold uppercase">{format(date, 'MMM', { locale: ptBR })}</span>
                   <span className="text-xl font-bold leading-none">{format(date, 'dd')}</span>
                 </div>
                 <div className="min-w-0">
-                  <CardTitle className="truncate text-base text-slate-900">{schedule.title || 'Culto'}</CardTitle>
-                  <p className="mt-0.5 text-sm capitalize text-slate-500">
+                  <CardTitle className="truncate text-base text-foreground">{schedule.title || 'Culto'}</CardTitle>
+                  <p className="mt-0.5 text-sm capitalize text-muted-foreground">
                     {format(date, 'EEEE', { locale: ptBR })} · {formatTime(schedule)}
                   </p>
                 </div>
@@ -316,7 +316,7 @@ export function ScheduleGridView({ schedules, canManage, ...actions }: ScheduleV
             </CardHeader>
             <CardContent className="mt-auto space-y-3">
               <ScheduleBadges schedule={schedule} compact />
-              <div className="flex gap-4 text-sm text-slate-500">
+              <div className="flex gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Users className="h-4 w-4" />
                   {members.length}
@@ -330,7 +330,7 @@ export function ScheduleGridView({ schedules, canManage, ...actions }: ScheduleV
                   {songs.length}
                 </span>
               </div>
-              <div className="border-t border-slate-100 pt-3">
+              <div className="border-t border-border pt-3">
                 <ScheduleActions schedule={schedule} canManage={canManage(schedule)} compact {...actions} />
               </div>
             </CardContent>
@@ -386,7 +386,7 @@ export function ScheduleCalendarView({ schedules, canManage, ...actions }: Sched
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <p className="text-lg font-semibold capitalize text-slate-900">{monthLabel}</p>
+            <p className="text-lg font-semibold capitalize text-foreground">{monthLabel}</p>
             {!isSameMonth(month, new Date()) && (
               <Button variant="outline" size="sm" className="h-7" onClick={() => setMonth(startOfMonth(new Date()))}>
                 Hoje
@@ -398,7 +398,7 @@ export function ScheduleCalendarView({ schedules, canManage, ...actions }: Sched
           </Button>
         </div>
 
-        <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-500">
+        <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
           {weekDayLabels.map((label) => (
             <div key={label} className="py-1">{label}</div>
           ))}
@@ -417,7 +417,7 @@ export function ScheduleCalendarView({ schedules, canManage, ...actions }: Sched
                 onClick={() => setSelectedDay(daySchedules.length > 0 ? day : null)}
                 className={cn(
                   'flex min-h-14 flex-col rounded-lg border p-1 text-left transition-colors sm:min-h-24',
-                  inMonth ? 'border-slate-200 bg-white' : 'border-transparent bg-slate-50 text-slate-400',
+                  inMonth ? 'border-border bg-card' : 'border-transparent bg-muted/50 text-muted-foreground',
                   daySchedules.length > 0 && 'hover:border-primary/50',
                   isSelected && 'border-primary ring-1 ring-primary',
                 )}
@@ -436,7 +436,7 @@ export function ScheduleCalendarView({ schedules, canManage, ...actions }: Sched
                   {daySchedules.map((schedule) => (
                     <span
                       key={schedule.id}
-                      className={cn('h-1.5 w-1.5 rounded-full', schedule.ministry === 'ghj' ? 'bg-amber-500' : 'bg-primary')}
+                      className={cn('h-1.5 w-1.5 rounded-full', schedule.ministry === 'ghj' ? 'bg-ministry-ghj' : 'bg-ministry-dms')}
                     />
                   ))}
                 </div>
@@ -446,7 +446,7 @@ export function ScheduleCalendarView({ schedules, canManage, ...actions }: Sched
                       key={schedule.id}
                       className={cn(
                         'block truncate rounded px-1 py-0.5 text-[11px] font-medium',
-                        schedule.ministry === 'ghj' ? 'bg-amber-50 text-amber-800' : 'bg-orange-50 text-orange-800',
+                        schedule.ministry === 'ghj' ? 'bg-ministry-ghj/10 text-ministry-ghj-strong' : 'bg-ministry-dms/10 text-ministry-dms-strong',
                         schedule.status === 'draft' && 'opacity-60',
                       )}
                     >
@@ -454,7 +454,7 @@ export function ScheduleCalendarView({ schedules, canManage, ...actions }: Sched
                     </span>
                   ))}
                   {daySchedules.length > 2 && (
-                    <span className="block px-1 text-[11px] text-slate-500">+{daySchedules.length - 2}</span>
+                    <span className="block px-1 text-[11px] text-muted-foreground">+{daySchedules.length - 2}</span>
                   )}
                 </div>
               </button>
@@ -465,7 +465,7 @@ export function ScheduleCalendarView({ schedules, canManage, ...actions }: Sched
 
       {selectedDay && selectedSchedules.length > 0 ? (
         <div className="space-y-2">
-          <p className="font-medium text-slate-900">{formatScheduleDate(format(selectedDay, 'yyyy-MM-dd'))}</p>
+          <p className="font-medium text-foreground">{formatScheduleDate(format(selectedDay, 'yyyy-MM-dd'))}</p>
           {selectedSchedules.map((schedule) => {
             const { members, confirmedCount } = scheduleStats(schedule);
 
@@ -476,12 +476,12 @@ export function ScheduleCalendarView({ schedules, canManage, ...actions }: Sched
                 onClick={() => actions.onView(schedule)}
               >
                 <div className="min-w-0 space-y-1">
-                  <p className="truncate font-medium text-slate-900">
+                  <p className="truncate font-medium text-foreground">
                     {formatTime(schedule)} · {schedule.title || 'Culto'}
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
                     <ScheduleBadges schedule={schedule} compact />
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-muted-foreground">
                       {confirmedCount}/{members.length} confirmados
                     </span>
                   </div>
@@ -492,7 +492,7 @@ export function ScheduleCalendarView({ schedules, canManage, ...actions }: Sched
           })}
         </div>
       ) : (
-        <p className="text-center text-sm text-slate-500">Toque num dia com escala para ver os detalhes.</p>
+        <p className="text-center text-sm text-muted-foreground">Toque num dia com escala para ver os detalhes.</p>
       )}
     </div>
   );

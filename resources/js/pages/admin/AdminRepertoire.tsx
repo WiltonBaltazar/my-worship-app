@@ -53,7 +53,7 @@ export default function AdminRepertoire() {
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Buscar músicas por título, artista ou tag..."
-          className="rounded-xl border-slate-200 bg-white pl-10"
+          className="rounded-xl border-border bg-card pl-10"
         />
       </div>
 
@@ -63,16 +63,16 @@ export default function AdminRepertoire() {
             <CardContent className="p-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                 <div className="flex min-w-0 flex-1 items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-orange-50">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                     <Music2 className="h-6 w-6 text-primary" />
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold text-slate-900">{song.title}</h3>
+                      <h3 className="font-semibold text-foreground">{song.title}</h3>
                     </div>
 
-                    {song.artist && <p className="text-sm text-slate-500">{song.artist}</p>}
+                    {song.artist && <p className="text-sm text-muted-foreground">{song.artist}</p>}
 
                     {(song.tags ?? []).length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">

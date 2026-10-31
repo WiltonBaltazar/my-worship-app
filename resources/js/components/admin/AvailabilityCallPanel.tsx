@@ -82,7 +82,7 @@ function ResponderRow({ scheduleId, response }: { scheduleId: string; response: 
   return (
     <div className="admin-surface-muted space-y-3 p-3">
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-50">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
           {profile.avatar_url ? (
             <img src={profile.avatar_url} alt={profile.name} className="h-9 w-9 rounded-full object-cover" />
           ) : (
@@ -90,8 +90,8 @@ function ResponderRow({ scheduleId, response }: { scheduleId: string; response: 
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium text-slate-900">{profile.name}</p>
-          <p className="truncate text-xs text-slate-500">{skills.length > 0 ? skills.join(' · ') : 'Sem habilidades registradas'}</p>
+          <p className="truncate font-medium text-foreground">{profile.name}</p>
+          <p className="truncate text-xs text-muted-foreground">{skills.length > 0 ? skills.join(' · ') : 'Sem habilidades registradas'}</p>
         </div>
         {response.is_scheduled && (
           <Badge className="shrink-0 bg-success/10 text-success">
@@ -160,7 +160,7 @@ export function AvailabilityCallPanel({ schedule }: { schedule: Schedule }) {
           <Megaphone className="h-5 w-5 text-primary" />
           <h2 className="text-xl font-semibold">Convocatória</h2>
           {hasCall && (
-            <Badge variant="outline" className={isOpen ? 'border-green-300 text-green-700' : 'text-slate-500'}>
+            <Badge variant="outline" className={isOpen ? 'border-success/40 text-success-strong' : 'text-muted-foreground'}>
               {isOpen ? 'Aberta' : 'Encerrada'}
             </Badge>
           )}
@@ -174,20 +174,20 @@ export function AvailabilityCallPanel({ schedule }: { schedule: Schedule }) {
       </div>
 
       {isOpen ? (
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted-foreground">
           Os membros do ministério podem confirmar se podem participar
           {currentDeadline ? ` até ${formatDeadline(currentDeadline)}` : ''}. Defina a função de quem confirmou.
         </p>
       ) : (
         <div className="admin-surface-muted space-y-3 p-3">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             {hasCall
               ? 'A convocatória está encerrada. Você pode reabri-la para receber mais respostas.'
               : 'Pergunte aos membros do ministério quem pode participar desta escala.'}
           </p>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
             <div className="space-y-1 sm:flex-1">
-              <Label htmlFor={`call-deadline-${schedule.id}`} className="text-xs text-slate-500">
+              <Label htmlFor={`call-deadline-${schedule.id}`} className="text-xs text-muted-foreground">
                 Prazo para responder (opcional)
               </Label>
               <Input
@@ -212,9 +212,9 @@ export function AvailabilityCallPanel({ schedule }: { schedule: Schedule }) {
           </div>
         ) : (
           <div className="space-y-2">
-            <div className="flex items-center gap-3 text-sm text-slate-500">
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
-                <Hand className="h-4 w-4 text-green-600" />
+                <Hand className="h-4 w-4 text-success-strong" />
                 {available.length} pode(m) participar
               </span>
               <span>·</span>
@@ -224,7 +224,7 @@ export function AvailabilityCallPanel({ schedule }: { schedule: Schedule }) {
               <ResponderRow key={response.id} scheduleId={schedule.id} response={response} />
             ))}
             {available.length === 0 && (
-              <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-center text-slate-500">
+              <p className="rounded-2xl border border-dashed border-input p-4 text-center text-muted-foreground">
                 Ninguém confirmou disponibilidade ainda.
               </p>
             )}
