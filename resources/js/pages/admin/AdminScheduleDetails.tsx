@@ -119,7 +119,7 @@ export default function AdminScheduleDetails() {
         </Button>
 
         {canManage && (
-          <div className="flex w-full gap-2 sm:w-auto">
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
             {schedule.status === 'draft' && (
               <Button className="flex-1 sm:flex-none" onClick={() => publish(schedule)} disabled={isPublishing}>
                 {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}

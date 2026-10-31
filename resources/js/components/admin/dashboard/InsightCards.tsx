@@ -85,7 +85,7 @@ export function RotationCard({ most, least }: { most: RotationEntry[]; least: Ro
         <EmptyState>Sem escalas nos últimos 90 dias.</EmptyState>
       ) : (
         <>
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div className="space-y-2">
               <p className="text-xs font-semibold text-muted-foreground">Mais escalados</p>
               {most.length > 0 ? (

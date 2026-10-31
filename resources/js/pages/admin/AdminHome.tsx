@@ -39,7 +39,7 @@ function DashboardSkeleton() {
           <Skeleton key={index} className="h-32 rounded-xl" />
         ))}
       </div>
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <Skeleton className="h-80 rounded-xl xl:col-span-2" />
         <Skeleton className="h-80 rounded-xl" />
       </div>
@@ -112,25 +112,25 @@ export default function AdminHome() {
 
       <KpiTiles data={view.data} ministryLabel={ministryLabel} />
 
-      <div className="grid items-start gap-4 xl:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-3">
         <UpcomingSchedulesCard
           schedules={view.data.upcoming}
           warnings={view.data.leaderlessSoon}
           allLink={withMinistry('/admin-app/schedules')}
           className="xl:col-span-2"
         />
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-1">
           <UnavailableThisWeekCard entries={view.unavailable} allLink={withMinistry('/admin-app/availability')} />
           <SwapRequestsCard requests={view.data.swapRequests} onOpen={handleOpenChangeRequest} />
         </div>
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
         <TeamCoverageCard profiles={view.members} />
         <RotationCard most={view.rotation.most} least={view.rotation.least} />
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
         <RepertoireCard top={view.songs.top} unused={view.songs.unused} repertoireLink={withMinistry('/admin-app/repertoire')} />
         <ActivityCard items={notifications ?? []} notificationsLink={withMinistry('/admin-app/notifications')} />
       </div>

@@ -58,7 +58,7 @@ export default function AdminRepertoire() {
         />
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {filteredSongs.map((song) => (
           <Card key={song.id} className="admin-surface">
             <CardContent className="p-4">

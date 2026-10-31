@@ -212,7 +212,7 @@ export default function AdminMembers() {
         </div>
       )}
 
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {filteredMembers.map((member) => {
           const initials = member.name
             .split(' ')
@@ -224,15 +224,15 @@ export default function AdminMembers() {
           return (
             <Card key={member.id} className="admin-surface">
               <CardContent className="p-4">
-                <div className="flex items-start gap-4">
-                  <Avatar className="h-12 w-12 border-2 border-primary/30">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <Avatar className="h-12 w-12 shrink-0 border-2 border-primary/30">
                     <AvatarImage src={member.avatar_url ?? undefined} />
                     <AvatarFallback className="bg-primary/10 font-semibold text-primary">{initials}</AvatarFallback>
                   </Avatar>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold text-foreground">{member.name}</h3>
+                      <h3 className="min-w-0 break-words font-semibold text-foreground">{member.name}</h3>
                       {member.home_group && (
                         <Badge className="bg-muted text-foreground text-xs">
                           {homeGroupLabels[member.home_group] ?? member.home_group}
@@ -245,7 +245,7 @@ export default function AdminMembers() {
                       {member.can_be_tech_sound && <Badge className="bg-muted text-foreground text-xs">Tech Som</Badge>}
                       {member.can_be_tech_streaming && <Badge className="bg-muted text-foreground text-xs">Tech Streaming</Badge>}
                     </div>
-                    <p className="text-sm text-muted-foreground">{member.email}</p>
+                    <p className="truncate text-sm text-muted-foreground">{member.email}</p>
 
                     <div className="mt-3 flex flex-wrap gap-4">
                       {(member.instruments ?? []).length > 0 && (

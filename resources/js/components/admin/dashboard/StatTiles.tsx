@@ -128,28 +128,32 @@ export function KpiTiles({ data, ministryLabel }: { data: DashboardData; ministr
         {next ? (
           <div className="flex items-center gap-4">
             <div className="min-w-0 flex-1 space-y-1">
-              <p className="truncate text-lg font-semibold leading-7 text-foreground xl:text-xl">
-                {formatShortDate(scheduleDay(next))}
-                {scheduleTime(next) && ` · ${scheduleTime(next)}`}
-              </p>
-              <p className="flex items-center gap-1.5 truncate text-[13px] text-muted-foreground">
+              <p className="text-xl font-semibold leading-7 text-foreground">{formatShortDate(scheduleDay(next))}</p>
+              <p className="flex min-w-0 items-center gap-1.5 text-[13px] text-muted-foreground">
                 <MinistryDot ministry={next.ministry} />
-                {MINISTRY_LABELS[next.ministry]} · {next.title || (next.schedule_type === 'rehearsal' ? 'Ensaio' : 'Culto')}
+                <span className="truncate">
+                  {[scheduleTime(next), MINISTRY_LABELS[next.ministry], next.title || (next.schedule_type === 'rehearsal' ? 'Ensaio' : 'Culto')]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
               </p>
             </div>
             <div className="relative h-16 w-16 shrink-0">
               <svg viewBox="0 0 64 64" className="h-16 w-16 -rotate-90" role="img" aria-label={`${next.confirmed} de ${next.total} confirmados`}>
                 <circle cx="32" cy="32" r="26" fill="none" strokeWidth="7" className="stroke-muted" />
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="26"
-                  fill="none"
-                  strokeWidth="7"
-                  strokeLinecap="round"
-                  strokeDasharray={`${ratio * RING_CIRCUMFERENCE} ${RING_CIRCUMFERENCE}`}
-                  className={ratio < 0.5 ? 'stroke-destructive' : 'stroke-success'}
-                />
+                {/* A round cap would still paint a dot at 0%. */}
+                {ratio > 0 && (
+                  <circle
+                    cx="32"
+                    cy="32"
+                    r="26"
+                    fill="none"
+                    strokeWidth="7"
+                    strokeLinecap="round"
+                    strokeDasharray={`${ratio * RING_CIRCUMFERENCE} ${RING_CIRCUMFERENCE}`}
+                    className={ratio < 0.5 ? 'stroke-destructive' : 'stroke-success'}
+                  />
+                )}
               </svg>
               <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold tabular-nums text-foreground">
                 {next.confirmed}/{next.total}
