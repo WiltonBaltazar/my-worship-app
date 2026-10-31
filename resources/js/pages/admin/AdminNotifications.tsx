@@ -33,7 +33,8 @@ import {
   useNotifications,
 } from '@/hooks/useNotifications';
 import { useProfiles } from '@/hooks/useProfiles';
-import { useSchedules } from '@/hooks/useSchedules';
+import { type Schedule, type ScheduleMember, useSchedules } from '@/hooks/useSchedules';
+import { SubstituteMemberDialog } from '@/components/admin/SubstituteMemberDialog';
 import { getAdminNotificationAction } from '@/lib/notification-actions';
 import { useToast } from '@/hooks/use-toast';
 
@@ -60,7 +61,8 @@ export default function AdminNotifications() {
   const navigate = useNavigate();
   const { withMinistry } = useAdminMinistry();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, canManageMinistry } = useAuth();
+  const [substituting, setSubstituting] = useState<{ schedule: Schedule; member: ScheduleMember } | null>(null);
 
   const { data: schedules } = useSchedules();
   const { data: profiles } = useProfiles();
@@ -91,6 +93,8 @@ export default function AdminNotifications() {
       (schedule.members ?? [])
         .filter((member) => member.requested_change)
         .map((member) => ({
+          schedule,
+          member,
           scheduleId: schedule.id,
           scheduleDate: schedule.schedule_date,
           memberName: member.profile?.name ?? 'Membro',
@@ -392,15 +396,26 @@ export default function AdminNotifications() {
                           </p>
                         )}
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0 gap-1.5 rounded-xl border-border"
-                        onClick={() => navigate(withMinistry(`/admin-app/schedules/${request.scheduleId}`))}
-                      >
-                        Ver escala
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                        {canManageMinistry(request.schedule.ministry) && (
+                          <Button
+                            size="sm"
+                            className="rounded-xl"
+                            onClick={() => setSubstituting({ schedule: request.schedule, member: request.member })}
+                          >
+                            Escolher substituto
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 rounded-xl border-border"
+                          onClick={() => navigate(withMinistry(`/admin-app/schedules/${request.scheduleId}`))}
+                        >
+                          Ver escala
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -508,6 +523,14 @@ export default function AdminNotifications() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {substituting && (
+        <SubstituteMemberDialog
+          schedule={substituting.schedule}
+          member={substituting.member}
+          onOpenChange={(open) => !open && setSubstituting(null)}
+        />
+      )}
     </div>
   );
 }

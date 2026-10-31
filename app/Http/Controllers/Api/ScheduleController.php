@@ -433,6 +433,95 @@ class ScheduleController extends Controller
         return response()->json(['message' => 'Member removed.']);
     }
 
+    /**
+     * A leader replaces a member directly with someone they pick, instead of
+     * waiting for an invited candidate to accept. Mirrors the accept flow in
+     * SubstituteRequestController, in one transaction.
+     */
+    public function substituteMember(Request $request, ScheduleMember $member): JsonResponse
+    {
+        $member->loadMissing(['profile:id,name,user_id', 'schedule']);
+        $schedule = $member->schedule;
+
+        if (! $schedule || ! MinistryAccess::canManage($request->user(), $schedule->ministry)) {
+            abort(403, 'Forbidden.');
+        }
+
+        $validated = $request->validate([
+            'profile_id' => ['required', 'exists:profiles,id'],
+        ]);
+
+        $substitute = Profile::query()
+            ->with(['user.roles:user_id,role', 'unavailableDates', 'instruments', 'voices'])
+            ->findOrFail($validated['profile_id']);
+
+        if ($schedule->members()->where('profile_id', $substitute->id)->exists()) {
+            throw ValidationException::withMessages([
+                'profile_id' => ["{$substitute->name} já está nesta escala."],
+            ]);
+        }
+
+        $this->ensureProfileInSchedulePool($substitute, $schedule, 'profile_id');
+
+        if ($this->profileIsAdmin($substitute)) {
+            throw ValidationException::withMessages([
+                'profile_id' => ['Administradores não podem ser escalados como membros.'],
+            ]);
+        }
+
+        $this->ensureProfileEligibleForNormalSchedule($substitute, $member->function_type, 'profile_id');
+        $this->ensureProfileAvailableForSchedule($substitute, $schedule, 'profile_id');
+
+        $newMember = DB::transaction(function () use ($member, $schedule, $substitute): ScheduleMember {
+            $originalProfile = $member->profile;
+            $scheduleDate = optional($schedule->schedule_date)->format('d/m/Y');
+
+            SubstituteRequest::query()
+                ->where('schedule_member_id', $member->id)
+                ->where('status', 'pending')
+                ->update(['status' => 'rejected', 'responded_at' => now()]);
+
+            $created = ScheduleMember::query()->create([
+                'schedule_id' => $member->schedule_id,
+                'profile_id' => $substitute->id,
+                'function_type' => $member->function_type,
+                'function_detail' => $member->function_detail,
+                'confirmed' => true,
+            ]);
+
+            $member->delete();
+
+            if ($originalProfile?->user_id) {
+                AppNotification::query()->create([
+                    'user_id' => $originalProfile->user_id,
+                    'schedule_id' => $schedule->id,
+                    'title' => 'Troca aprovada',
+                    'message' => $scheduleDate
+                        ? "{$substitute->name} vai substituí-lo(a) em {$scheduleDate}."
+                        : "{$substitute->name} vai substituí-lo(a).",
+                    'type' => 'confirmation',
+                ]);
+            }
+
+            if ($substitute->user_id && in_array($schedule->status, ['published', 'confirmed'], true)) {
+                AppNotification::query()->create([
+                    'user_id' => $substitute->user_id,
+                    'schedule_id' => $schedule->id,
+                    'title' => 'Você foi escalado(a) como substituto(a)',
+                    'message' => ($originalProfile?->name ? "Você vai substituir {$originalProfile->name}" : 'Você foi adicionado(a) à escala')
+                        .($scheduleDate ? " em {$scheduleDate}." : '.'),
+                    'type' => 'schedule',
+                ]);
+            }
+
+            return $created;
+        });
+
+        $newMember->load('profile:id,name,avatar_url,user_id');
+
+        return response()->json($this->formatMember($newMember));
+    }
+
     public function syncSongs(Request $request, Schedule $schedule): JsonResponse
     {
         $this->ensureScheduleSongManagementAccess($request, $schedule);

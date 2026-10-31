@@ -55,6 +55,7 @@ Route::middleware('auth.token')->group(function (): void {
     Route::post('/schedules/{schedule}/members', [ScheduleController::class, 'addMember']);
     Route::patch('/schedule-members/{member}', [ScheduleController::class, 'updateMember']);
     Route::delete('/schedule-members/{member}', [ScheduleController::class, 'removeMember']);
+    Route::post('/schedule-members/{member}/substitute', [ScheduleController::class, 'substituteMember']);
     Route::post('/schedules/{schedule}/songs', [ScheduleController::class, 'syncSongs']);
 
     Route::post('/schedules/{schedule}/guests', [ScheduleGuestController::class, 'store']);

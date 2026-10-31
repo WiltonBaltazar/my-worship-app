@@ -34,10 +34,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { AvailabilityCallPanel } from '@/components/admin/AvailabilityCallPanel';
 import { EditScheduleDialog } from '@/components/admin/EditScheduleDialog';
+import { SubstituteMemberDialog } from '@/components/admin/SubstituteMemberDialog';
 import { MinistryBadge } from '@/components/schedule/MinistryBadge';
 import { ScheduleGuests } from '@/components/schedule/ScheduleGuests';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDeleteSchedule, usePublishSchedule, useSchedules } from '@/hooks/useSchedules';
+import { type ScheduleMember, useDeleteSchedule, usePublishSchedule, useSchedules } from '@/hooks/useSchedules';
+import { cn } from '@/lib/utils';
 import { useLeaderDenyChangeRequest, useAcceptSubstituteRequest } from '@/hooks/useSubstituteRequests';
 
 const functionLabelMap: Record<string, string> = {
@@ -67,6 +69,7 @@ export default function AdminScheduleDetails() {
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [substitutingMember, setSubstitutingMember] = useState<ScheduleMember | null>(null);
 
   const schedule = schedules?.find((item) => item.id === id) ?? null;
 
@@ -233,17 +236,32 @@ export default function AdminScheduleDetails() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-primary-strong">Nenhum candidato indicado — edite a escala para adicionar um substituto.</p>
+                      <p className="text-xs text-primary-strong">Nenhum candidato convidado ainda.</p>
                     )}
-                    <button
-                      type="button"
-                      className="inline-flex w-full items-center justify-center gap-1 rounded-md border border-primary/40 bg-card px-2 py-1 text-xs font-medium text-primary-strong hover:bg-primary/15 disabled:opacity-50"
-                      onClick={() => leaderDenyMutation.mutate(member.id)}
-                      disabled={leaderDenyMutation.isPending}
-                    >
-                      <X className="h-3 w-3" />
-                      Recusar troca
-                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      {canManage && (
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center gap-1 rounded-md bg-primary px-2 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                          onClick={() => setSubstitutingMember(member)}
+                        >
+                          <UserCheck className="h-3 w-3" />
+                          Escolher substituto
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className={cn(
+                          'inline-flex items-center justify-center gap-1 rounded-md border border-primary/40 bg-card px-2 py-1.5 text-xs font-medium text-primary-strong hover:bg-primary/15 disabled:opacity-50',
+                          !canManage && 'col-span-2',
+                        )}
+                        onClick={() => leaderDenyMutation.mutate(member.id)}
+                        disabled={leaderDenyMutation.isPending}
+                      >
+                        <X className="h-3 w-3" />
+                        Recusar troca
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -312,6 +330,11 @@ export default function AdminScheduleDetails() {
       </AlertDialog>
 
       <EditScheduleDialog scheduleId={schedule.id} open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} />
+      <SubstituteMemberDialog
+        schedule={schedule}
+        member={substitutingMember}
+        onOpenChange={(open) => !open && setSubstitutingMember(null)}
+      />
     </div>
   );
 }
