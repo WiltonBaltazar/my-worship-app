@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { SubstituteMemberDialog } from '@/components/admin/SubstituteMemberDialog';
+import { useAuth } from '@/contexts/AuthContext';
 import { useAdminMinistry } from '@/hooks/useAdminMinistry';
 import type { Profile } from '@/hooks/useProfiles';
 import type { Schedule, ScheduleMember } from '@/hooks/useSchedules';
@@ -225,7 +228,11 @@ interface SwapRequest {
 }
 
 export function SwapRequestsCard({ requests, onOpen }: { requests: SwapRequest[]; onOpen: (scheduleId: string) => void }) {
+  const { canManageMinistry } = useAuth();
+  const [substituting, setSubstituting] = useState<SwapRequest | null>(null);
+
   return (
+    <>
     <SectionCard title="Solicitações de troca">
       {requests.length === 0 ? (
         <EmptyState>Nenhuma solicitação pendente.</EmptyState>
@@ -246,9 +253,16 @@ export function SwapRequestsCard({ requests, onOpen }: { requests: SwapRequest[]
                 <p className="text-[13px] text-muted-foreground">
                   {candidates > 0 ? `Aguardando substituto (${candidates} convidado${candidates > 1 ? 's' : ''})` : 'Sem substituto convidado'}
                 </p>
-                <Button variant="outline" size="sm" className="mt-1 h-8 rounded-lg" onClick={() => onOpen(schedule.id)}>
-                  Abrir escala
-                </Button>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {canManageMinistry(schedule.ministry) && (
+                    <Button size="sm" className="h-8 rounded-lg" onClick={() => setSubstituting({ schedule, member })}>
+                      Escolher substituto
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" className="h-8 rounded-lg" onClick={() => onOpen(schedule.id)}>
+                    Abrir escala
+                  </Button>
+                </div>
               </li>
             );
           })}
@@ -256,5 +270,13 @@ export function SwapRequestsCard({ requests, onOpen }: { requests: SwapRequest[]
         </ul>
       )}
     </SectionCard>
+    {substituting && (
+      <SubstituteMemberDialog
+        schedule={substituting.schedule}
+        member={substituting.member}
+        onOpenChange={(open) => !open && setSubstituting(null)}
+      />
+    )}
+    </>
   );
 }

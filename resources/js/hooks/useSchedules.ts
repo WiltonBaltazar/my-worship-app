@@ -423,6 +423,30 @@ export function useApproveSubstitute() {
   });
 }
 
+/** Leader picks the substitute directly; the server swaps the member in one transaction. */
+export function useSubstituteMember() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ memberId, profileId }: { memberId: string; profileId: string; substituteName?: string }) =>
+      apiRequest<ScheduleMember>(`/api/schedule-members/${memberId}/substitute`, {
+        method: 'POST',
+        body: { profile_id: profileId },
+      }),
+    onSuccess: (_member, { substituteName }) => {
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['my-schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['substitute-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast({ title: substituteName ? `${substituteName} entrou na escala` : 'Substituição feita' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao substituir', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
 export function useRejectChangeRequest() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
