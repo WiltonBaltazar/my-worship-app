@@ -40,7 +40,7 @@ interface AttentionTilesProps {
 }
 
 export function AttentionTiles({ attention, pendingUsers, withMinistry }: AttentionTilesProps) {
-  const scheduleLink = (id?: string) => (id ? `/admin-app/schedules/${id}` : withMinistry('/admin-app/schedules'));
+  const scheduleLink = (id?: string) => withMinistry(id ? `/admin-app/schedules/${id}` : '/admin-app/schedules');
   const tiles = [
     attention.unconfirmed.count > 0 && (
       <AttentionTile

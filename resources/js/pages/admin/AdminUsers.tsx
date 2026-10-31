@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -200,6 +201,7 @@ export default function AdminUsers() {
                   size="icon"
                   className="text-muted-foreground hover:text-foreground"
                   title="Definir senha temporária"
+                  aria-label="Definir senha temporária"
                   onClick={() => setResettingPasswordUser(user)}
                 >
                   <KeyRound className="h-4 w-4" />
@@ -210,6 +212,7 @@ export default function AdminUsers() {
                   size="icon"
                   className="text-destructive hover:text-destructive"
                   onClick={() => setDeletingUser(user)}
+                  aria-label={`Excluir ${user.name}`}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -223,10 +226,7 @@ export default function AdminUsers() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="admin-page-title">Gerenciar Usuários</h1>
-        <p className="admin-page-description">Aprove solicitações e gerencie funções dos usuários</p>
-      </header>
+      <AdminPageHeader title="Usuários" description="Aprove solicitações e gerencie funções dos usuários" />
 
       {isAdmin ? (
         <Tabs defaultValue="pending" className="min-w-0">

@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
+import { useAdminMinistry } from '@/hooks/useAdminMinistry';
 import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog,
@@ -57,6 +59,7 @@ export default function AdminScheduleDetails() {
 
   const { data: schedules, isLoading } = useSchedules();
   const { canManageMinistry } = useAuth();
+  const { withMinistry } = useAdminMinistry();
   const deleteScheduleMutation = useDeleteSchedule();
   const { publish, isPending: isPublishing } = usePublishSchedule();
   const leaderDenyMutation = useLeaderDenyChangeRequest();
@@ -75,7 +78,7 @@ export default function AdminScheduleDetails() {
     try {
       await deleteScheduleMutation.mutateAsync(schedule.id);
       setIsDeleteDialogOpen(false);
-      navigate('/admin-app/schedules');
+      navigate(withMinistry('/admin-app/schedules'));
     } catch {
       // Toast is handled by hook.
     }
@@ -92,7 +95,7 @@ export default function AdminScheduleDetails() {
   if (!schedule) {
     return (
       <div>
-        <Button variant="ghost" onClick={() => navigate('/admin-app/schedules')} className="-ml-2 mb-4">
+        <Button variant="ghost" onClick={() => navigate(withMinistry('/admin-app/schedules'))} className="-ml-2 mb-4">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
@@ -110,7 +113,7 @@ export default function AdminScheduleDetails() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button variant="ghost" onClick={() => navigate('/admin-app/schedules')} className="-ml-2">
+        <Button variant="ghost" onClick={() => navigate(withMinistry('/admin-app/schedules'))} className="-ml-2">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
@@ -134,10 +137,7 @@ export default function AdminScheduleDetails() {
         )}
       </div>
 
-      <header className="space-y-1">
-        <h1 className="admin-page-title">Detalhes da Escala</h1>
-        <p className="admin-page-description">Visualize membros, confirmações e repertório.</p>
-      </header>
+      <AdminPageHeader title="Detalhes da escala" description="Visualize membros, confirmações e repertório." />
 
       <div className="space-y-6">
         <div className="admin-surface p-5">

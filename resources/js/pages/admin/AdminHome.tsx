@@ -86,7 +86,7 @@ export default function AdminHome() {
       .filter((notification) => notification.type === 'change_request' && notification.schedule_id === scheduleId && !notification.read)
       .forEach((notification) => markAsReadMutation.mutate(notification.id));
 
-    navigate(`/admin-app/schedules/${scheduleId}`);
+    navigate(withMinistry(`/admin-app/schedules/${scheduleId}`));
   };
 
   return (

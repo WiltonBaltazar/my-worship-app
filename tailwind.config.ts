@@ -16,6 +16,10 @@ export default {
       },
     },
     extend: {
+      screens: {
+        // Laptop screens with little height (the admin sidebar tightens up).
+        short: { raw: "(max-height: 800px)" },
+      },
       fontFamily: {
         sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         display: ['"Outfit"', '"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],

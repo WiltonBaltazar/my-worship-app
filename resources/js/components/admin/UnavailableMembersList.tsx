@@ -9,6 +9,8 @@ import { type Profile, useProfiles } from '@/hooks/useProfiles';
 import type { UnavailableDate, UnavailablePeriod } from '@/lib/availability';
 import { type Ministry, MINISTRY_LABELS } from '@/lib/ministry';
 import { toLocalDateInputValue } from '@/lib/date-time';
+import { belongsToMinistry } from '@/lib/adminDashboard';
+import type { MinistryFilterValue } from '@/hooks/useAdminMinistry';
 import { cn } from '@/lib/utils';
 
 interface UnavailableMembersListProps {
@@ -18,6 +20,8 @@ interface UnavailableMembersListProps {
   description?: string;
   emptyMessage?: string;
   maxMembers?: number;
+  /** Only members of this ministry, and only absences that apply to it. */
+  ministry?: MinistryFilterValue;
 }
 
 interface UnavailableEntry {
@@ -61,6 +65,7 @@ export function UnavailableMembersList({
   description = 'Membros com escalas pausadas ou datas marcadas como indisponíveis.',
   emptyMessage = 'Nenhum membro pausado ou com datas indisponíveis futuras.',
   maxMembers,
+  ministry = 'all',
 }: UnavailableMembersListProps) {
   const { data: profiles, isLoading } = useProfiles();
 
@@ -70,23 +75,25 @@ export function UnavailableMembersList({
     }
 
     const today = toLocalDateInputValue();
+    const applies = (absenceMinistry?: Ministry | null) => ministry === 'all' || !absenceMinistry || absenceMinistry === ministry;
 
     return profiles
+      .filter((profile) => ministry === 'all' || belongsToMinistry(profile, ministry))
       .map((profile) => {
         const dates = (profile.unavailable_dates ?? [])
-          .filter((entry) => entry.date >= today)
+          .filter((entry) => entry.date >= today && applies(entry.ministry))
           .sort((a, b) => a.date.localeCompare(b.date));
         const periods = (profile.unavailable_periods ?? [])
-          .filter((period) => period.end_date >= today)
+          .filter((period) => period.end_date >= today && applies(period.ministry))
           .sort((a, b) => a.start_date.localeCompare(b.start_date));
-        const isPaused = Boolean(profile.is_paused);
+        const isPaused = Boolean(profile.is_paused) && applies(profile.pause_ministry);
         const firstDate = isPaused ? '' : [dates[0]?.date, periods[0]?.start_date].filter(Boolean).sort()[0] ?? '';
 
         return { profile, isPaused, periods, dates, firstDate };
       })
       .filter((entry) => entry.isPaused || entry.dates.length > 0 || entry.periods.length > 0)
       .sort((a, b) => a.firstDate.localeCompare(b.firstDate));
-  }, [profiles]);
+  }, [profiles, ministry]);
 
   const visibleEntries = maxMembers ? entries.slice(0, maxMembers) : entries;
   const hiddenCount = maxMembers ? Math.max(0, entries.length - maxMembers) : 0;

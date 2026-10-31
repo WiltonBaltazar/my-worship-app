@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAdminMinistry } from '@/hooks/useAdminMinistry';
 import type { Profile } from '@/hooks/useProfiles';
 import { countBy, initials, instrumentLabels, voiceLabels } from '@/lib/adminDashboard';
 import { cn } from '@/lib/utils';
@@ -175,6 +176,8 @@ interface ActivityItem {
 }
 
 export function ActivityCard({ items, notificationsLink }: { items: ActivityItem[]; notificationsLink: string }) {
+  const { withMinistry } = useAdminMinistry();
+
   return (
     <SectionCard title="Atividade recente" action={{ label: 'Notificações', to: notificationsLink }}>
       {items.length === 0 ? (
@@ -198,7 +201,7 @@ export function ActivityCard({ items, notificationsLink }: { items: ActivityItem
             return (
               <li key={item.id}>
                 {item.schedule_id ? (
-                  <Link to={`/admin-app/schedules/${item.schedule_id}`} className="-mx-2 flex items-start gap-3 rounded-md px-2 py-2.5 hover:bg-muted/40">
+                  <Link to={withMinistry(`/admin-app/schedules/${item.schedule_id}`)} className="-mx-2 flex items-start gap-3 rounded-md px-2 py-2.5 hover:bg-muted/40">
                     {body}
                   </Link>
                 ) : (

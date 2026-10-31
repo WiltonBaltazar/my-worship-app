@@ -17,6 +17,8 @@ export interface AdminNavItem {
   label: string;
   path: string;
   badge?: AdminBadgeKey;
+  /** The page follows the DMS/GHJ filter, so the top bar shows it. */
+  ministryScoped?: boolean;
 }
 
 export interface AdminNavGroup {
@@ -27,20 +29,20 @@ export interface AdminNavGroup {
 export const adminNavGroups: AdminNavGroup[] = [
   {
     label: 'Visão geral',
-    items: [{ icon: LayoutDashboard, label: 'Dashboard', path: '/admin-app' }],
+    items: [{ icon: LayoutDashboard, label: 'Dashboard', path: '/admin-app', ministryScoped: true }],
   },
   {
     label: 'Escalas',
     items: [
-      { icon: Calendar, label: 'Escalas', path: '/admin-app/schedules' },
+      { icon: Calendar, label: 'Escalas', path: '/admin-app/schedules', ministryScoped: true },
       { icon: SlidersHorizontal, label: 'Escala Técnica', path: '/admin-app/tech-schedules' },
-      { icon: CalendarOff, label: 'Indisponibilidades', path: '/admin-app/availability' },
+      { icon: CalendarOff, label: 'Indisponibilidades', path: '/admin-app/availability', ministryScoped: true },
     ],
   },
   {
     label: 'Pessoas',
     items: [
-      { icon: Users, label: 'Membros', path: '/admin-app/members' },
+      { icon: Users, label: 'Membros', path: '/admin-app/members', ministryScoped: true },
       { icon: UserCog, label: 'Usuários', path: '/admin-app/users', badge: 'pendingUsers' },
     ],
   },

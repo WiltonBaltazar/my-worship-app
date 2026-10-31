@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, LayoutGrid, List, Loader2, Plus, Rows3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { CreateScheduleDialog } from '@/components/admin/CreateScheduleDialog';
 import { EditScheduleDialog } from '@/components/admin/EditScheduleDialog';
 import {
@@ -53,7 +54,7 @@ function readStoredViewMode(): ScheduleViewMode {
 export default function AdminSchedules() {
   const navigate = useNavigate();
   const { canManageMinistry } = useAuth();
-  const { ministry: ministryFilter } = useAdminMinistry();
+  const { ministry: ministryFilter, withMinistry } = useAdminMinistry();
 
   const { data: schedules, isLoading } = useSchedules();
   const { publish: handlePublish } = usePublishSchedule();
@@ -100,7 +101,7 @@ export default function AdminSchedules() {
   const viewProps: ScheduleViewProps = {
     schedules: worshipSchedules,
     canManage: (schedule) => canManageMinistry(schedule.ministry),
-    onView: (schedule) => navigate(`/admin-app/schedules/${schedule.id}`),
+    onView: (schedule) => navigate(withMinistry(`/admin-app/schedules/${schedule.id}`)),
     onEdit: (schedule) => setEditingScheduleId(schedule.id),
     onDelete: setDeletingSchedule,
     onPublish: handlePublish,
@@ -116,19 +117,19 @@ export default function AdminSchedules() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="admin-page-title">Escalas</h1>
-          <p className="admin-page-description">Crie e gerencie escalas de culto</p>
-        </div>
-
-        <Button className="h-11 w-full rounded-xl px-5 sm:w-auto" onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="mr-2 h-5 w-5" />
-          Nova Escala
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Escalas"
+        description="Crie e gerencie escalas de culto"
+        actions={
+          <Button className="h-10 rounded-lg px-4 font-semibold" onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Nova escala
+          </Button>
+        }
+      />
 
       <UnavailableMembersList
+        ministry={ministryFilter}
         description="Verifique antes de escalar — datas em que membros não podem servir."
       />
 

@@ -49,7 +49,7 @@ export function AdminSidebar({
     .join('');
 
   return (
-    <div className="flex h-full flex-col gap-5 px-3 py-5">
+    <div className="flex h-full flex-col gap-5 px-3 py-5 short:gap-3 short:py-3">
       <div className={cn('flex items-center gap-3 px-1.5', rail && 'justify-center px-0')}>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-base font-bold text-primary-foreground">
           W
@@ -62,13 +62,13 @@ export function AdminSidebar({
         )}
       </div>
 
-      <nav aria-label="Navegação do admin" className="flex-1 space-y-4 overflow-y-auto">
+      <nav aria-label="Navegação do admin" className="flex-1 space-y-4 overflow-y-auto short:space-y-2">
         {adminNavGroups.map((group, groupIndex) => (
           <div key={group.label} className="space-y-0.5">
             {rail ? (
               groupIndex > 0 && <div className="mx-auto mb-1.5 h-px w-6 bg-sidebar-border" aria-hidden="true" />
             ) : (
-              <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground short:pb-0.5">
                 {group.label}
               </p>
             )}
@@ -86,7 +86,7 @@ export function AdminSidebar({
                     aria-current={isActive ? 'page' : undefined}
                     aria-label={rail ? item.label : undefined}
                     className={cn(
-                      'relative flex min-h-10 items-center gap-2.5 rounded-lg px-3 text-sm transition-colors',
+                      'relative flex min-h-10 items-center gap-2.5 rounded-lg px-3 text-sm transition-colors short:min-h-9',
                       rail && 'justify-center px-0',
                       isActive
                         ? 'bg-sidebar-accent font-semibold text-sidebar-accent-foreground'
@@ -112,14 +112,14 @@ export function AdminSidebar({
         ))}
       </nav>
 
-      <div className="space-y-2 border-t border-sidebar-border pt-3">
+      <div className="space-y-2 border-t border-sidebar-border pt-3 short:space-y-1 short:pt-2">
         <RailTooltip rail={rail} label="Ver como Membro">
           <Link
             to="/dashboard"
             onClick={onNavigate}
             aria-label={rail ? 'Ver como Membro' : undefined}
             className={cn(
-              'flex min-h-10 items-center gap-2.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+              'flex min-h-10 items-center gap-2.5 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground short:min-h-9',
               rail && 'justify-center px-0',
             )}
           >

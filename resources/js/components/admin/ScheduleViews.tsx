@@ -135,7 +135,7 @@ function ScheduleActions({
 }: Omit<ScheduleViewProps, 'schedules' | 'canManage'> & { schedule: Schedule; canManage: boolean; compact?: boolean }) {
   return (
     <div className="flex flex-wrap items-center gap-2" onClick={(event) => event.stopPropagation()}>
-      <Button variant="ghost" size="sm" onClick={() => onView(schedule)}>
+      <Button variant="ghost" size="sm" onClick={() => onView(schedule)} aria-label={compact ? 'Ver escala' : undefined}>
         <Eye className={cn('h-4 w-4', !compact && 'mr-1')} />
         {!compact && 'Ver'}
       </Button>

@@ -23,12 +23,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { AddMemberDialog } from '@/components/admin/AddMemberDialog';
 import { EditMemberDialog } from '@/components/admin/EditMemberDialog';
 import { UnavailableMembersList } from '@/components/admin/UnavailableMembersList';
 import { type Profile, useDeleteProfile, useProfiles } from '@/hooks/useProfiles';
-import { MINISTRY_LABELS, type Ministry } from '@/lib/ministry';
+import { MINISTRY_LABELS } from '@/lib/ministry';
+import { belongsToMinistry } from '@/lib/adminDashboard';
+import { useAdminMinistry } from '@/hooks/useAdminMinistry';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 
 const instrumentLabels: Record<string, string> = {
   guitar: 'Guitarra',
@@ -49,14 +51,6 @@ const voiceLabels: Record<string, string> = {
   bass_voice: 'Voz Grave (Baixo)',
 };
 
-type MinistryFilter = 'all' | Ministry;
-
-const ministryFilters: { value: MinistryFilter; label: string }[] = [
-  { value: 'all', label: 'Todos' },
-  { value: 'dms', label: MINISTRY_LABELS.dms },
-  { value: 'ghj', label: MINISTRY_LABELS.ghj },
-];
-
 const homeGroupLabels: Record<string, string> = {
   GHH: 'Grupo Homegénio de Homens',
   GHS: 'Grupo Homegénio de Senhoras',
@@ -69,7 +63,7 @@ export default function AdminMembers() {
   const deleteProfileMutation = useDeleteProfile();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [ministryFilter, setMinistryFilter] = useState<MinistryFilter>('all');
+  const { ministry: ministryFilter } = useAdminMinistry();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Profile | null>(null);
   const [deletingMember, setDeletingMember] = useState<Profile | null>(null);
@@ -106,9 +100,7 @@ export default function AdminMembers() {
       const matchesVoices =
         selectedVoices.length === 0 || (member.voices ?? []).some((voice) => selectedVoices.includes(voice));
 
-      const matchesMinistry =
-        ministryFilter === 'all'
-        || (ministryFilter === 'dms' ? member.in_dms : member.home_group === 'GHJ');
+      const matchesMinistry = ministryFilter === 'all' || belongsToMinistry(member, ministryFilter);
 
       return matchesSearch && matchesInstruments && matchesVoices && matchesMinistry;
     }) ?? [];
@@ -123,32 +115,18 @@ export default function AdminMembers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="admin-page-title">Membros</h1>
-          <p className="admin-page-description">Gerencie os membros do ministério</p>
-        </div>
-        <Button className="w-full rounded-xl sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar Membro
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Membros"
+        description="Gerencie os membros do ministério"
+        actions={
+          <Button className="h-10 rounded-lg px-4 font-semibold" onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Adicionar membro
+          </Button>
+        }
+      />
 
-      <UnavailableMembersList />
-
-      <ToggleGroup
-        type="single"
-        variant="outline"
-        value={ministryFilter}
-        onValueChange={(value) => value && setMinistryFilter(value as MinistryFilter)}
-        className="justify-start"
-      >
-        {ministryFilters.map((filter) => (
-          <ToggleGroupItem key={filter.value} value={filter.value} className="rounded-xl bg-card px-4">
-            {filter.label}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
+      <UnavailableMembersList ministry={ministryFilter} />
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
@@ -207,6 +185,7 @@ export default function AdminMembers() {
                 size="icon"
                 className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                 onClick={() => toggleInstrument(instrument)}
+                aria-label={`Remover filtro ${instrumentLabels[instrument]}`}
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -221,6 +200,7 @@ export default function AdminMembers() {
                 size="icon"
                 className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                 onClick={() => toggleVoice(voice)}
+                aria-label={`Remover filtro ${voiceLabels[voice]}`}
               >
                 <X className="h-3 w-3" />
               </Button>
@@ -293,7 +273,7 @@ export default function AdminMembers() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => setEditingMember(member)}>
+                    <Button variant="ghost" size="icon" onClick={() => setEditingMember(member)} aria-label={`Editar ${member.name}`}>
                       <Edit2 className="h-4 w-4" />
                     </Button>
                     <Button
@@ -301,6 +281,7 @@ export default function AdminMembers() {
                       size="icon"
                       className="text-destructive hover:text-destructive"
                       onClick={() => setDeletingMember(member)}
+                      aria-label={`Excluir ${member.name}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

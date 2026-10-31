@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminMinistry } from '@/hooks/useAdminMinistry';
 import {
   useCreateNotification,
   useMarkAllAsRead,
@@ -56,6 +58,7 @@ function TypeBadge({ type }: { type: string }) {
 
 export default function AdminNotifications() {
   const navigate = useNavigate();
+  const { withMinistry } = useAdminMinistry();
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -187,10 +190,7 @@ export default function AdminNotifications() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="admin-page-title">Notificações</h1>
-        <p className="admin-page-description">Envie avisos e acompanhe solicitações da equipe</p>
-      </header>
+      <AdminPageHeader title="Notificações" description="Envie avisos e acompanhe solicitações da equipe" />
 
       {/* Summary row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -396,7 +396,7 @@ export default function AdminNotifications() {
                         variant="outline"
                         size="sm"
                         className="shrink-0 gap-1.5 rounded-xl border-border"
-                        onClick={() => navigate(`/admin-app/schedules/${request.scheduleId}`)}
+                        onClick={() => navigate(withMinistry(`/admin-app/schedules/${request.scheduleId}`))}
                       >
                         Ver escala
                         <ChevronRight className="h-3.5 w-3.5" />

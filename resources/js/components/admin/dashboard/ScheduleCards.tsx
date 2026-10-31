@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ChevronRight } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { useAdminMinistry } from '@/hooks/useAdminMinistry';
 import type { Profile } from '@/hooks/useProfiles';
 import type { Schedule, ScheduleMember } from '@/hooks/useSchedules';
 import { formatShortDate, initials, scheduleDay, scheduleTime } from '@/lib/adminDashboard';
@@ -78,6 +79,7 @@ interface UpcomingSchedulesCardProps {
 
 export function UpcomingSchedulesCard({ schedules, allLink, warnings, className }: UpcomingSchedulesCardProps) {
   const navigate = useNavigate();
+  const { withMinistry } = useAdminMinistry();
   const rows = schedules.slice(0, 6);
 
   return (
@@ -97,7 +99,7 @@ export function UpcomingSchedulesCard({ schedules, allLink, warnings, className 
           <ul className="space-y-2 px-4 pb-4 md:hidden">
             {rows.map((schedule) => (
               <li key={schedule.id}>
-                <Link to={`/admin-app/schedules/${schedule.id}`} className="admin-surface-muted flex flex-col gap-2.5 p-3">
+                <Link to={withMinistry(`/admin-app/schedules/${schedule.id}`)} className="admin-surface-muted flex flex-col gap-2.5 p-3">
                   <div className="flex items-center gap-3">
                     <DateBlock day={scheduleDay(schedule)} />
                     <div className="min-w-0 flex-1">
@@ -134,7 +136,7 @@ export function UpcomingSchedulesCard({ schedules, allLink, warnings, className 
                 {rows.map((schedule) => (
                   <tr
                     key={schedule.id}
-                    onClick={() => navigate(`/admin-app/schedules/${schedule.id}`)}
+                    onClick={() => navigate(withMinistry(`/admin-app/schedules/${schedule.id}`))}
                     className="cursor-pointer border-b border-border transition-colors last:border-0 hover:bg-muted/40"
                   >
                     <td className="px-5 py-3">
@@ -161,7 +163,7 @@ export function UpcomingSchedulesCard({ schedules, allLink, warnings, className 
                     </td>
                     <td className="px-5 py-3 text-right">
                       <Link
-                        to={`/admin-app/schedules/${schedule.id}`}
+                        to={withMinistry(`/admin-app/schedules/${schedule.id}`)}
                         onClick={(event) => event.stopPropagation()}
                         aria-label={`Abrir escala de ${formatShortDate(scheduleDay(schedule))}`}
                         className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"

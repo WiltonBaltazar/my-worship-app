@@ -172,6 +172,7 @@ export function AdminTopbar({ unreadNotifications, onOpenMobileMenu, onToggleRai
   const { withMinistry } = useAdminMinistry();
   const activeItem = findActiveAdminItem(location.pathname);
   const isScheduleDetail = /^\/admin-app\/schedules\/[^/]+/.test(location.pathname);
+  const showMinistryFilter = Boolean(activeItem?.ministryScoped) && !isScheduleDetail;
 
   return (
     <header className="sticky top-0 z-20 flex min-h-16 flex-wrap items-center gap-2 border-b border-border bg-card/90 px-3 py-3 backdrop-blur sm:gap-3 sm:px-6">
@@ -204,7 +205,7 @@ export function AdminTopbar({ unreadNotifications, onOpenMobileMenu, onToggleRai
       </nav>
 
       <PageSearch />
-      <MinistryFilter />
+      {showMinistryFilter && <MinistryFilter />}
 
       <Link to={withMinistry('/admin-app/notifications')} className={iconButton} aria-label={`Notificações (${unreadNotifications} não lidas)`}>
         <Bell className="h-[18px] w-[18px]" />
