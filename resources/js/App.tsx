@@ -2,8 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { apiRequest, getAuthToken } from "@/lib/api";
@@ -113,6 +114,24 @@ function ServiceWorkerNavigationListener() {
   return null;
 }
 
+// Only the admin area has a finished dark theme; the member app stays light.
+function AppThemeProvider({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+  const isAdminArea = pathname.startsWith("/admin-app");
+
+  return (
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="light"
+      enableSystem
+      storageKey="wora:theme"
+      forcedTheme={isAdminArea ? undefined : "light"}
+    >
+      {children}
+    </ThemeProvider>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -122,85 +141,87 @@ const App = () => (
         <BrowserRouter>
           <PushNotificationReadSync />
           <ServiceWorkerNavigationListener />
-          <Routes>
-            <Route path="/" element={<Auth />} />
-            <Route path="/auth" element={<Auth />} />
-            
-            {/* Protected member routes */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <MemberDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/schedules" element={
-              <ProtectedRoute>
-                <Schedules />
-              </ProtectedRoute>
-            } />
-            <Route path="/schedules/:id" element={
-              <ProtectedRoute>
-                <ScheduleDetails />
-              </ProtectedRoute>
-            } />
-            <Route path="/songs/:id" element={
-              <ProtectedRoute>
-                <SongDetails />
-              </ProtectedRoute>
-            } />
-            <Route path="/repertoire" element={
-              <ProtectedRoute>
-                <Repertoire />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile/edit" element={
-              <ProtectedRoute>
-                <EditProfile />
-              </ProtectedRoute>
-            } />
-            <Route path="/notifications" element={
-              <ProtectedRoute>
-                <Notifications />
-              </ProtectedRoute>
-            } />
-            <Route path="/notifications/received" element={
-              <ProtectedRoute>
-                <ReceivedNotifications />
-              </ProtectedRoute>
-            } />
-            <Route path="/tech-schedules" element={
-              <ProtectedRoute requireSoundTechManager>
-                <SoundTechSchedules />
-              </ProtectedRoute>
-            } />
-
-            {/* Protected admin routes */}
-            <Route path="/admin-app" element={
-              <ProtectedRoute requireLeader>
-                <AdminLayout />
-              </ProtectedRoute>
-            }>
-              <Route index element={<AdminHome />} />
-              <Route path="schedules" element={<AdminSchedules />} />
-              <Route path="schedules/:id" element={<AdminScheduleDetails />} />
-              <Route path="tech-schedules" element={<SoundTechSchedules />} />
-              <Route path="members" element={<AdminMembers />} />
-              <Route path="availability" element={<AdminAvailability />} />
-              <Route path="repertoire" element={<AdminRepertoire />} />
-              <Route path="notifications" element={<AdminNotifications />} />
-              <Route path="users" element={
-                <ProtectedRoute requireLeader>
-                  <AdminUsers />
+          <AppThemeProvider>
+            <Routes>
+              <Route path="/" element={<Auth />} />
+              <Route path="/auth" element={<Auth />} />
+              
+              {/* Protected member routes */}
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <MemberDashboard />
                 </ProtectedRoute>
               } />
-            </Route>
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              <Route path="/schedules" element={
+                <ProtectedRoute>
+                  <Schedules />
+                </ProtectedRoute>
+              } />
+              <Route path="/schedules/:id" element={
+                <ProtectedRoute>
+                  <ScheduleDetails />
+                </ProtectedRoute>
+              } />
+              <Route path="/songs/:id" element={
+                <ProtectedRoute>
+                  <SongDetails />
+                </ProtectedRoute>
+              } />
+              <Route path="/repertoire" element={
+                <ProtectedRoute>
+                  <Repertoire />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile/edit" element={
+                <ProtectedRoute>
+                  <EditProfile />
+                </ProtectedRoute>
+              } />
+              <Route path="/notifications" element={
+                <ProtectedRoute>
+                  <Notifications />
+                </ProtectedRoute>
+              } />
+              <Route path="/notifications/received" element={
+                <ProtectedRoute>
+                  <ReceivedNotifications />
+                </ProtectedRoute>
+              } />
+              <Route path="/tech-schedules" element={
+                <ProtectedRoute requireSoundTechManager>
+                  <SoundTechSchedules />
+                </ProtectedRoute>
+              } />
+
+              {/* Protected admin routes */}
+              <Route path="/admin-app" element={
+                <ProtectedRoute requireLeader>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<AdminHome />} />
+                <Route path="schedules" element={<AdminSchedules />} />
+                <Route path="schedules/:id" element={<AdminScheduleDetails />} />
+                <Route path="tech-schedules" element={<SoundTechSchedules />} />
+                <Route path="members" element={<AdminMembers />} />
+                <Route path="availability" element={<AdminAvailability />} />
+                <Route path="repertoire" element={<AdminRepertoire />} />
+                <Route path="notifications" element={<AdminNotifications />} />
+                <Route path="users" element={
+                  <ProtectedRoute requireLeader>
+                    <AdminUsers />
+                  </ProtectedRoute>
+                } />
+              </Route>
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AppThemeProvider>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

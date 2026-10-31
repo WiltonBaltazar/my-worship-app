@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { type Schedule, useDeleteSchedule, usePublishSchedule, useSchedules } from '@/hooks/useSchedules';
-import { MINISTRY_LABELS, type Ministry } from '@/lib/ministry';
+import { useAdminMinistry } from '@/hooks/useAdminMinistry';
 
 const VIEW_MODE_STORAGE_KEY = 'wora:admin-schedules-view';
 
@@ -52,8 +52,8 @@ function readStoredViewMode(): ScheduleViewMode {
 
 export default function AdminSchedules() {
   const navigate = useNavigate();
-  const { ledMinistries, canManageMinistry } = useAuth();
-  const [ministryFilter, setMinistryFilter] = useState<'all' | Ministry>('all');
+  const { canManageMinistry } = useAuth();
+  const { ministry: ministryFilter } = useAdminMinistry();
 
   const { data: schedules, isLoading } = useSchedules();
   const { publish: handlePublish } = usePublishSchedule();
@@ -133,23 +133,6 @@ export default function AdminSchedules() {
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {ledMinistries.length > 1 && (
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            value={ministryFilter}
-            onValueChange={(value) => value && setMinistryFilter(value as 'all' | Ministry)}
-            className="justify-start"
-          >
-            <ToggleGroupItem value="all" className="rounded-xl bg-card px-4">Todas</ToggleGroupItem>
-            {ledMinistries.map((ministry) => (
-              <ToggleGroupItem key={ministry} value={ministry} className="rounded-xl bg-card px-4">
-                {MINISTRY_LABELS[ministry]}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        )}
-
         <ToggleGroup
           type="single"
           variant="outline"
